@@ -25,10 +25,12 @@ A client-side fact-checking demo application that verifies numeric claims in par
 ### Data Layer
 - **Facts Database**: `/public/facts.csv` - Truth table with entity facts
   - Columns: entity, attribute, value, value_type, as_of_date, source_url, source_trust, last_verified_at
-  - Sample entities: Acme Inc, TechCorp, GlobalMart
+  - Current data: 10 countries with founding years (United States, France, Germany, Italy, Japan, India, Brazil, Canada, Australia, South Africa)
+  - Structure supports adding more countries and additional attributes (population, area, GDP, etc.)
   
 - **Attribute Mapping**: `/public/attribute-mapping.json` - Keyword-to-attribute mappings
-  - Maps words like "stores" → "store_count", "founded" → "founded_year"
+  - Maps keywords like "founded", "independence", "established" → "founded_year"
+  - Easily extensible for new attributes
 
 ### Core Logic (`lib/factChecker.ts`)
 1. **Extract Numeric Claims**: Regex-based number extraction with surrounding context
@@ -91,26 +93,34 @@ public/
 
 ### Testing
 All acceptance criteria verified via end-to-end testing:
-1. "Acme has 123 stores" → ✅ Green Verified badge with source link
-2. "Acme has 124 stores" → ✅ Red Mismatch badge with source link
-3. "Acme has 77 employees" → ✅ Gray Unknown badge (no data)
+1. "United States was founded in 1776" → ✅ Green Verified badge with source link
+2. "France became independent in 1790" → ✅ Red Mismatch badge with source link (actual: 1789)
+3. "Germany has 83 million people" → ✅ Gray Unknown badge (no population data yet)
 
 ### Data Format
 
 **facts.csv**:
 ```csv
 entity,attribute,value,value_type,as_of_date,source_url,source_trust,last_verified_at
-Acme Inc,store_count,123,integer,2024-01-15,https://example.com/acme-stores,high,2024-10-01
+United States,founded_year,1776,integer,2024-01-01,https://en.wikipedia.org/wiki/...,high,2024-10-14
+France,founded_year,1789,integer,2024-01-01,https://en.wikipedia.org/wiki/...,high,2024-10-14
 ```
 
 **attribute-mapping.json**:
 ```json
 {
-  "stores": "store_count",
   "founded": "founded_year",
-  "employees": "employee_count"
+  "independence": "founded_year",
+  "established": "founded_year",
+  "independent": "founded_year"
 }
 ```
+
+**Adding More Data**:
+To add new countries or attributes:
+1. Add rows to `facts.csv` with same column structure
+2. For new attributes, add relevant keywords to `attribute-mapping.json`
+3. Example future attributes: population, area, gdp, capital, language
 
 ## Usage Instructions
 
@@ -124,12 +134,19 @@ Acme Inc,store_count,123,integer,2024-01-15,https://example.com/acme-stores,high
 
 ### Example Usage
 ```
-Entity: Acme Inc
-Paragraph: "Acme Inc was founded in 1985 and now operates 123 stores."
+Entity: United States
+Paragraph: "The United States declared independence in 1776 and became a nation."
 
 Results:
-- "1985" → Verified ✓ (founded_year)
-- "123" → Verified ✓ (store_count)
+- "1776" → Verified ✓ (founded_year)
+```
+
+```
+Entity: India
+Paragraph: "India gained independence in 1947 from British rule."
+
+Results:
+- "1947" → Verified ✓ (founded_year)
 ```
 
 ## Technical Stack
