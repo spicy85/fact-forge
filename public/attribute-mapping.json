@@ -1,0 +1,21 @@
+{
+  "stores": "store_count",
+  "store": "store_count",
+  "locations": "store_count",
+  "location": "store_count",
+  "outlets": "store_count",
+  "outlet": "store_count",
+  "founded": "founded_year",
+  "established": "founded_year",
+  "started": "founded_year",
+  "began": "founded_year",
+  "employees": "employee_count",
+  "employee": "employee_count",
+  "staff": "employee_count",
+  "workers": "employee_count",
+  "team": "employee_count",
+  "revenue": "revenue",
+  "sales": "revenue",
+  "earnings": "revenue",
+  "income": "revenue"
+}

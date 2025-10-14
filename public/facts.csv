@@ -1,0 +1,9 @@
+entity,attribute,value,value_type,as_of_date,source_url,source_trust,last_verified_at
+Acme Inc,store_count,123,integer,2024-01-15,https://example.com/acme-stores,high,2024-10-01
+Acme Inc,founded_year,1985,integer,2024-01-15,https://example.com/acme-history,high,2024-10-01
+Acme Inc,revenue,50000000,integer,2023-12-31,https://example.com/acme-financials,high,2024-09-15
+TechCorp,employee_count,5000,integer,2024-06-30,https://example.com/techcorp-team,medium,2024-10-05
+TechCorp,founded_year,2010,integer,2024-01-01,https://example.com/techcorp-about,high,2024-09-20
+GlobalMart,store_count,2500,integer,2024-03-01,https://example.com/globalmart-locations,high,2024-10-10
+GlobalMart,revenue,125000000,integer,2023-12-31,https://example.com/globalmart-earnings,high,2024-09-25
+GlobalMart,employee_count,75000,integer,2024-01-01,https://example.com/globalmart-careers,medium,2024-10-01
