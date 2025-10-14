@@ -89,6 +89,16 @@ export function verifyClaim(
   const claimedValue = claim.value;
   const recordedValue = matchingFact.value;
 
+  console.log('Verification debug:', {
+    entity,
+    attribute,
+    claimedValue,
+    recordedValue,
+    claimedType: typeof claimedValue,
+    recordedType: typeof recordedValue,
+    match: claimedValue === recordedValue
+  });
+
   if (claimedValue === recordedValue) {
     return { status: "verified", fact: matchingFact };
   } else {
