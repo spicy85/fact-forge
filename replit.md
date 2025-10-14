@@ -54,6 +54,7 @@ A client-side fact-checking demo application that verifies numeric claims in par
 - ✅ Detailed results table
 - ✅ Dark/light theme support
 - ✅ Responsive design
+- ✅ Keyboard shortcuts (Enter to verify, Shift+Enter for new line)
 
 ### Future Enhancements (Next Phase)
 - Fuzzy matching with configurable tolerance
@@ -126,7 +127,9 @@ To add new countries or attributes:
 
 1. **Select Entity**: Choose from dropdown or enter custom entity name
 2. **Enter Paragraph**: Paste text containing numeric claims
-3. **Check Facts**: Click "Check Facts" button to verify
+3. **Check Facts**: Press Enter or click "Check Facts" button to verify
+   - Press Enter to submit verification
+   - Press Shift+Enter to add a new line in the paragraph
 4. **Review Results**: 
    - Inline badges show verification status
    - Table shows detailed comparison with citations

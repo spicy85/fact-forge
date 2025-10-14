@@ -7,13 +7,21 @@ interface ParagraphInputProps {
   value: string;
   onChange: (value: string) => void;
   onClear: () => void;
+  onSubmit?: () => void;
 }
 
 export function ParagraphInput({
   value,
   onChange,
   onClear,
+  onSubmit,
 }: ParagraphInputProps) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey && onSubmit && value.trim()) {
+      e.preventDefault();
+      onSubmit();
+    }
+  };
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
@@ -34,9 +42,10 @@ export function ParagraphInput({
       </div>
       <Textarea
         id="paragraph-input"
-        placeholder="Paste a paragraph containing numeric claims here... For example: 'Acme Inc was founded in 1985 and now has 123 stores across the country, generating $50 million in revenue.'"
+        placeholder="Paste a paragraph containing numeric claims here... Press Enter to verify, or Shift+Enter for new line."
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onKeyDown={handleKeyDown}
         className="min-h-[200px] resize-none"
         data-testid="input-paragraph"
       />

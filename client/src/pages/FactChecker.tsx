@@ -128,6 +128,7 @@ export default function FactChecker() {
           value={paragraph}
           onChange={setParagraph}
           onClear={handleClear}
+          onSubmit={handleCheckFacts}
         />
 
         <div className="flex gap-4">
