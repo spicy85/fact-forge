@@ -8,7 +8,7 @@ A client-side fact-checking demo application that verifies numeric claims in par
 - ✅ Mismatched claims show red badges with source links  
 - ✅ Unknown claims show gray badges
 - ✅ Results table displays detailed verification data
-- ✅ 47 countries with 141 facts from Wikipedia & World Bank APIs
+- ✅ 48 countries with 192 facts from Wikipedia & World Bank APIs
 - ✅ Automated data fetcher (3 API requests for all countries)
 
 ## Project Architecture
@@ -27,9 +27,9 @@ A client-side fact-checking demo application that verifies numeric claims in par
 ### Data Layer
 - **Facts Database**: `/public/facts.csv` - Truth table with entity facts
   - Columns: entity, attribute, value, value_type, as_of_date, source_url, source_trust, last_verified_at
-  - Current data: 47 countries with 141 facts (founding years, population, area)
+  - Current data: 48 countries with 192 facts (founding years, population, area, GDP)
   - Fetched from Wikipedia (Wikidata) and World Bank APIs
-  - Structure supports adding more countries and additional attributes (GDP, capital, etc.)
+  - Structure supports adding more countries and additional attributes (capital, language, etc.)
   
 - **Attribute Mapping**: `/public/attribute-mapping.json` - Keyword-to-attribute mappings
   - Maps keywords like "founded", "independence" → "founded_year"

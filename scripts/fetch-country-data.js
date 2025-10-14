@@ -21,7 +21,8 @@ const TARGET_COUNTRIES = [
   'KR', 'RU', 'ES', 'AU', 'MX', 'ID', 'NL', 'SA', 'TR', 'CH',
   'PL', 'TH', 'BE', 'SE', 'NG', 'AT', 'NO', 'IL', 'AR', 'IE',
   'SG', 'PH', 'MY', 'ZA', 'DK', 'CO', 'CL', 'FI', 'EG', 'PK',
-  'VN', 'BD', 'PT', 'CZ', 'RO', 'NZ', 'PE', 'GR', 'HU', 'UA'
+  'VN', 'BD', 'PT', 'CZ', 'RO', 'NZ', 'PE', 'GR', 'HU', 'UA',
+  'PY'  // Paraguay
 ];
 
 /**
