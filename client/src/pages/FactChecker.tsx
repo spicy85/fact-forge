@@ -56,7 +56,7 @@ export default function FactChecker() {
 
         const uniqueEntities = Array.from(
           new Set(parsedFacts.map((f) => f.entity))
-        );
+        ).sort((a, b) => a.localeCompare(b));
         setEntities(uniqueEntities);
         if (uniqueEntities.length > 0) {
           setSelectedEntity(uniqueEntities[0]);
