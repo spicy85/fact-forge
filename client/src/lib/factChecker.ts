@@ -25,6 +25,28 @@ export interface NumericClaim {
   contextAfter: string;
 }
 
+/**
+ * Detect entity (country) mentioned in text
+ * Returns the first detected entity or null if none found
+ */
+export function detectEntity(text: string, availableEntities: string[]): string | null {
+  const textLower = text.toLowerCase();
+  
+  // Sort entities by length (descending) to match longer names first
+  // e.g., "United States" before "United"
+  const sortedEntities = availableEntities.sort((a, b) => b.length - a.length);
+  
+  for (const entity of sortedEntities) {
+    // Use word boundary matching for entity names
+    const regex = new RegExp(`\\b${entity.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    if (regex.test(text)) {
+      return entity;
+    }
+  }
+  
+  return null;
+}
+
 export function extractNumericClaims(text: string): NumericClaim[] {
   const claims: NumericClaim[] = [];
   const numberRegex = /\b\d+(?:,\d{3})*(?:\.\d+)?\b/g;
@@ -113,15 +135,23 @@ export function verifyClaim(
 
 export function processText(
   text: string,
-  entity: string,
   facts: FactRecord[],
-  attributeMapping: AttributeMapping
+  attributeMapping: AttributeMapping,
+  availableEntities: string[]
 ): {
   verifiedClaims: VerifiedClaim[];
   results: VerificationResult[];
+  detectedEntity: string | null;
 } {
-  if (!text || !entity) {
-    return { verifiedClaims: [], results: [] };
+  if (!text) {
+    return { verifiedClaims: [], results: [], detectedEntity: null };
+  }
+
+  // Auto-detect entity from text
+  const entity = detectEntity(text, availableEntities);
+  
+  if (!entity) {
+    return { verifiedClaims: [], results: [], detectedEntity: null };
   }
 
   const claims = extractNumericClaims(text);
@@ -159,5 +189,5 @@ export function processText(
     });
   });
 
-  return { verifiedClaims, results };
+  return { verifiedClaims, results, detectedEntity: entity };
 }
