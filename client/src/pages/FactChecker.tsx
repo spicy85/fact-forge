@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { EntitySelector } from "@/components/EntitySelector";
 import { ParagraphInput } from "@/components/ParagraphInput";
 import { RenderedParagraph } from "@/components/RenderedParagraph";
 import { ResultsTable } from "@/components/ResultsTable";
@@ -18,10 +17,10 @@ export default function FactChecker() {
   const [facts, setFacts] = useState<FactRecord[]>([]);
   const [attributeMapping, setAttributeMapping] = useState<AttributeMapping>({});
   const [entities, setEntities] = useState<string[]>([]);
-  const [selectedEntity, setSelectedEntity] = useState("");
   const [paragraph, setParagraph] = useState("");
   const [verifiedClaims, setVerifiedClaims] = useState<VerifiedClaim[]>([]);
   const [results, setResults] = useState<VerificationResult[]>([]);
+  const [detectedEntity, setDetectedEntity] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -58,9 +57,6 @@ export default function FactChecker() {
           new Set(parsedFacts.map((f) => f.entity))
         ).sort((a, b) => a.localeCompare(b));
         setEntities(uniqueEntities);
-        if (uniqueEntities.length > 0) {
-          setSelectedEntity(uniqueEntities[0]);
-        }
       } catch (error) {
         console.error("Error loading data:", error);
       } finally {
@@ -72,20 +68,22 @@ export default function FactChecker() {
   }, []);
 
   const handleCheckFacts = () => {
-    const { verifiedClaims: claims, results: res } = processText(
+    const { verifiedClaims: claims, results: res, detectedEntity: entity } = processText(
       paragraph,
-      selectedEntity,
       facts,
-      attributeMapping
+      attributeMapping,
+      entities
     );
     setVerifiedClaims(claims);
     setResults(res);
+    setDetectedEntity(entity);
   };
 
   const handleClear = () => {
     setParagraph("");
     setVerifiedClaims([]);
     setResults([]);
+    setDetectedEntity(null);
   };
 
   if (isLoading) {
@@ -116,14 +114,6 @@ export default function FactChecker() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-8 space-y-8">
-        <div className="grid gap-6 md:grid-cols-1">
-          <EntitySelector
-            entities={entities}
-            selectedEntity={selectedEntity}
-            onEntityChange={setSelectedEntity}
-          />
-        </div>
-
         <ParagraphInput
           value={paragraph}
           onChange={setParagraph}
@@ -131,15 +121,20 @@ export default function FactChecker() {
           onSubmit={handleCheckFacts}
         />
 
-        <div className="flex gap-4">
+        <div className="flex items-center gap-4">
           <Button
             onClick={handleCheckFacts}
-            disabled={!paragraph || !selectedEntity}
+            disabled={!paragraph}
             data-testid="button-check-facts"
           >
             <ShieldCheck className="h-4 w-4 mr-2" />
             Check Facts
           </Button>
+          {detectedEntity && (
+            <div className="text-sm text-muted-foreground" data-testid="text-detected-entity">
+              Detected entity: <span className="font-medium text-foreground">{detectedEntity}</span>
+            </div>
+          )}
         </div>
 
         {verifiedClaims.length > 0 && (
@@ -159,12 +154,15 @@ export default function FactChecker() {
           </div>
         )}
 
-        {!paragraph && selectedEntity && (
+        {!paragraph && (
           <div className="text-center py-12">
             <ShieldCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">Ready to Check Facts</h3>
             <p className="text-sm text-muted-foreground">
-              Paste a paragraph above and click "Check Facts" to verify numeric claims
+              Enter a paragraph containing numeric claims about a country and click "Check Facts"
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              The app will automatically detect the entity from your text
             </p>
           </div>
         )}
