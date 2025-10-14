@@ -54,9 +54,24 @@ export function guessAttribute(
 ): string | null {
   const context = (claim.contextBefore + " " + claim.contextAfter).toLowerCase();
 
-  for (const [keyword, attribute] of Object.entries(attributeMapping)) {
-    if (context.includes(keyword)) {
-      return attribute;
+  // Sort keywords by length (descending) to match longer phrases first
+  const sortedKeywords = Object.entries(attributeMapping).sort(
+    ([a], [b]) => b.length - a.length
+  );
+
+  for (const [keyword, attribute] of sortedKeywords) {
+    // Use word boundary matching for single words, substring for phrases
+    if (keyword.includes(' ')) {
+      // Multi-word phrase - use substring match
+      if (context.includes(keyword)) {
+        return attribute;
+      }
+    } else {
+      // Single word - use word boundary regex
+      const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+      if (regex.test(context)) {
+        return attribute;
+      }
     }
   }
 

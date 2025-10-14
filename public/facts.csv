@@ -2,141 +2,188 @@ entity,attribute,value,value_type,as_of_date,source_url,source_trust,last_verifi
 Canada,founded_year,1867,integer,1867-01-01,https://en.wikipedia.org/wiki/Canada,high,2025-10-14
 Canada,population,41288599,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=CA,high,2025-10-14
 Canada,area_km2,9984670,integer,2024-01-01,https://en.wikipedia.org/wiki/Canada,high,2025-10-14
+Canada,gdp_usd,2241253230970,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=CA,high,2025-10-14
 Japan,founded_year,1947,integer,1947-01-01,https://en.wikipedia.org/wiki/Japan,high,2025-10-14
 Japan,population,123975371,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=JP,high,2025-10-14
 Japan,area_km2,377972,integer,2024-01-01,https://en.wikipedia.org/wiki/Japan,high,2025-10-14
-Ireland,founded_year,1937,integer,1937-01-01,https://en.wikipedia.org/wiki/Republic_of_Ireland,high,2025-10-14
-Ireland,population,5149139,integer,2025-01-01,https://en.wikipedia.org/wiki/Republic_of_Ireland,high,2025-10-14
-Ireland,area_km2,69797,integer,2024-01-01,https://en.wikipedia.org/wiki/Republic_of_Ireland,high,2025-10-14
-Hungary,founded_year,1000,integer,1000-01-01,https://en.wikipedia.org/wiki/Hungary,high,2025-10-14
-Hungary,population,9562314,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=HU,high,2025-10-14
-Hungary,area_km2,93011,integer,2024-01-01,https://en.wikipedia.org/wiki/Hungary,high,2025-10-14
-Sweden,founded_year,900,integer,900-01-01,https://en.wikipedia.org/wiki/Sweden,high,2025-10-14
-Sweden,population,10605098,integer,2025-01-01,https://en.wikipedia.org/wiki/Sweden,high,2025-10-14
-Sweden,area_km2,447425,integer,2024-01-01,https://en.wikipedia.org/wiki/Sweden,high,2025-10-14
-Finland,founded_year,1917,integer,1917-01-01,https://en.wikipedia.org/wiki/Finland,high,2025-10-14
-Finland,population,5637214,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=FI,high,2025-10-14
-Finland,area_km2,338478,integer,2024-01-01,https://en.wikipedia.org/wiki/Finland,high,2025-10-14
-Norway,founded_year,1905,integer,1905-01-01,https://en.wikipedia.org/wiki/Norway,high,2025-10-14
-Norway,population,5572272,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=NO,high,2025-10-14
-Norway,area_km2,385207,integer,2024-01-01,https://en.wikipedia.org/wiki/Norway,high,2025-10-14
-Denmark,founded_year,800,integer,800-01-01,https://en.wikipedia.org/wiki/Denmark,high,2025-10-14
-Denmark,population,5827463,integer,2025-01-01,https://en.wikipedia.org/wiki/Denmark,high,2025-10-14
-Denmark,area_km2,42925,integer,2024-01-01,https://en.wikipedia.org/wiki/Denmark,high,2025-10-14
-Poland,founded_year,1918,integer,1918-01-01,https://en.wikipedia.org/wiki/Poland,high,2025-10-14
-Poland,population,37563071,integer,2025-01-01,https://en.wikipedia.org/wiki/Poland,high,2025-10-14
-Poland,area_km2,312683,integer,2024-01-01,https://en.wikipedia.org/wiki/Poland,high,2025-10-14
-United States,founded_year,1784,integer,1784-01-01,https://en.wikipedia.org/wiki/United_States,high,2025-10-14
-United States,population,340110988,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=US,high,2025-10-14
-United States,area_km2,9826675,integer,2024-01-01,https://en.wikipedia.org/wiki/United_States,high,2025-10-14
-Belgium,founded_year,1830,integer,1830-01-01,https://en.wikipedia.org/wiki/Belgium,high,2025-10-14
-Belgium,population,11876844,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=BE,high,2025-10-14
-Belgium,area_km2,30688,integer,2024-01-01,https://en.wikipedia.org/wiki/Belgium,high,2025-10-14
+Japan,gdp_usd,4026210821147,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=JP,high,2025-10-14
 Spain,founded_year,1978,integer,1978-01-01,https://en.wikipedia.org/wiki/Spain,high,2025-10-14
 Spain,population,48807137,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=ES,high,2025-10-14
 Spain,area_km2,505990,integer,2024-01-01,https://en.wikipedia.org/wiki/Spain,high,2025-10-14
-Italy,founded_year,1861,integer,1861-01-01,https://en.wikipedia.org/wiki/Italy,high,2025-10-14
-Italy,population,58986023,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=IT,high,2025-10-14
-Italy,area_km2,302068,integer,2024-01-01,https://en.wikipedia.org/wiki/Italy,high,2025-10-14
+Spain,gdp_usd,1722745978335,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=ES,high,2025-10-14
+Hungary,founded_year,1000,integer,1000-01-01,https://en.wikipedia.org/wiki/Hungary,high,2025-10-14
+Hungary,population,9562314,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=HU,high,2025-10-14
+Hungary,area_km2,93011,integer,2024-01-01,https://en.wikipedia.org/wiki/Hungary,high,2025-10-14
+Hungary,gdp_usd,222904723252,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=HU,high,2025-10-14
+Belgium,founded_year,1830,integer,1830-01-01,https://en.wikipedia.org/wiki/Belgium,high,2025-10-14
+Belgium,population,11876844,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=BE,high,2025-10-14
+Belgium,area_km2,30688,integer,2024-01-01,https://en.wikipedia.org/wiki/Belgium,high,2025-10-14
+Belgium,gdp_usd,664564181487,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=BE,high,2025-10-14
+United States,founded_year,1776,integer,1776-01-01,https://en.wikipedia.org/wiki/United_States,high,2025-10-14
+United States,population,340110988,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=US,high,2025-10-14
+United States,area_km2,9826675,integer,2024-01-01,https://en.wikipedia.org/wiki/United_States,high,2025-10-14
+United States,gdp_usd,29184890000000,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=US,high,2025-10-14
 Switzerland,founded_year,1848,integer,1848-01-01,https://en.wikipedia.org/wiki/Switzerland,high,2025-10-14
-Switzerland,population,1408975000,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=CH,high,2025-10-14
+Switzerland,population,9034102,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=CH,high,2025-10-14
 Switzerland,area_km2,41285,integer,2024-01-01,https://en.wikipedia.org/wiki/Switzerland,high,2025-10-14
-Austria,founded_year,1918,integer,1918-01-01,https://en.wikipedia.org/wiki/Austria,high,2025-10-14
-Austria,population,8979894,integer,2025-01-01,https://en.wikipedia.org/wiki/Austria,high,2025-10-14
-Austria,area_km2,83879,integer,2024-01-01,https://en.wikipedia.org/wiki/Austria,high,2025-10-14
+Switzerland,gdp_usd,936564198049,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=CH,high,2025-10-14
+Norway,founded_year,1905,integer,1905-01-01,https://en.wikipedia.org/wiki/Norway,high,2025-10-14
+Norway,population,5572272,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=NO,high,2025-10-14
+Norway,area_km2,385207,integer,2024-01-01,https://en.wikipedia.org/wiki/Norway,high,2025-10-14
+Norway,gdp_usd,483727398216,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=NO,high,2025-10-14
+Ireland,founded_year,1937,integer,1937-01-01,https://en.wikipedia.org/wiki/Republic_of_Ireland,high,2025-10-14
+Ireland,population,5380257,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=IE,high,2025-10-14
+Ireland,area_km2,69797,integer,2024-01-01,https://en.wikipedia.org/wiki/Republic_of_Ireland,high,2025-10-14
+Ireland,gdp_usd,577389475010,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=IE,high,2025-10-14
 Turkey,founded_year,1923,integer,1923-01-01,https://en.wikipedia.org/wiki/Turkey,high,2025-10-14
-Turkey,population,85372377,integer,2025-01-01,https://en.wikipedia.org/wiki/Turkey,high,2025-10-14
+Turkey,population,85518661,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=TR,high,2025-10-14
 Turkey,area_km2,783562,integer,2024-01-01,https://en.wikipedia.org/wiki/Turkey,high,2025-10-14
+Turkey,gdp_usd,1323254808059,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=TR,high,2025-10-14
+Austria,founded_year,1918,integer,1918-01-01,https://en.wikipedia.org/wiki/Austria,high,2025-10-14
+Austria,population,9178482,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=AT,high,2025-10-14
+Austria,area_km2,83879,integer,2024-01-01,https://en.wikipedia.org/wiki/Austria,high,2025-10-14
+Austria,gdp_usd,521642466922,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=AT,high,2025-10-14
 Greece,founded_year,1821,integer,1821-01-01,https://en.wikipedia.org/wiki/Greece,high,2025-10-14
 Greece,population,10388805,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=GR,high,2025-10-14
 Greece,area_km2,131957,integer,2024-01-01,https://en.wikipedia.org/wiki/Greece,high,2025-10-14
+Greece,gdp_usd,257144811302,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=GR,high,2025-10-14
+Sweden,founded_year,900,integer,900-01-01,https://en.wikipedia.org/wiki/Sweden,high,2025-10-14
+Sweden,population,10569709,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=SE,high,2025-10-14
+Sweden,area_km2,447425,integer,2024-01-01,https://en.wikipedia.org/wiki/Sweden,high,2025-10-14
+Sweden,gdp_usd,610117791237,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=SE,high,2025-10-14
+Denmark,founded_year,800,integer,800-01-01,https://en.wikipedia.org/wiki/Denmark,high,2025-10-14
+Denmark,population,5976992,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=DK,high,2025-10-14
+Denmark,area_km2,42925,integer,2024-01-01,https://en.wikipedia.org/wiki/Denmark,high,2025-10-14
+Denmark,gdp_usd,429457372072,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=DK,high,2025-10-14
+Finland,founded_year,1917,integer,1917-01-01,https://en.wikipedia.org/wiki/Finland,high,2025-10-14
+Finland,population,5637214,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=FI,high,2025-10-14
+Finland,area_km2,338478,integer,2024-01-01,https://en.wikipedia.org/wiki/Finland,high,2025-10-14
+Finland,gdp_usd,299835625551,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=FI,high,2025-10-14
+Italy,founded_year,1861,integer,1861-01-01,https://en.wikipedia.org/wiki/Italy,high,2025-10-14
+Italy,population,58986023,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=IT,high,2025-10-14
+Italy,area_km2,302068,integer,2024-01-01,https://en.wikipedia.org/wiki/Italy,high,2025-10-14
+Italy,gdp_usd,2372774547793,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=IT,high,2025-10-14
+Poland,founded_year,1918,integer,1918-01-01,https://en.wikipedia.org/wiki/Poland,high,2025-10-14
+Poland,population,36554707,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=PL,high,2025-10-14
+Poland,area_km2,312683,integer,2024-01-01,https://en.wikipedia.org/wiki/Poland,high,2025-10-14
+Poland,gdp_usd,914696430325,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=PL,high,2025-10-14
 Portugal,founded_year,1179,integer,1179-01-01,https://en.wikipedia.org/wiki/Portugal,high,2025-10-14
-Portugal,population,10347892,integer,2025-01-01,https://en.wikipedia.org/wiki/Portugal,high,2025-10-14
+Portugal,population,10701636,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=PT,high,2025-10-14
 Portugal,area_km2,92225,integer,2024-01-01,https://en.wikipedia.org/wiki/Portugal,high,2025-10-14
-People's Republic of China,founded_year,1949,integer,1949-01-01,https://en.wikipedia.org/wiki/China,high,2025-10-14
-People's Republic of China,population,1442965000,integer,2025-01-01,https://en.wikipedia.org/wiki/China,high,2025-10-14
-People's Republic of China,area_km2,9596961,integer,2024-01-01,https://en.wikipedia.org/wiki/China,high,2025-10-14
-Brazil,founded_year,1822,integer,1822-01-01,https://en.wikipedia.org/wiki/Brazil,high,2025-10-14
-Brazil,population,211998573,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=BR,high,2025-10-14
-Brazil,area_km2,8515767,integer,2024-01-01,https://en.wikipedia.org/wiki/Brazil,high,2025-10-14
+Portugal,gdp_usd,308683317393,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=PT,high,2025-10-14
 Egypt,founded_year,1922,integer,1922-01-01,https://en.wikipedia.org/wiki/Egypt,high,2025-10-14
 Egypt,population,116538258,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=EG,high,2025-10-14
 Egypt,area_km2,1010408,integer,2024-01-01,https://en.wikipedia.org/wiki/Egypt,high,2025-10-14
+Egypt,gdp_usd,389059911004,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=EG,high,2025-10-14
 Mexico,founded_year,1810,integer,1810-01-01,https://en.wikipedia.org/wiki/Mexico,high,2025-10-14
-Mexico,population,124777324,integer,2025-01-01,https://en.wikipedia.org/wiki/Mexico,high,2025-10-14
+Mexico,population,130861007,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=MX,high,2025-10-14
 Mexico,area_km2,1972550,integer,2024-01-01,https://en.wikipedia.org/wiki/Mexico,high,2025-10-14
+Mexico,gdp_usd,1852722885258,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=MX,high,2025-10-14
 France,founded_year,1804,integer,1804-01-01,https://en.wikipedia.org/wiki/France,high,2025-10-14
 France,population,68516699,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=FR,high,2025-10-14
 France,area_km2,643801,integer,2024-01-01,https://en.wikipedia.org/wiki/France,high,2025-10-14
-Czech Republic,founded_year,1993,integer,1993-01-01,https://en.wikipedia.org/wiki/Czech_Republic,high,2025-10-14
-Czech Republic,population,10882164,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=CZ,high,2025-10-14
-Czech Republic,area_km2,78866,integer,2024-01-01,https://en.wikipedia.org/wiki/Czech_Republic,high,2025-10-14
-Romania,founded_year,1859,integer,1859-01-01,https://en.wikipedia.org/wiki/Romania,high,2025-10-14
-Romania,population,19069340,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=RO,high,2025-10-14
-Romania,area_km2,238397,integer,2024-01-01,https://en.wikipedia.org/wiki/Romania,high,2025-10-14
-Indonesia,founded_year,1945,integer,1945-01-01,https://en.wikipedia.org/wiki/Indonesia,high,2025-10-14
-Indonesia,population,283487931,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=ID,high,2025-10-14
-Indonesia,area_km2,1904570,integer,2024-01-01,https://en.wikipedia.org/wiki/Indonesia,high,2025-10-14
-India,founded_year,1947,integer,1947-01-01,https://en.wikipedia.org/wiki/India,high,2025-10-14
-India,population,1450935791,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=IN,high,2025-10-14
-India,area_km2,3287263,integer,2024-01-01,https://en.wikipedia.org/wiki/India,high,2025-10-14
-South Africa,founded_year,1910,integer,1910-01-01,https://en.wikipedia.org/wiki/South_Africa,high,2025-10-14
-South Africa,population,64007187,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=ZA,high,2025-10-14
-South Africa,area_km2,1221037,integer,2024-01-01,https://en.wikipedia.org/wiki/South_Africa,high,2025-10-14
-Chile,founded_year,1810,integer,1810-01-01,https://en.wikipedia.org/wiki/Chile,high,2025-10-14
-Chile,population,19458000,integer,2025-01-01,https://en.wikipedia.org/wiki/Chile,high,2025-10-14
-Chile,area_km2,756102,integer,2024-01-01,https://en.wikipedia.org/wiki/Chile,high,2025-10-14
+France,gdp_usd,3162079073496,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=FR,high,2025-10-14
+People's Republic of China,founded_year,1949,integer,1949-01-01,https://en.wikipedia.org/wiki/China,high,2025-10-14
+People's Republic of China,population,1408975000,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=CN,high,2025-10-14
+People's Republic of China,area_km2,9596961,integer,2024-01-01,https://en.wikipedia.org/wiki/China,high,2025-10-14
+People's Republic of China,gdp_usd,18743803170827,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=CN,high,2025-10-14
 Singapore,founded_year,1965,integer,1965-01-01,https://en.wikipedia.org/wiki/Singapore,high,2025-10-14
 Singapore,population,6036860,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=SG,high,2025-10-14
 Singapore,area_km2,719,integer,2024-01-01,https://en.wikipedia.org/wiki/Singapore,high,2025-10-14
+Singapore,gdp_usd,547386645892,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=SG,high,2025-10-14
+South Africa,founded_year,1910,integer,1910-01-01,https://en.wikipedia.org/wiki/South_Africa,high,2025-10-14
+South Africa,population,64007187,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=ZA,high,2025-10-14
+South Africa,area_km2,1221037,integer,2024-01-01,https://en.wikipedia.org/wiki/South_Africa,high,2025-10-14
+South Africa,gdp_usd,400260724226,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=ZA,high,2025-10-14
+Chile,founded_year,1810,integer,1810-01-01,https://en.wikipedia.org/wiki/Chile,high,2025-10-14
+Chile,population,19764771,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=CL,high,2025-10-14
+Chile,area_km2,756102,integer,2024-01-01,https://en.wikipedia.org/wiki/Chile,high,2025-10-14
+Chile,gdp_usd,330267137372,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=CL,high,2025-10-14
+Indonesia,founded_year,1945,integer,1945-01-01,https://en.wikipedia.org/wiki/Indonesia,high,2025-10-14
+Indonesia,population,283487931,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=ID,high,2025-10-14
+Indonesia,area_km2,1904570,integer,2024-01-01,https://en.wikipedia.org/wiki/Indonesia,high,2025-10-14
+Indonesia,gdp_usd,1396300098191,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=ID,high,2025-10-14
+Brazil,founded_year,1822,integer,1822-01-01,https://en.wikipedia.org/wiki/Brazil,high,2025-10-14
+Brazil,population,211998573,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=BR,high,2025-10-14
+Brazil,area_km2,8515767,integer,2024-01-01,https://en.wikipedia.org/wiki/Brazil,high,2025-10-14
+Brazil,gdp_usd,2179412080829,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=BR,high,2025-10-14
 Russia,founded_year,1263,integer,1263-01-01,https://en.wikipedia.org/wiki/Russia,high,2025-10-14
 Russia,population,143533851,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=RU,high,2025-10-14
 Russia,area_km2,17075400,integer,2024-01-01,https://en.wikipedia.org/wiki/Russia,high,2025-10-14
+Russia,gdp_usd,2173835806672,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=RU,high,2025-10-14
 Germany,founded_year,1949,integer,1949-01-01,https://en.wikipedia.org/wiki/Germany,high,2025-10-14
 Germany,population,83510950,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=DE,high,2025-10-14
 Germany,area_km2,357588,integer,2024-01-01,https://en.wikipedia.org/wiki/Germany,high,2025-10-14
-Vietnam,founded_year,1976,integer,1976-01-01,https://en.wikipedia.org/wiki/Vietnam,high,2025-10-14
-Vietnam,population,100987686,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=VN,high,2025-10-14
-Vietnam,area_km2,331690,integer,2024-01-01,https://en.wikipedia.org/wiki/Vietnam,high,2025-10-14
-Australia,founded_year,1901,integer,1901-01-01,https://en.wikipedia.org/wiki/Australia,high,2025-10-14
-Australia,population,9178482,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=AU,high,2025-10-14
-Australia,area_km2,7692024,integer,2024-01-01,https://en.wikipedia.org/wiki/Australia,high,2025-10-14
-Argentina,founded_year,1816,integer,1816-01-01,https://en.wikipedia.org/wiki/Argentina,high,2025-10-14
-Argentina,population,45696159,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=AR,high,2025-10-14
-Argentina,area_km2,2780400,integer,2024-01-01,https://en.wikipedia.org/wiki/Argentina,high,2025-10-14
-New Zealand,founded_year,1986,integer,1986-01-01,https://en.wikipedia.org/wiki/New_Zealand,high,2025-10-14
-New Zealand,population,5338500,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=NZ,high,2025-10-14
-New Zealand,area_km2,268021,integer,2024-01-01,https://en.wikipedia.org/wiki/New_Zealand,high,2025-10-14
-Colombia,founded_year,1810,integer,1810-01-01,https://en.wikipedia.org/wiki/Colombia,high,2025-10-14
-Colombia,population,52886363,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=CO,high,2025-10-14
-Colombia,area_km2,1141748,integer,2024-01-01,https://en.wikipedia.org/wiki/Colombia,high,2025-10-14
-Israel,founded_year,1948,integer,1948-01-01,https://en.wikipedia.org/wiki/Israel,high,2025-10-14
-Israel,population,9840000,integer,2025-01-01,https://en.wikipedia.org/wiki/Israel,high,2025-10-14
-Israel,area_km2,20770,integer,2024-01-01,https://en.wikipedia.org/wiki/Israel,high,2025-10-14
+Germany,gdp_usd,4659929336891,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=DE,high,2025-10-14
 Malaysia,founded_year,1963,integer,1963-01-01,https://en.wikipedia.org/wiki/Malaysia,high,2025-10-14
 Malaysia,population,35557673,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=MY,high,2025-10-14
 Malaysia,area_km2,330803,integer,2024-01-01,https://en.wikipedia.org/wiki/Malaysia,high,2025-10-14
-South Korea,founded_year,1948,integer,1948-01-01,https://en.wikipedia.org/wiki/South_Korea,high,2025-10-14
-South Korea,population,51466201,integer,2025-01-01,https://en.wikipedia.org/wiki/South_Korea,high,2025-10-14
-South Korea,area_km2,100295,integer,2024-01-01,https://en.wikipedia.org/wiki/South_Korea,high,2025-10-14
-Bangladesh,founded_year,1971,integer,1971-01-01,https://en.wikipedia.org/wiki/Bangladesh,high,2025-10-14
-Bangladesh,population,171466990,integer,2025-01-01,https://en.wikipedia.org/wiki/Bangladesh,high,2025-10-14
-Bangladesh,area_km2,147570,integer,2024-01-01,https://en.wikipedia.org/wiki/Bangladesh,high,2025-10-14
-Philippines,founded_year,1946,integer,1946-01-01,https://en.wikipedia.org/wiki/Philippines,high,2025-10-14
-Philippines,population,115843670,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=PH,high,2025-10-14
-Philippines,area_km2,343448,integer,2024-01-01,https://en.wikipedia.org/wiki/Philippines,high,2025-10-14
-Nigeria,founded_year,1963,integer,1963-01-01,https://en.wikipedia.org/wiki/Nigeria,high,2025-10-14
-Nigeria,population,232679478,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=NG,high,2025-10-14
-Nigeria,area_km2,923768,integer,2024-01-01,https://en.wikipedia.org/wiki/Nigeria,high,2025-10-14
-Kingdom of the Netherlands,founded_year,1815,integer,1815-01-01,https://en.wikipedia.org/wiki/Kingdom_of_the_Netherlands,high,2025-10-14
-Kingdom of the Netherlands,population,17994237,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=NL,high,2025-10-14
-Kingdom of the Netherlands,area_km2,42201,integer,2024-01-01,https://en.wikipedia.org/wiki/Kingdom_of_the_Netherlands,high,2025-10-14
+Malaysia,gdp_usd,421972102254,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=MY,high,2025-10-14
 Pakistan,founded_year,1947,integer,1947-01-01,https://en.wikipedia.org/wiki/Pakistan,high,2025-10-14
-Pakistan,population,223773700,integer,2025-01-01,https://en.wikipedia.org/wiki/Pakistan,high,2025-10-14
+Pakistan,population,251269164,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=PK,high,2025-10-14
 Pakistan,area_km2,881913,integer,2024-01-01,https://en.wikipedia.org/wiki/Pakistan,high,2025-10-14
+Pakistan,gdp_usd,373071855732,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=PK,high,2025-10-14
+Czech Republic,founded_year,1993,integer,1993-01-01,https://en.wikipedia.org/wiki/Czech_Republic,high,2025-10-14
+Czech Republic,population,10882164,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=CZ,high,2025-10-14
+Czech Republic,area_km2,78866,integer,2024-01-01,https://en.wikipedia.org/wiki/Czech_Republic,high,2025-10-14
+Czech Republic,gdp_usd,345036675975,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=CZ,high,2025-10-14
+Romania,founded_year,1859,integer,1859-01-01,https://en.wikipedia.org/wiki/Romania,high,2025-10-14
+Romania,population,19069340,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=RO,high,2025-10-14
+Romania,area_km2,238397,integer,2024-01-01,https://en.wikipedia.org/wiki/Romania,high,2025-10-14
+Romania,gdp_usd,382767571329,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=RO,high,2025-10-14
+India,founded_year,1947,integer,1947-01-01,https://en.wikipedia.org/wiki/India,high,2025-10-14
+India,population,1450935791,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=IN,high,2025-10-14
+India,area_km2,3287263,integer,2024-01-01,https://en.wikipedia.org/wiki/India,high,2025-10-14
+India,gdp_usd,3912686168582,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=IN,high,2025-10-14
+Colombia,founded_year,1810,integer,1810-01-01,https://en.wikipedia.org/wiki/Colombia,high,2025-10-14
+Colombia,population,52886363,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=CO,high,2025-10-14
+Colombia,area_km2,1141748,integer,2024-01-01,https://en.wikipedia.org/wiki/Colombia,high,2025-10-14
+Colombia,gdp_usd,418542042920,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=CO,high,2025-10-14
+Israel,founded_year,1948,integer,1948-01-01,https://en.wikipedia.org/wiki/Israel,high,2025-10-14
+Israel,population,9974400,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=IL,high,2025-10-14
+Israel,area_km2,20770,integer,2024-01-01,https://en.wikipedia.org/wiki/Israel,high,2025-10-14
+Israel,gdp_usd,540379921262,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=IL,high,2025-10-14
 Saudi Arabia,founded_year,1727,integer,1727-01-01,https://en.wikipedia.org/wiki/Saudi_Arabia,high,2025-10-14
 Saudi Arabia,population,35300280,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=SA,high,2025-10-14
 Saudi Arabia,area_km2,2250000,integer,2024-01-01,https://en.wikipedia.org/wiki/Saudi_Arabia,high,2025-10-14
+Saudi Arabia,gdp_usd,1237529866667,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=SA,high,2025-10-14
 Thailand,founded_year,1768,integer,1768-01-01,https://en.wikipedia.org/wiki/Thailand,high,2025-10-14
 Thailand,population,71668011,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=TH,high,2025-10-14
 Thailand,area_km2,513120,integer,2024-01-01,https://en.wikipedia.org/wiki/Thailand,high,2025-10-14
+Thailand,gdp_usd,526411265428,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=TH,high,2025-10-14
+Vietnam,founded_year,1976,integer,1976-01-01,https://en.wikipedia.org/wiki/Vietnam,high,2025-10-14
+Vietnam,population,100987686,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=VN,high,2025-10-14
+Vietnam,area_km2,331690,integer,2024-01-01,https://en.wikipedia.org/wiki/Vietnam,high,2025-10-14
+Vietnam,gdp_usd,476388230307,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=VN,high,2025-10-14
+Australia,founded_year,1901,integer,1901-01-01,https://en.wikipedia.org/wiki/Australia,high,2025-10-14
+Australia,population,27204809,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=AU,high,2025-10-14
+Australia,area_km2,7692024,integer,2024-01-01,https://en.wikipedia.org/wiki/Australia,high,2025-10-14
+Australia,gdp_usd,1752193307380,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=AU,high,2025-10-14
+Argentina,founded_year,1816,integer,1816-01-01,https://en.wikipedia.org/wiki/Argentina,high,2025-10-14
+Argentina,population,45696159,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=AR,high,2025-10-14
+Argentina,area_km2,2780400,integer,2024-01-01,https://en.wikipedia.org/wiki/Argentina,high,2025-10-14
+Argentina,gdp_usd,633266692534,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=AR,high,2025-10-14
+New Zealand,founded_year,1986,integer,1986-01-01,https://en.wikipedia.org/wiki/New_Zealand,high,2025-10-14
+New Zealand,population,5338500,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=NZ,high,2025-10-14
+New Zealand,area_km2,268021,integer,2024-01-01,https://en.wikipedia.org/wiki/New_Zealand,high,2025-10-14
+New Zealand,gdp_usd,260235932559,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=NZ,high,2025-10-14
+South Korea,founded_year,1948,integer,1948-01-01,https://en.wikipedia.org/wiki/South_Korea,high,2025-10-14
+South Korea,population,51751065,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=KR,high,2025-10-14
+South Korea,area_km2,100295,integer,2024-01-01,https://en.wikipedia.org/wiki/South_Korea,high,2025-10-14
+South Korea,gdp_usd,1712792854202,integer,2023-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=KR,high,2025-10-14
+Bangladesh,founded_year,1971,integer,1971-01-01,https://en.wikipedia.org/wiki/Bangladesh,high,2025-10-14
+Bangladesh,population,173562364,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=BD,high,2025-10-14
+Bangladesh,area_km2,147570,integer,2024-01-01,https://en.wikipedia.org/wiki/Bangladesh,high,2025-10-14
+Bangladesh,gdp_usd,450119424622,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=BD,high,2025-10-14
+Philippines,founded_year,1946,integer,1946-01-01,https://en.wikipedia.org/wiki/Philippines,high,2025-10-14
+Philippines,population,115843670,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=PH,high,2025-10-14
+Philippines,area_km2,343448,integer,2024-01-01,https://en.wikipedia.org/wiki/Philippines,high,2025-10-14
+Philippines,gdp_usd,461617509782,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=PH,high,2025-10-14
+Nigeria,founded_year,1963,integer,1963-01-01,https://en.wikipedia.org/wiki/Nigeria,high,2025-10-14
+Nigeria,population,232679478,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=NG,high,2025-10-14
+Nigeria,area_km2,923768,integer,2024-01-01,https://en.wikipedia.org/wiki/Nigeria,high,2025-10-14
+Nigeria,gdp_usd,187759703100,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=NG,high,2025-10-14
+Kingdom of the Netherlands,founded_year,1815,integer,1815-01-01,https://en.wikipedia.org/wiki/Kingdom_of_the_Netherlands,high,2025-10-14
+Kingdom of the Netherlands,population,17994237,integer,2024-01-01,https://data.worldbank.org/indicator/SP.POP.TOTL?locations=NL,high,2025-10-14
+Kingdom of the Netherlands,area_km2,42201,integer,2024-01-01,https://en.wikipedia.org/wiki/Kingdom_of_the_Netherlands,high,2025-10-14
+Kingdom of the Netherlands,gdp_usd,1227543925316,integer,2024-01-01,https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=NL,high,2025-10-14

@@ -3,11 +3,13 @@
 ## Overview
 A client-side fact-checking demo application that verifies numeric claims in paragraphs against a trusted CSV dataset. The app identifies numbers in text, infers what they represent using keyword mapping, and displays inline verification badges (Verified/Mismatch/Unknown) with citations.
 
-**Current State**: Fully functional MVP with all acceptance criteria passing
+**Current State**: Fully functional MVP with systematic data fetching
 - ✅ Verified claims show green badges with source links
 - ✅ Mismatched claims show red badges with source links  
 - ✅ Unknown claims show gray badges
 - ✅ Results table displays detailed verification data
+- ✅ 47 countries with 141 facts from Wikipedia & World Bank APIs
+- ✅ Automated data fetcher (3 API requests for all countries)
 
 ## Project Architecture
 
@@ -25,11 +27,14 @@ A client-side fact-checking demo application that verifies numeric claims in par
 ### Data Layer
 - **Facts Database**: `/public/facts.csv` - Truth table with entity facts
   - Columns: entity, attribute, value, value_type, as_of_date, source_url, source_trust, last_verified_at
-  - Current data: 10 countries with founding years (United States, France, Germany, Italy, Japan, India, Brazil, Canada, Australia, South Africa)
-  - Structure supports adding more countries and additional attributes (population, area, GDP, etc.)
+  - Current data: 47 countries with 141 facts (founding years, population, area)
+  - Fetched from Wikipedia (Wikidata) and World Bank APIs
+  - Structure supports adding more countries and additional attributes (GDP, capital, etc.)
   
 - **Attribute Mapping**: `/public/attribute-mapping.json` - Keyword-to-attribute mappings
-  - Maps keywords like "founded", "independence", "established" → "founded_year"
+  - Maps keywords like "founded", "independence" → "founded_year"
+  - "population", "people" → "population"
+  - "area", "square" → "area_km2"
   - Easily extensible for new attributes
 
 ### Core Logic (`lib/factChecker.ts`)
@@ -94,9 +99,9 @@ public/
 
 ### Testing
 All acceptance criteria verified via end-to-end testing:
-1. "United States was founded in 1776" → ✅ Green Verified badge with source link
-2. "France became independent in 1790" → ✅ Red Mismatch badge with source link (actual: 1789)
-3. "Germany has 83 million people" → ✅ Gray Unknown badge (no population data yet)
+1. "Canada was founded in 1867" → ✅ Green Verified badge with Wikipedia source link
+2. "Japan has an area of 377972 square kilometers" → ✅ Green Verified badge with Wikipedia source
+3. "Germany has 500 million people" → ✅ Red Mismatch badge (actual population: different)
 
 ### Data Format
 
@@ -118,10 +123,21 @@ France,founded_year,1789,integer,2024-01-01,https://en.wikipedia.org/wiki/...,hi
 ```
 
 **Adding More Data**:
-To add new countries or attributes:
+
+**Automatic (Recommended)**:
+Run the data fetching script to systematically update facts from APIs:
+```bash
+node scripts/fetch-country-data.js
+```
+This fetches data for 50 major countries using only 3 API requests total.
+
+**Manual**:
+To manually add countries or attributes:
 1. Add rows to `facts.csv` with same column structure
 2. For new attributes, add relevant keywords to `attribute-mapping.json`
-3. Example future attributes: population, area, gdp, capital, language
+3. Example future attributes: gdp, capital, language, currency
+
+See `scripts/README.md` for details on the data fetcher.
 
 ## Usage Instructions
 

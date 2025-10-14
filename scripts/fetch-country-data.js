@@ -32,13 +32,14 @@ async function fetchWikidataCountries() {
   console.log('📡 Fetching data from Wikidata (1 request for all countries)...');
   
   const sparqlQuery = `
-    SELECT ?country ?countryLabel ?iso ?foundedYear ?population ?area ?wikipediaUrl
+    SELECT ?country ?countryLabel ?iso ?iso3 ?foundedYear ?population ?area ?wikipediaUrl
     WHERE {
       VALUES ?iso { ${TARGET_COUNTRIES.map(c => `"${c}"`).join(' ')} }
       
       ?country wdt:P297 ?iso.           # ISO 3166-1 alpha-2 code
       ?country wdt:P31 wd:Q6256.        # instance of country
       
+      OPTIONAL { ?country wdt:P298 ?iso3. }          # ISO 3166-1 alpha-3 code
       OPTIONAL { ?country wdt:P571 ?inception. }     # inception date
       OPTIONAL { ?country wdt:P1082 ?population. }   # population
       OPTIONAL { ?country wdt:P2046 ?area. }         # area in km²
@@ -76,15 +77,25 @@ async function fetchWikidataCountries() {
   
   const countries = {};
   
+  // Manual overrides for known incorrect dates from Wikidata
+  const foundingOverrides = {
+    'US': 1776,  // Declaration of Independence, not 1784
+    'GB': 1801,  // Act of Union (modern UK)
+  };
+  
   for (const result of data.results.bindings) {
     const iso = result.iso?.value;
     if (!iso) continue;
     
     if (!countries[iso]) {
+      const foundedYear = foundingOverrides[iso] || 
+        (result.foundedYear?.value ? parseInt(result.foundedYear.value) : null);
+      
       countries[iso] = {
         name: result.countryLabel?.value || iso,
         iso: iso,
-        founded_year: result.foundedYear?.value ? parseInt(result.foundedYear.value) : null,
+        iso3: result.iso3?.value,  // Store ISO-3 for World Bank mapping
+        founded_year: foundedYear,
         population: result.population?.value ? parseInt(result.population.value) : null,
         area: result.area?.value ? parseFloat(result.area.value) : null,
         wikipedia_url: result.wikipediaUrl?.value || `https://en.wikipedia.org/wiki/${result.countryLabel?.value?.replace(/ /g, '_')}`
@@ -103,11 +114,28 @@ async function fetchWikidataCountries() {
 async function fetchWorldBankData(countries) {
   console.log('📡 Fetching GDP/population from World Bank...');
   
-  const isoCodes = Object.keys(countries).join(';').toLowerCase();
+  // Build ISO-3 to ISO-2 mapping from Wikidata results
+  const iso3ToIso2 = {};
+  for (const [iso2, country] of Object.entries(countries)) {
+    if (country.iso3) {
+      iso3ToIso2[country.iso3] = iso2;
+    }
+  }
+  
+  // Use ISO-3 codes for World Bank API (they require ISO-3)
+  const iso3Codes = Object.values(countries)
+    .map(c => c.iso3)
+    .filter(Boolean)
+    .join(';');
+  
+  if (!iso3Codes) {
+    console.warn('⚠️  No ISO-3 codes available for World Bank queries');
+    return countries;
+  }
   
   // Batch request for GDP (most recent value)
-  const gdpUrl = `https://api.worldbank.org/v2/country/${isoCodes}/indicator/NY.GDP.MKTP.CD?format=json&mrnev=1&per_page=100`;
-  const popUrl = `https://api.worldbank.org/v2/country/${isoCodes}/indicator/SP.POP.TOTL?format=json&mrnev=1&per_page=100`;
+  const gdpUrl = `https://api.worldbank.org/v2/country/${iso3Codes}/indicator/NY.GDP.MKTP.CD?format=json&mrnev=1&per_page=100`;
+  const popUrl = `https://api.worldbank.org/v2/country/${iso3Codes}/indicator/SP.POP.TOTL?format=json&mrnev=1&per_page=100`;
   
   try {
     const [gdpResponse, popResponse] = await Promise.all([
@@ -119,10 +147,11 @@ async function fetchWorldBankData(countries) {
       const gdpData = await gdpResponse.json();
       if (gdpData[1]) {
         for (const item of gdpData[1]) {
-          const iso = item.countryiso3code?.substring(0, 2);
-          if (countries[iso] && item.value) {
-            countries[iso].gdp = Math.round(item.value);
-            countries[iso].gdp_year = item.date;
+          const iso3 = item.countryiso3code;
+          const iso2 = iso3ToIso2[iso3];
+          if (iso2 && countries[iso2] && item.value) {
+            countries[iso2].gdp = Math.round(item.value);
+            countries[iso2].gdp_year = item.date;
           }
         }
       }
@@ -131,14 +160,18 @@ async function fetchWorldBankData(countries) {
     if (popResponse.ok) {
       const popData = await popResponse.json();
       if (popData[1]) {
+        let updateCount = 0;
         for (const item of popData[1]) {
-          const iso = item.countryiso3code?.substring(0, 2);
-          if (countries[iso] && item.value) {
-            // Use World Bank population if more recent or if Wikidata didn't have it
-            countries[iso].population = Math.round(item.value);
-            countries[iso].population_year = item.date;
+          const iso3 = item.countryiso3code;
+          const iso2 = iso3ToIso2[iso3];
+          if (iso2 && countries[iso2] && item.value) {
+            // Use World Bank population data (prioritize over Wikidata)
+            countries[iso2].population = Math.round(item.value);
+            countries[iso2].population_year = item.date;
+            updateCount++;
           }
         }
+        console.log(`  📊 Updated population for ${updateCount} countries from World Bank`);
       }
     }
 
