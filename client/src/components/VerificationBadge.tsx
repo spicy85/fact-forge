@@ -47,7 +47,7 @@ export function VerificationBadge({
   const isInteractive = status !== "unknown" && (sourceUrl || tooltipContent);
 
   const badgeContent = (
-    <Badge
+    <span
       className={`${config.className} inline-flex items-center gap-1 text-xs font-semibold rounded-full px-2 py-0.5 transition-transform ${isInteractive ? "cursor-pointer" : ""}`}
       data-testid={`badge-${status}`}
     >
@@ -56,7 +56,7 @@ export function VerificationBadge({
       {sourceUrl && status !== "unknown" && (
         <ExternalLink className="h-2.5 w-2.5 ml-0.5" />
       )}
-    </Badge>
+    </span>
   );
 
   if (tooltipContent || sourceUrl) {
@@ -75,7 +75,9 @@ export function VerificationBadge({
               {badgeContent}
             </a>
           ) : (
-            badgeContent
+            <button className="inline-block border-0 bg-transparent p-0">
+              {badgeContent}
+            </button>
           )}
         </TooltipTrigger>
         <TooltipContent>
