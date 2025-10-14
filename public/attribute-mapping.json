@@ -8,5 +8,16 @@
   "created": "founded_year",
   "declared": "founded_year",
   "constitution": "founded_year",
-  "became": "founded_year"
+  "became": "founded_year",
+  "population": "population",
+  "people": "population",
+  "inhabitants": "population",
+  "citizens": "population",
+  "residents": "population",
+  "area": "area_km2",
+  "size": "area_km2",
+  "square": "area_km2",
+  "gdp": "gdp_usd",
+  "economy": "gdp_usd",
+  "economic": "gdp_usd"
 }
