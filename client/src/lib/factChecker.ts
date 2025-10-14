@@ -54,20 +54,12 @@ export function guessAttribute(
 ): string | null {
   const context = (claim.contextBefore + " " + claim.contextAfter).toLowerCase();
 
-  console.log('Attribute guessing:', {
-    value: claim.value,
-    context,
-    availableKeywords: Object.keys(attributeMapping)
-  });
-
   for (const [keyword, attribute] of Object.entries(attributeMapping)) {
     if (context.includes(keyword)) {
-      console.log(`Matched keyword "${keyword}" -> attribute "${attribute}"`);
       return attribute;
     }
   }
 
-  console.log('No keyword match found');
   return null;
 }
 
@@ -96,16 +88,6 @@ export function verifyClaim(
 
   const claimedValue = claim.value;
   const recordedValue = matchingFact.value;
-
-  console.log('Verification debug:', {
-    entity,
-    attribute,
-    claimedValue,
-    recordedValue,
-    claimedType: typeof claimedValue,
-    recordedType: typeof recordedValue,
-    match: claimedValue === recordedValue
-  });
 
   if (claimedValue === recordedValue) {
     return { status: "verified", fact: matchingFact };
