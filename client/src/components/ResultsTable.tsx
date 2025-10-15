@@ -15,7 +15,7 @@ export interface VerificationResult {
   attribute: string;
   verdict: VerificationStatus;
   recordedValue?: string;
-  asOfDate?: string;
+  lastVerifiedAt?: string;
   citation?: string;
 }
 
@@ -38,7 +38,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
               <TableHead className="font-medium">Attribute</TableHead>
               <TableHead className="font-medium">Verdict</TableHead>
               <TableHead className="font-medium">Recorded Value</TableHead>
-              <TableHead className="font-medium">As of Date</TableHead>
+              <TableHead className="font-medium">Last Updated</TableHead>
               <TableHead className="font-medium">Citation</TableHead>
             </TableRow>
           </TableHeader>
@@ -58,7 +58,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
                   {result.recordedValue || "-"}
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {result.asOfDate || "-"}
+                  {result.lastVerifiedAt || "-"}
                 </TableCell>
                 <TableCell>
                   {result.citation ? (
