@@ -39,11 +39,11 @@ async function migrateCsvToDb() {
         entity: entity.trim(),
         attribute: attribute.trim(),
         value: value.trim(),
-        valueType: valueType.trim(),
-        asOfDate: asOfDate.trim(),
-        sourceUrl: sourceUrl.trim(),
-        sourceTrust: sourceTrust.trim(),
-        lastVerifiedAt: lastVerifiedAt.trim(),
+        value_type: valueType.trim(),
+        as_of_date: asOfDate.trim(),
+        source_url: sourceUrl.trim(),
+        source_trust: sourceTrust.trim(),
+        last_verified_at: lastVerifiedAt.trim(),
       });
       successCount++;
     } catch (error) {

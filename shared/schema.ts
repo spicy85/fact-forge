@@ -22,11 +22,11 @@ export const facts = pgTable("facts", {
   entity: text("entity").notNull(),
   attribute: text("attribute").notNull(),
   value: text("value").notNull(),
-  valueType: text("value_type").notNull(),
-  asOfDate: text("as_of_date").notNull(),
-  sourceUrl: text("source_url").notNull(),
-  sourceTrust: text("source_trust").notNull(),
-  lastVerifiedAt: text("last_verified_at").notNull(),
+  value_type: text("value_type").notNull(),
+  as_of_date: text("as_of_date").notNull(),
+  source_url: text("source_url").notNull(),
+  source_trust: text("source_trust").notNull(),
+  last_verified_at: text("last_verified_at").notNull(),
 });
 
 export const insertFactSchema = createInsertSchema(facts).omit({

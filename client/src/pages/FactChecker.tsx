@@ -27,28 +27,12 @@ export default function FactChecker() {
     async function loadData() {
       try {
         const [factsRes, mappingRes] = await Promise.all([
-          fetch("/facts.csv"),
+          fetch("/api/facts"),
           fetch("/attribute-mapping.json"),
         ]);
 
-        const factsText = await factsRes.text();
+        const parsedFacts: FactRecord[] = await factsRes.json();
         const mappingData = await mappingRes.json();
-
-        const lines = factsText.trim().split("\n");
-        const headers = lines[0].split(",");
-        const parsedFacts: FactRecord[] = lines.slice(1).map((line) => {
-          const values = line.split(",");
-          return {
-            entity: values[0],
-            attribute: values[1],
-            value: values[2],
-            value_type: values[3],
-            as_of_date: values[4],
-            source_url: values[5],
-            source_trust: values[6],
-            last_verified_at: values[7],
-          };
-        });
 
         setFacts(parsedFacts);
         setAttributeMapping(mappingData);
