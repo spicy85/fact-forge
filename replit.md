@@ -1,15 +1,16 @@
 # Knowledge Agent - AI Fact Checker
 
 ## Overview
-A client-side fact-checking demo application that verifies numeric claims in paragraphs against a trusted CSV dataset. The app identifies numbers in text, infers what they represent using keyword mapping, and displays inline verification badges (Verified/Mismatch/Unknown) with citations.
+A fact-checking application that verifies numeric claims in paragraphs against a trusted PostgreSQL database. The app identifies numbers in text, infers what they represent using keyword mapping, and displays inline verification badges (Verified/Mismatch/Unknown) with citations.
 
-**Current State**: Fully functional MVP with systematic data fetching
+**Current State**: Fully functional MVP with database backend
 - ✅ Verified claims show green badges with source links
 - ✅ Mismatched claims show red badges with source links  
 - ✅ Unknown claims show gray badges
 - ✅ Results table displays detailed verification data
 - ✅ 48 countries with 192 facts from Wikipedia & World Bank APIs
 - ✅ Automated data fetcher (3 API requests for all countries)
+- ✅ PostgreSQL database for reliable fact storage
 
 ## Project Architecture
 
@@ -24,10 +25,12 @@ A client-side fact-checking demo application that verifies numeric claims in par
   - `ThemeToggle`: Dark/light mode support
 
 ### Data Layer
-- **Facts Database**: `/public/facts.csv` - Truth table with entity facts
-  - Columns: entity, attribute, value, value_type, as_of_date, source_url, source_trust, last_verified_at
+- **Facts Database**: PostgreSQL - Truth table with entity facts
+  - Schema: `facts` table (shared/schema.ts)
+  - Columns: id, entity, attribute, value, value_type, as_of_date, source_url, source_trust, last_verified_at
   - Current data: 48 countries with 192 facts (founding years, population, area, GDP)
   - Fetched from Wikipedia (Wikidata) and World Bank APIs
+  - API endpoint: GET `/api/facts` (server/routes.ts)
   - Structure supports adding more countries and additional attributes (capital, language, etc.)
   
 - **Attribute Mapping**: `/public/attribute-mapping.json` - Keyword-to-attribute mappings
@@ -40,12 +43,15 @@ A client-side fact-checking demo application that verifies numeric claims in par
 1. **Detect Entity**: Auto-detect country name from text using word boundaries
 2. **Extract Numeric Claims**: Regex-based number extraction with surrounding context
 3. **Guess Attributes**: Match keywords in context to attributes using mapping
-4. **Verify Claims**: Exact match comparison against CSV data
+4. **Verify Claims**: Exact match comparison against database data
 5. **Generate Results**: Create badges and table data with citations
 
-### Backend (Express)
-- Minimal server setup serving static files from `/public`
-- No backend API required - all processing is client-side
+### Backend (Express + PostgreSQL)
+- Express server with Vite integration
+- PostgreSQL database (Neon) for facts storage
+- API endpoint: GET `/api/facts` returns all facts as JSON
+- Drizzle ORM for database operations
+- Frontend fetches facts on page load, then processes locally
 
 ## Features
 
@@ -85,16 +91,23 @@ client/
     pages/FactChecker.tsx          # Main application page
     components/
       VerificationBadge.tsx        # Verification status badges
-      EntitySelector.tsx           # Entity selection UI
       ParagraphInput.tsx           # Text input area
       RenderedParagraph.tsx        # Text with inline badges
       ResultsTable.tsx             # Verification results table
     lib/
       factChecker.ts               # Core verification logic
       theme-provider.tsx           # Dark/light mode
+server/
+  db.ts                            # Database client setup
+  storage.ts                       # Storage interface + implementation
+  routes.ts                        # API routes (GET /api/facts)
+shared/
+  schema.ts                        # Database schema (facts table)
 public/
-  facts.csv                        # Truth table dataset
   attribute-mapping.json           # Keyword mappings
+scripts/
+  fetch-country-data.ts            # Data fetcher (writes to database)
+  migrate-csv-to-db.ts             # One-time CSV migration script
 ```
 
 ### Testing
@@ -105,11 +118,36 @@ All acceptance criteria verified via end-to-end testing:
 
 ### Data Format
 
-**facts.csv**:
-```csv
-entity,attribute,value,value_type,as_of_date,source_url,source_trust,last_verified_at
-United States,founded_year,1776,integer,2024-01-01,https://en.wikipedia.org/wiki/...,high,2024-10-14
-France,founded_year,1789,integer,2024-01-01,https://en.wikipedia.org/wiki/...,high,2024-10-14
+**Database Schema** (`shared/schema.ts`):
+```typescript
+export const facts = pgTable("facts", {
+  id: serial("id").primaryKey(),
+  entity: text("entity").notNull(),              // Country name
+  attribute: text("attribute").notNull(),        // founded_year, population, etc.
+  value: text("value").notNull(),                // Numeric value as string
+  value_type: text("value_type").notNull(),      // "integer", "decimal", etc.
+  as_of_date: text("as_of_date").notNull(),      // Date the fact applies to
+  source_url: text("source_url").notNull(),      // Citation URL
+  source_trust: text("source_trust").notNull(),  // "high", "medium", "low"
+  last_verified_at: text("last_verified_at").notNull()  // Last verification date
+});
+```
+
+**API Response** (GET `/api/facts`):
+```json
+[
+  {
+    "id": 1,
+    "entity": "United States",
+    "attribute": "founded_year",
+    "value": "1776",
+    "value_type": "integer",
+    "as_of_date": "1776-01-01",
+    "source_url": "https://en.wikipedia.org/wiki/United_States",
+    "source_trust": "high",
+    "last_verified_at": "2025-10-14"
+  }
+]
 ```
 
 **attribute-mapping.json**:
@@ -127,15 +165,15 @@ France,founded_year,1789,integer,2024-01-01,https://en.wikipedia.org/wiki/...,hi
 **Automatic (Recommended)**:
 Run the data fetching script to systematically update facts from APIs:
 ```bash
-node scripts/fetch-country-data.js
+npx tsx scripts/fetch-country-data.ts
 ```
-This fetches data for 50 major countries using only 3 API requests total.
+This fetches data for 50 major countries using only 3 API requests total and saves directly to the database.
 
 **Manual**:
 To manually add countries or attributes:
-1. Add rows to `facts.csv` with same column structure
+1. Insert rows into the `facts` table via SQL or the storage interface
 2. For new attributes, add relevant keywords to `attribute-mapping.json`
-3. Example future attributes: gdp, capital, language, currency
+3. Example future attributes: capital, language, currency
 
 See `scripts/README.md` for details on the data fetcher.
 
