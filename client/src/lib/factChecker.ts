@@ -183,7 +183,7 @@ export function processText(
       attribute: attribute || "unknown",
       verdict: verification.status,
       recordedValue: verification.fact?.value,
-      asOfDate: verification.fact?.as_of_date,
+      lastVerifiedAt: verification.fact?.last_verified_at,
       citation: verification.fact?.source_url,
     });
   });
