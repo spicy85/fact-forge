@@ -1,6 +1,6 @@
 # Data Fetching Scripts
 
-## fetch-country-data.js
+## fetch-country-data.ts
 
 Systematically fetches country data from Wikipedia (Wikidata) and World Bank APIs with minimal API requests.
 
@@ -9,7 +9,7 @@ Systematically fetches country data from Wikipedia (Wikidata) and World Bank API
 - Uses **only 3 total API requests**:
   - 1 SPARQL query to Wikidata (all countries, founding year, population, area)
   - 2 batch World Bank queries (GDP + population for all countries)
-- Updates `public/facts.csv` with fresh data
+- Saves directly to PostgreSQL database
 - Generates proper citations for each fact
 
 ### Attributes fetched:
@@ -21,14 +21,14 @@ Systematically fetches country data from Wikipedia (Wikidata) and World Bank API
 ### How to run:
 
 ```bash
-node scripts/fetch-country-data.js
+npx tsx scripts/fetch-country-data.ts
 ```
 
 Or add to package.json scripts:
 ```json
 {
   "scripts": {
-    "fetch-data": "node scripts/fetch-country-data.js"
+    "fetch-data": "tsx scripts/fetch-country-data.ts"
   }
 }
 ```
@@ -58,8 +58,8 @@ const TARGET_COUNTRIES = [
 
 The script will:
 1. Fetch data from APIs
-2. Transform to CSV format
-3. Write to `public/facts.csv`
+2. Clear existing facts from database
+3. Insert fresh data into PostgreSQL
 4. Show summary of requests made
 
 Example output:
@@ -73,9 +73,25 @@ Example output:
 📡 Fetching GDP/population from World Bank...
 ✅ World Bank data fetched (2 batch requests)
 
-✅ Successfully updated facts.csv
-📁 Location: /path/to/public/facts.csv
-📈 Total facts: 180 rows
+🗑️  Cleared existing facts from database
+✅ Successfully saved 192 facts to database
 
 ✨ Done! Total API requests: 3 (1 Wikidata + 2 World Bank batch calls)
 ```
+
+## migrate-csv-to-db.ts
+
+One-time migration script to import existing `public/facts.csv` data into the PostgreSQL database.
+
+### What it does:
+- Reads `public/facts.csv`
+- Clears existing database facts
+- Imports all CSV rows into the `facts` table
+
+### How to run:
+
+```bash
+npx tsx scripts/migrate-csv-to-db.ts
+```
+
+**Note:** This script is only needed when migrating from CSV to database for the first time.
