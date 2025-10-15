@@ -5,12 +5,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme-provider";
 import FactChecker from "@/pages/FactChecker";
+import ClaimsMatrix from "@/pages/ClaimsMatrix";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={FactChecker} />
+      <Route path="/claims-matrix" component={ClaimsMatrix} />
       <Route component={NotFound} />
     </Switch>
   );
