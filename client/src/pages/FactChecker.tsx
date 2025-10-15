@@ -137,6 +137,17 @@ export default function FactChecker() {
           )}
         </div>
 
+        {paragraph && detectedEntity === null && verifiedClaims.length === 0 && (
+          <div className="rounded-md border border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950 p-4" data-testid="alert-no-entity">
+            <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-1">
+              No entity detected
+            </h3>
+            <p className="text-sm text-yellow-700 dark:text-yellow-300">
+              Please mention a country name in your paragraph. Currently supported: {entities.slice(0, 5).join(", ")}{entities.length > 5 && `, and ${entities.length - 5} more`}.
+            </p>
+          </div>
+        )}
+
         {verifiedClaims.length > 0 && (
           <div className="space-y-6">
             <div>

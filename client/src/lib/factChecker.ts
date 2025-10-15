@@ -30,11 +30,10 @@ export interface NumericClaim {
  * Returns the first detected entity or null if none found
  */
 export function detectEntity(text: string, availableEntities: string[]): string | null {
-  const textLower = text.toLowerCase();
-  
   // Sort entities by length (descending) to match longer names first
   // e.g., "United States" before "United"
-  const sortedEntities = availableEntities.sort((a, b) => b.length - a.length);
+  // Create a copy to avoid mutating the original array
+  const sortedEntities = [...availableEntities].sort((a, b) => b.length - a.length);
   
   for (const entity of sortedEntities) {
     // Use word boundary matching for entity names

@@ -17,7 +17,6 @@ A client-side fact-checking demo application that verifies numeric claims in par
 - **Single Page Application**: All processing happens client-side
 - **Component Structure**:
   - `FactChecker` (main page): Orchestrates the fact-checking workflow
-  - `EntitySelector`: Dropdown + custom entity input
   - `ParagraphInput`: Textarea for claim text
   - `VerificationBadge`: Color-coded badges (verified/mismatch/unknown)
   - `RenderedParagraph`: Displays text with inline verification badges
@@ -38,10 +37,11 @@ A client-side fact-checking demo application that verifies numeric claims in par
   - Easily extensible for new attributes
 
 ### Core Logic (`lib/factChecker.ts`)
-1. **Extract Numeric Claims**: Regex-based number extraction with surrounding context
-2. **Guess Attributes**: Match keywords in context to attributes using mapping
-3. **Verify Claims**: Exact match comparison against CSV data
-4. **Generate Results**: Create badges and table data with citations
+1. **Detect Entity**: Auto-detect country name from text using word boundaries
+2. **Extract Numeric Claims**: Regex-based number extraction with surrounding context
+3. **Guess Attributes**: Match keywords in context to attributes using mapping
+4. **Verify Claims**: Exact match comparison against CSV data
+5. **Generate Results**: Create badges and table data with citations
 
 ### Backend (Express)
 - Minimal server setup serving static files from `/public`
@@ -50,7 +50,7 @@ A client-side fact-checking demo application that verifies numeric claims in par
 ## Features
 
 ### Current Features
-- ✅ Entity selection (dropdown or custom input)
+- ✅ Automatic entity detection from paragraph text
 - ✅ Numeric claim extraction from paragraphs
 - ✅ Keyword-based attribute inference
 - ✅ Exact match verification against CSV data
@@ -141,11 +141,12 @@ See `scripts/README.md` for details on the data fetcher.
 
 ## Usage Instructions
 
-1. **Select Entity**: Choose from dropdown or enter custom entity name
-2. **Enter Paragraph**: Paste text containing numeric claims
-3. **Check Facts**: Press Enter or click "Check Facts" button to verify
+1. **Enter Paragraph**: Paste text containing numeric claims about a country
+   - The app will automatically detect which country is mentioned
    - Press Enter to submit verification
    - Press Shift+Enter to add a new line in the paragraph
+2. **Check Facts**: Click "Check Facts" button or press Enter to verify
+3. **View Detected Entity**: The detected country name appears next to the button
 4. **Review Results**: 
    - Inline badges show verification status
    - Table shows detailed comparison with citations
@@ -153,19 +154,28 @@ See `scripts/README.md` for details on the data fetcher.
 
 ### Example Usage
 ```
-Entity: United States
 Paragraph: "The United States declared independence in 1776 and became a nation."
 
 Results:
+- Detected entity: United States
 - "1776" → Verified ✓ (founded_year)
 ```
 
 ```
-Entity: India
 Paragraph: "India gained independence in 1947 from British rule."
 
 Results:
+- Detected entity: India
 - "1947" → Verified ✓ (founded_year)
+```
+
+```
+Paragraph: "Paraguay was founded in 1811 and has a population of 6929153 people."
+
+Results:
+- Detected entity: Paraguay
+- "1811" → Verified ✓ (founded_year)
+- "6929153" → Verified ✓ (population)
 ```
 
 ## Technical Stack
