@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
+import { Link } from "wouter";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ParagraphInput } from "@/components/ParagraphInput";
 import { RenderedParagraph } from "@/components/RenderedParagraph";
 import { ResultsTable } from "@/components/ResultsTable";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Table } from "lucide-react";
 import {
   processText,
   FactRecord,
@@ -93,7 +94,15 @@ export default function FactChecker() {
               </p>
             </div>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <Link href="/claims-matrix">
+              <Button variant="outline" size="sm" data-testid="button-view-matrix">
+                <Table className="h-4 w-4 mr-2" />
+                View Claims Matrix
+              </Button>
+            </Link>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
