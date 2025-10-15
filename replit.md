@@ -11,13 +11,16 @@ A fact-checking application that verifies numeric claims in paragraphs against a
 - ✅ 48 countries with 192 facts from Wikipedia & World Bank APIs
 - ✅ Automated data fetcher (3 API requests for all countries)
 - ✅ PostgreSQL database for reliable fact storage
+- ✅ Claims matrix page showing supported claims by country
 
 ## Project Architecture
 
 ### Frontend (React + Vite)
-- **Single Page Application**: All processing happens client-side
+- **Multi-Page Application**: Two main pages with client-side processing
+- **Pages**:
+  - `FactChecker` (/) - Main fact-checking workflow
+  - `ClaimsMatrix` (/claims-matrix) - Visual matrix of supported claims
 - **Component Structure**:
-  - `FactChecker` (main page): Orchestrates the fact-checking workflow
   - `ParagraphInput`: Textarea for claim text
   - `VerificationBadge`: Color-coded badges (verified/mismatch/unknown)
   - `RenderedParagraph`: Displays text with inline verification badges
@@ -59,10 +62,11 @@ A fact-checking application that verifies numeric claims in paragraphs against a
 - ✅ Automatic entity detection from paragraph text
 - ✅ Numeric claim extraction from paragraphs
 - ✅ Keyword-based attribute inference
-- ✅ Exact match verification against CSV data
+- ✅ Exact match verification against database data
 - ✅ Inline badge rendering with three states
 - ✅ Citation links to source URLs
 - ✅ Detailed results table
+- ✅ Claims matrix view (countries × claim types)
 - ✅ Dark/light theme support
 - ✅ Responsive design
 - ✅ Keyboard shortcuts (Enter to verify, Shift+Enter for new line)
@@ -88,7 +92,9 @@ npm run dev
 ```
 client/
   src/
-    pages/FactChecker.tsx          # Main application page
+    pages/
+      FactChecker.tsx              # Main fact-checking page (/)
+      ClaimsMatrix.tsx             # Claims matrix view (/claims-matrix)
     components/
       VerificationBadge.tsx        # Verification status badges
       ParagraphInput.tsx           # Text input area
