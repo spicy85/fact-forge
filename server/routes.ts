@@ -8,11 +8,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve static files from public directory
   app.use(express.static(path.join(process.cwd(), 'public')));
 
-  // put application routes here
-  // prefix all routes with /api
-
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+  // Facts API endpoint
+  app.get("/api/facts", async (req, res) => {
+    try {
+      const allFacts = await storage.getAllFacts();
+      res.json(allFacts);
+    } catch (error) {
+      console.error("Error fetching facts:", error);
+      res.status(500).json({ error: "Failed to fetch facts" });
+    }
+  });
 
   const httpServer = createServer(app);
 
