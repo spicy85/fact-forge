@@ -39,10 +39,16 @@ A fact-checking application that verifies numeric claims in paragraphs against a
 
 - **Facts Evaluation Database**: PostgreSQL - Pending claims for evaluation workflow
   - Schema: `facts_evaluation` table (shared/schema.ts)
-  - Columns: id, entity, attribute, value, value_type, source_url, source_trust, evaluation_score, evaluation_notes, evaluated_at, status
+  - Columns: id, entity, attribute, value, value_type, source_url, source_trust, source_trust_score, recency_score, consensus_score, source_trust_weight, recency_weight, consensus_weight, trust_score, evaluation_notes, evaluated_at, status
   - Purpose: Score and review claims before promoting to verified_facts
+  - Multi-criteria evaluation system with adjustable weights:
+    - **source_trust_score** (0-100): How trustworthy is the source
+    - **recency_score** (0-100): How recent is the data
+    - **consensus_score** (0-100): How much consensus exists
+    - **trust_score** (0-100): Weighted average of all criteria
+    - Each criterion has an adjustable weight for flexible weighted averaging
   - API endpoint: GET `/api/facts-evaluation` (server/routes.ts)
-  - Current data: 1 dummy evaluation record (Brazil GDP pending review)
+  - Current data: 1 dummy evaluation record (Brazil GDP: source_trust=88, recency=90, consensus=85, trust_score=88)
 
 - **Sources Database**: PostgreSQL - Source reliability metrics
   - Schema: `sources` table (shared/schema.ts)
@@ -168,7 +174,16 @@ export const factsEvaluation = pgTable("facts_evaluation", {
   value_type: text("value_type").notNull(),
   source_url: text("source_url").notNull(),
   source_trust: text("source_trust").notNull(),
-  evaluation_score: integer("evaluation_score"),          // 0-100 confidence score
+  // Evaluation criteria scores (0-100)
+  source_trust_score: integer("source_trust_score"),      // How trustworthy is the source
+  recency_score: integer("recency_score"),                // How recent is the data
+  consensus_score: integer("consensus_score"),            // How much consensus exists
+  // Adjustable weights for each criterion
+  source_trust_weight: integer("source_trust_weight").default(1),
+  recency_weight: integer("recency_weight").default(1),
+  consensus_weight: integer("consensus_weight").default(1),
+  // Calculated weighted average trust score (0-100)
+  trust_score: integer("trust_score"),                    // Weighted average of all criteria
   evaluation_notes: text("evaluation_notes"),             // Review notes
   evaluated_at: text("evaluated_at").notNull(),           // Evaluation date
   status: text("status").notNull().default("pending")     // pending, approved, rejected
