@@ -9,14 +9,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve static files from public directory
   app.use(express.static(path.join(process.cwd(), 'public')));
 
-  // Facts API endpoint
+  // Facts API endpoint (now serving verified facts)
   app.get("/api/facts", async (req, res) => {
     try {
-      const allFacts = await storage.getAllFacts();
+      const allFacts = await storage.getAllVerifiedFacts();
       res.json(allFacts);
     } catch (error) {
-      console.error("Error fetching facts:", error);
+      console.error("Error fetching verified facts:", error);
       res.status(500).json({ error: "Failed to fetch facts" });
+    }
+  });
+
+  // Facts Evaluation API endpoint
+  app.get("/api/facts-evaluation", async (req, res) => {
+    try {
+      const allEvaluations = await storage.getAllFactsEvaluation();
+      res.json(allEvaluations);
+    } catch (error) {
+      console.error("Error fetching facts evaluation:", error);
+      res.status(500).json({ error: "Failed to fetch facts evaluation" });
     }
   });
 
