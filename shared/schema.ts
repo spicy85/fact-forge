@@ -17,24 +17,6 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
-export const facts = pgTable("facts", {
-  id: serial("id").primaryKey(),
-  entity: text("entity").notNull(),
-  attribute: text("attribute").notNull(),
-  value: text("value").notNull(),
-  value_type: text("value_type").notNull(),
-  source_url: text("source_url").notNull(),
-  source_trust: text("source_trust").notNull(),
-  last_verified_at: text("last_verified_at").notNull(),
-});
-
-export const insertFactSchema = createInsertSchema(facts).omit({
-  id: true,
-});
-
-export type InsertFact = z.infer<typeof insertFactSchema>;
-export type Fact = typeof facts.$inferSelect;
-
 export const verifiedFacts = pgTable("verified_facts", {
   id: serial("id").primaryKey(),
   entity: text("entity").notNull(),
