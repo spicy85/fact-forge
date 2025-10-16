@@ -36,6 +36,13 @@ A fact-checking application that verifies numeric claims in paragraphs against a
   - Fetched from Wikipedia (Wikidata) and World Bank APIs
   - API endpoint: GET `/api/facts` (server/routes.ts)
   - Structure supports adding more countries and additional attributes (capital, language, etc.)
+
+- **Sources Database**: PostgreSQL - Source reliability metrics
+  - Schema: `sources` table (shared/schema.ts)
+  - Columns: domain, public_trust, data_accuracy, proprietary_score (all integer 0-100)
+  - Current data: Wikipedia (85/78/92), World Bank (88/94/75)
+  - API endpoint: GET `/api/sources` (server/routes.ts)
+  - Overall Trust Level = Weighted average (equal weights): (public_trust + data_accuracy + proprietary_score) / 3
   
 - **Attribute Mapping**: `/public/attribute-mapping.json` - Keyword-to-attribute mappings
   - Maps keywords like "founded", "independence" → "founded_year"
@@ -68,7 +75,7 @@ A fact-checking application that verifies numeric claims in paragraphs against a
 - ✅ Citation links to source URLs
 - ✅ Detailed results table
 - ✅ Claims matrix view (countries × claim types)
-- ✅ Sources overview page (monitor data sources and trust levels)
+- ✅ Sources overview page with real reliability metrics (public trust, data accuracy, proprietary score)
 - ✅ Dark/light theme support
 - ✅ Responsive design
 - ✅ Keyboard shortcuts (Enter to verify, Shift+Enter for new line)
@@ -109,9 +116,9 @@ client/
 server/
   db.ts                            # Database client setup
   storage.ts                       # Storage interface + implementation
-  routes.ts                        # API routes (GET /api/facts)
+  routes.ts                        # API routes (GET /api/facts, /api/sources)
 shared/
-  schema.ts                        # Database schema (facts table)
+  schema.ts                        # Database schema (facts, sources tables)
 public/
   attribute-mapping.json           # Keyword mappings
 scripts/
@@ -129,6 +136,7 @@ All acceptance criteria verified via end-to-end testing:
 
 **Database Schema** (`shared/schema.ts`):
 ```typescript
+// Facts table - stores verified claims
 export const facts = pgTable("facts", {
   id: serial("id").primaryKey(),
   entity: text("entity").notNull(),              // Country name
@@ -138,6 +146,14 @@ export const facts = pgTable("facts", {
   source_url: text("source_url").notNull(),      // Citation URL
   source_trust: text("source_trust").notNull(),  // "high", "medium", "low"
   last_verified_at: text("last_verified_at").notNull()  // Last verification date
+});
+
+// Sources table - stores reliability metrics
+export const sources = pgTable("sources", {
+  domain: text("domain").primaryKey(),           // Source domain (e.g., en.wikipedia.org)
+  public_trust: integer("public_trust").notNull(),        // 0-100 scale
+  data_accuracy: integer("data_accuracy").notNull(),      // 0-100 scale
+  proprietary_score: integer("proprietary_score").notNull() // 0-100 scale
 });
 ```
 
@@ -153,6 +169,24 @@ export const facts = pgTable("facts", {
     "source_url": "https://en.wikipedia.org/wiki/United_States",
     "source_trust": "high",
     "last_verified_at": "2025-10-14"
+  }
+]
+```
+
+**API Response** (GET `/api/sources`):
+```json
+[
+  {
+    "domain": "en.wikipedia.org",
+    "public_trust": 85,
+    "data_accuracy": 78,
+    "proprietary_score": 92
+  },
+  {
+    "domain": "data.worldbank.org",
+    "public_trust": 88,
+    "data_accuracy": 94,
+    "proprietary_score": 75
   }
 ]
 ```
