@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { facts } from "../shared/schema";
+import { verifiedFacts } from "../shared/schema";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -9,7 +9,7 @@ if (!process.env.DATABASE_URL) {
 }
 
 const sql = neon(process.env.DATABASE_URL);
-const db = drizzle(sql, { schema: { facts } });
+const db = drizzle(sql, { schema: { verifiedFacts } });
 
 async function migrateCsvToDb() {
   console.log("Starting CSV to database migration...");
@@ -24,9 +24,9 @@ async function migrateCsvToDb() {
 
   console.log(`Found ${dataLines.length} facts to migrate`);
 
-  // Clear existing facts
-  await db.delete(facts);
-  console.log("Cleared existing facts from database");
+  // Clear existing verified facts
+  await db.delete(verifiedFacts);
+  console.log("Cleared existing verified facts from database");
 
   // Parse and insert facts
   let successCount = 0;
@@ -35,7 +35,7 @@ async function migrateCsvToDb() {
     const [entity, attribute, value, valueType, asOfDate, sourceUrl, sourceTrust, lastVerifiedAt] = line.split(",");
 
     try {
-      await db.insert(facts).values({
+      await db.insert(verifiedFacts).values({
         entity: entity.trim(),
         attribute: attribute.trim(),
         value: value.trim(),

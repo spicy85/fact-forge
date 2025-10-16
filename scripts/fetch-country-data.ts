@@ -10,14 +10,14 @@
 
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { facts } from "../shared/schema";
+import { verifiedFacts } from "../shared/schema";
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is not set");
 }
 
 const sql = neon(process.env.DATABASE_URL);
-const db = drizzle(sql, { schema: { facts } });
+const db = drizzle(sql, { schema: { verifiedFacts } });
 
 // Curated list of ~50 major countries by ISO code
 const TARGET_COUNTRIES = [
@@ -209,8 +209,8 @@ async function saveToDatabase(countries: Record<string, Country>): Promise<numbe
   let factCount = 0;
 
   // Clear existing facts
-  await db.delete(facts);
-  console.log('🗑️  Cleared existing facts from database');
+  await db.delete(verifiedFacts);
+  console.log('🗑️  Cleared existing verified facts from database');
 
   for (const country of Object.values(countries)) {
     const name = country.name;
@@ -218,7 +218,7 @@ async function saveToDatabase(countries: Record<string, Country>): Promise<numbe
 
     // Founding year
     if (country.founded_year) {
-      await db.insert(facts).values({
+      await db.insert(verifiedFacts).values({
         entity: name,
         attribute: 'founded_year',
         value: country.founded_year.toString(),
@@ -236,7 +236,7 @@ async function saveToDatabase(countries: Record<string, Country>): Promise<numbe
       const popSource = country.population_year 
         ? `https://data.worldbank.org/indicator/SP.POP.TOTL?locations=${country.iso}`
         : wikiUrl;
-      await db.insert(facts).values({
+      await db.insert(verifiedFacts).values({
         entity: name,
         attribute: 'population',
         value: country.population.toString(),
@@ -250,7 +250,7 @@ async function saveToDatabase(countries: Record<string, Country>): Promise<numbe
 
     // Area
     if (country.area) {
-      await db.insert(facts).values({
+      await db.insert(verifiedFacts).values({
         entity: name,
         attribute: 'area_km2',
         value: Math.round(country.area).toString(),
@@ -264,7 +264,7 @@ async function saveToDatabase(countries: Record<string, Country>): Promise<numbe
 
     // GDP
     if (country.gdp) {
-      await db.insert(facts).values({
+      await db.insert(verifiedFacts).values({
         entity: name,
         attribute: 'gdp_usd',
         value: country.gdp.toString(),
