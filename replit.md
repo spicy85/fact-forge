@@ -41,8 +41,11 @@ A fact-checking application that verifies numeric claims in paragraphs against a
   - Schema: `sources` table (shared/schema.ts)
   - Columns: domain, public_trust, data_accuracy, proprietary_score (all integer 0-100)
   - Current data: Wikipedia (85/78/92), World Bank (88/94/75)
-  - API endpoint: GET `/api/sources` (server/routes.ts)
+  - API endpoints:
+    - GET `/api/sources` - Retrieve all source metrics
+    - PUT `/api/sources/:domain` - Update source metrics (partial updates supported)
   - Overall Trust Level = Weighted average (equal weights): (public_trust + data_accuracy + proprietary_score) / 3
+  - **Editable in UI**: All three metrics can be edited directly on the Sources Overview page with real-time trust recalculation
   
 - **Attribute Mapping**: `/public/attribute-mapping.json` - Keyword-to-attribute mappings
   - Maps keywords like "founded", "independence" → "founded_year"
@@ -75,7 +78,8 @@ A fact-checking application that verifies numeric claims in paragraphs against a
 - ✅ Citation links to source URLs
 - ✅ Detailed results table
 - ✅ Claims matrix view (countries × claim types)
-- ✅ Sources overview page with real reliability metrics (public trust, data accuracy, proprietary score)
+- ✅ Sources overview page with editable reliability metrics (public trust, data accuracy, proprietary score)
+- ✅ Real-time overall trust calculation when editing source metrics
 - ✅ Dark/light theme support
 - ✅ Responsive design
 - ✅ Keyboard shortcuts (Enter to verify, Shift+Enter for new line)
