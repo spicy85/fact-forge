@@ -7,7 +7,7 @@ export interface FactRecord {
   attribute: string;
   value: string;
   value_type: string;
-  as_of_date: string;
+  as_of_date?: string;
   source_url: string;
   source_trust: string;
   last_verified_at: string;
