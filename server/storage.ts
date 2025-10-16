@@ -1,7 +1,7 @@
-import { type User, type InsertUser, type Fact, type InsertFact, type Source, type InsertSource, type UpdateSource } from "@shared/schema";
+import { type User, type InsertUser, type Fact, type InsertFact, type VerifiedFact, type InsertVerifiedFact, type FactsEvaluation, type InsertFactsEvaluation, type Source, type InsertSource, type UpdateSource } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { facts, sources } from "@shared/schema";
+import { facts, verifiedFacts, factsEvaluation, sources } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
@@ -14,6 +14,10 @@ export interface IStorage {
   getAllFacts(): Promise<Fact[]>;
   insertFact(fact: InsertFact): Promise<Fact>;
   clearAllFacts(): Promise<void>;
+  getAllVerifiedFacts(): Promise<VerifiedFact[]>;
+  insertVerifiedFact(fact: InsertVerifiedFact): Promise<VerifiedFact>;
+  getAllFactsEvaluation(): Promise<FactsEvaluation[]>;
+  insertFactsEvaluation(evaluation: InsertFactsEvaluation): Promise<FactsEvaluation>;
   getAllSources(): Promise<Source[]>;
   insertSource(source: InsertSource): Promise<Source>;
   updateSource(domain: string, updates: UpdateSource): Promise<Source | undefined>;
@@ -54,6 +58,24 @@ export class MemStorage implements IStorage {
 
   async clearAllFacts(): Promise<void> {
     await db.delete(facts);
+  }
+
+  async getAllVerifiedFacts(): Promise<VerifiedFact[]> {
+    return db.select().from(verifiedFacts);
+  }
+
+  async insertVerifiedFact(fact: InsertVerifiedFact): Promise<VerifiedFact> {
+    const [insertedFact] = await db.insert(verifiedFacts).values(fact).returning();
+    return insertedFact;
+  }
+
+  async getAllFactsEvaluation(): Promise<FactsEvaluation[]> {
+    return db.select().from(factsEvaluation);
+  }
+
+  async insertFactsEvaluation(evaluation: InsertFactsEvaluation): Promise<FactsEvaluation> {
+    const [insertedEvaluation] = await db.insert(factsEvaluation).values(evaluation).returning();
+    return insertedEvaluation;
   }
 
   async getAllSources(): Promise<Source[]> {
