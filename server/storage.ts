@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { db } from "./db";
 import { verifiedFacts, factsEvaluation, sources } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { calculateSourceTrustScore, calculateRecencyScore, calculateTrustScore } from "./evaluation-scoring";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -58,7 +59,33 @@ export class MemStorage implements IStorage {
   }
 
   async insertFactsEvaluation(evaluation: InsertFactsEvaluation): Promise<FactsEvaluation> {
-    const [insertedEvaluation] = await db.insert(factsEvaluation).values(evaluation).returning();
+    const sourceTrustScore = await calculateSourceTrustScore(evaluation.source_url);
+    const recencyScore = calculateRecencyScore(evaluation.evaluated_at);
+    
+    const consensusScore = evaluation.consensus_score ?? 50;
+    
+    const sourceTrustWeight = evaluation.source_trust_weight ?? 1;
+    const recencyWeight = evaluation.recency_weight ?? 1;
+    const consensusWeight = evaluation.consensus_weight ?? 1;
+    
+    const trustScore = calculateTrustScore(
+      sourceTrustScore,
+      recencyScore,
+      consensusScore,
+      sourceTrustWeight,
+      recencyWeight,
+      consensusWeight
+    );
+    
+    const evaluationWithScores = {
+      ...evaluation,
+      source_trust_score: sourceTrustScore,
+      recency_score: recencyScore,
+      consensus_score: consensusScore,
+      trust_score: trustScore,
+    };
+    
+    const [insertedEvaluation] = await db.insert(factsEvaluation).values(evaluationWithScores).returning();
     return insertedEvaluation;
   }
 
