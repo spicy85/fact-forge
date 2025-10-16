@@ -30,7 +30,7 @@ A fact-checking application that verifies numeric claims in paragraphs against a
 ### Data Layer
 - **Facts Database**: PostgreSQL - Truth table with entity facts
   - Schema: `facts` table (shared/schema.ts)
-  - Columns: id, entity, attribute, value, value_type, as_of_date, source_url, source_trust, last_verified_at
+  - Columns: id, entity, attribute, value, value_type, source_url, source_trust, last_verified_at
   - Current data: 48 countries with 192 facts (founding years, population, area, GDP)
   - Fetched from Wikipedia (Wikidata) and World Bank APIs
   - API endpoint: GET `/api/facts` (server/routes.ts)
@@ -132,7 +132,6 @@ export const facts = pgTable("facts", {
   attribute: text("attribute").notNull(),        // founded_year, population, etc.
   value: text("value").notNull(),                // Numeric value as string
   value_type: text("value_type").notNull(),      // "integer", "decimal", etc.
-  as_of_date: text("as_of_date").notNull(),      // Date the fact applies to
   source_url: text("source_url").notNull(),      // Citation URL
   source_trust: text("source_trust").notNull(),  // "high", "medium", "low"
   last_verified_at: text("last_verified_at").notNull()  // Last verification date
@@ -148,7 +147,6 @@ export const facts = pgTable("facts", {
     "attribute": "founded_year",
     "value": "1776",
     "value_type": "integer",
-    "as_of_date": "1776-01-01",
     "source_url": "https://en.wikipedia.org/wiki/United_States",
     "source_trust": "high",
     "last_verified_at": "2025-10-14"
