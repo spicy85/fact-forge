@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Link } from "wouter";
-import { ArrowLeft, Check, X } from "lucide-react";
+import { ArrowLeft, Check, X, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FactRecord } from "@/lib/factChecker";
 
@@ -87,7 +87,15 @@ export default function ClaimsMatrix() {
             </Link>
             <h1 className="text-xl font-semibold">Supported Claims Matrix</h1>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <Link href="/sources">
+              <Button variant="outline" size="sm" data-testid="button-view-sources">
+                <Database className="h-4 w-4 mr-2" />
+                Sources
+              </Button>
+            </Link>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
