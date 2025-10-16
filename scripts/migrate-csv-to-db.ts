@@ -40,7 +40,6 @@ async function migrateCsvToDb() {
         attribute: attribute.trim(),
         value: value.trim(),
         value_type: valueType.trim(),
-        as_of_date: asOfDate.trim(),
         source_url: sourceUrl.trim(),
         source_trust: sourceTrust.trim(),
         last_verified_at: lastVerifiedAt.trim(),
