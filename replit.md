@@ -147,8 +147,8 @@ All acceptance criteria verified via end-to-end testing:
 
 **Database Schema** (`shared/schema.ts`):
 ```typescript
-// Facts table - stores verified claims
-export const facts = pgTable("facts", {
+// Verified facts table - stores verified claims
+export const verifiedFacts = pgTable("verified_facts", {
   id: serial("id").primaryKey(),
   entity: text("entity").notNull(),              // Country name
   attribute: text("attribute").notNull(),        // founded_year, population, etc.
@@ -157,6 +157,21 @@ export const facts = pgTable("facts", {
   source_url: text("source_url").notNull(),      // Citation URL
   source_trust: text("source_trust").notNull(),  // "high", "medium", "low"
   last_verified_at: text("last_verified_at").notNull()  // Last verification date
+});
+
+// Facts evaluation table - stores pending claims for review
+export const factsEvaluation = pgTable("facts_evaluation", {
+  id: serial("id").primaryKey(),
+  entity: text("entity").notNull(),
+  attribute: text("attribute").notNull(),
+  value: text("value").notNull(),
+  value_type: text("value_type").notNull(),
+  source_url: text("source_url").notNull(),
+  source_trust: text("source_trust").notNull(),
+  evaluation_score: integer("evaluation_score"),          // 0-100 confidence score
+  evaluation_notes: text("evaluation_notes"),             // Review notes
+  evaluated_at: text("evaluated_at").notNull(),           // Evaluation date
+  status: text("status").notNull().default("pending")     // pending, approved, rejected
 });
 
 // Sources table - stores reliability metrics
