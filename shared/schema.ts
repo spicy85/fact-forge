@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, serial } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, serial, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -34,3 +34,15 @@ export const insertFactSchema = createInsertSchema(facts).omit({
 
 export type InsertFact = z.infer<typeof insertFactSchema>;
 export type Fact = typeof facts.$inferSelect;
+
+export const sources = pgTable("sources", {
+  domain: text("domain").primaryKey(),
+  public_trust: integer("public_trust").notNull(),
+  data_accuracy: integer("data_accuracy").notNull(),
+  proprietary_score: integer("proprietary_score").notNull(),
+});
+
+export const insertSourceSchema = createInsertSchema(sources);
+
+export type InsertSource = z.infer<typeof insertSourceSchema>;
+export type Source = typeof sources.$inferSelect;
