@@ -16,10 +16,11 @@ A fact-checking application that verifies numeric claims in paragraphs against a
 ## Project Architecture
 
 ### Frontend (React + Vite)
-- **Multi-Page Application**: Two main pages with client-side processing
+- **Multi-Page Application**: Three main pages with client-side processing
 - **Pages**:
   - `FactChecker` (/) - Main fact-checking workflow
   - `ClaimsMatrix` (/claims-matrix) - Visual matrix of supported claims
+  - `SourcesOverview` (/sources) - Data source monitoring and reliability tracking
 - **Component Structure**:
   - `ParagraphInput`: Textarea for claim text
   - `VerificationBadge`: Color-coded badges (verified/mismatch/unknown)
@@ -67,6 +68,7 @@ A fact-checking application that verifies numeric claims in paragraphs against a
 - ✅ Citation links to source URLs
 - ✅ Detailed results table
 - ✅ Claims matrix view (countries × claim types)
+- ✅ Sources overview page (monitor data sources and trust levels)
 - ✅ Dark/light theme support
 - ✅ Responsive design
 - ✅ Keyboard shortcuts (Enter to verify, Shift+Enter for new line)
@@ -95,6 +97,7 @@ client/
     pages/
       FactChecker.tsx              # Main fact-checking page (/)
       ClaimsMatrix.tsx             # Claims matrix view (/claims-matrix)
+      SourcesOverview.tsx          # Sources monitoring page (/sources)
     components/
       VerificationBadge.tsx        # Verification status badges
       ParagraphInput.tsx           # Text input area
