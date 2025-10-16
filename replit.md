@@ -10,7 +10,7 @@ A fact-checking application that verifies numeric claims in paragraphs against a
 - ✅ Results table displays detailed verification data
 - ✅ 48 countries with 192 facts from Wikipedia & World Bank APIs
 - ✅ Automated data fetcher (3 API requests for all countries)
-- ✅ PostgreSQL database for reliable fact storage
+- ✅ PostgreSQL database with verified facts and evaluation workflow tables
 - ✅ Claims matrix page showing supported claims by country
 
 ## Project Architecture
@@ -29,13 +29,20 @@ A fact-checking application that verifies numeric claims in paragraphs against a
   - `ThemeToggle`: Dark/light mode support
 
 ### Data Layer
-- **Facts Database**: PostgreSQL - Truth table with entity facts
-  - Schema: `facts` table (shared/schema.ts)
+- **Verified Facts Database**: PostgreSQL - Verified truth table with entity facts
+  - Schema: `verified_facts` table (shared/schema.ts)
   - Columns: id, entity, attribute, value, value_type, source_url, source_trust, last_verified_at
-  - Current data: 48 countries with 192 facts (founding years, population, area, GDP)
+  - Current data: 48 countries with 192 verified facts (founding years, population, area, GDP)
   - Fetched from Wikipedia (Wikidata) and World Bank APIs
-  - API endpoint: GET `/api/facts` (server/routes.ts)
+  - API endpoint: GET `/api/facts` (server/routes.ts) - Returns verified facts
   - Structure supports adding more countries and additional attributes (capital, language, etc.)
+
+- **Facts Evaluation Database**: PostgreSQL - Pending claims for evaluation workflow
+  - Schema: `facts_evaluation` table (shared/schema.ts)
+  - Columns: id, entity, attribute, value, value_type, source_url, source_trust, evaluation_score, evaluation_notes, evaluated_at, status
+  - Purpose: Score and review claims before promoting to verified_facts
+  - API endpoint: GET `/api/facts-evaluation` (server/routes.ts)
+  - Current data: 1 dummy evaluation record (Brazil GDP pending review)
 
 - **Sources Database**: PostgreSQL - Source reliability metrics
   - Schema: `sources` table (shared/schema.ts)
@@ -122,7 +129,7 @@ server/
   storage.ts                       # Storage interface + implementation
   routes.ts                        # API routes (GET /api/facts, /api/sources)
 shared/
-  schema.ts                        # Database schema (facts, sources tables)
+  schema.ts                        # Database schema (verified_facts, facts_evaluation, sources tables)
 public/
   attribute-mapping.json           # Keyword mappings
 scripts/
