@@ -35,6 +35,45 @@ export const insertFactSchema = createInsertSchema(facts).omit({
 export type InsertFact = z.infer<typeof insertFactSchema>;
 export type Fact = typeof facts.$inferSelect;
 
+export const verifiedFacts = pgTable("verified_facts", {
+  id: serial("id").primaryKey(),
+  entity: text("entity").notNull(),
+  attribute: text("attribute").notNull(),
+  value: text("value").notNull(),
+  value_type: text("value_type").notNull(),
+  source_url: text("source_url").notNull(),
+  source_trust: text("source_trust").notNull(),
+  last_verified_at: text("last_verified_at").notNull(),
+});
+
+export const insertVerifiedFactSchema = createInsertSchema(verifiedFacts).omit({
+  id: true,
+});
+
+export type InsertVerifiedFact = z.infer<typeof insertVerifiedFactSchema>;
+export type VerifiedFact = typeof verifiedFacts.$inferSelect;
+
+export const factsEvaluation = pgTable("facts_evaluation", {
+  id: serial("id").primaryKey(),
+  entity: text("entity").notNull(),
+  attribute: text("attribute").notNull(),
+  value: text("value").notNull(),
+  value_type: text("value_type").notNull(),
+  source_url: text("source_url").notNull(),
+  source_trust: text("source_trust").notNull(),
+  evaluation_score: integer("evaluation_score"),
+  evaluation_notes: text("evaluation_notes"),
+  evaluated_at: text("evaluated_at").notNull(),
+  status: text("status").notNull().default("pending"),
+});
+
+export const insertFactsEvaluationSchema = createInsertSchema(factsEvaluation).omit({
+  id: true,
+});
+
+export type InsertFactsEvaluation = z.infer<typeof insertFactsEvaluationSchema>;
+export type FactsEvaluation = typeof factsEvaluation.$inferSelect;
+
 export const sources = pgTable("sources", {
   domain: text("domain").primaryKey(),
   public_trust: integer("public_trust").notNull(),
