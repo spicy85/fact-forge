@@ -15,10 +15,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { FactRecord } from "@/lib/factChecker";
 
+interface SourceMetrics {
+  domain: string;
+  public_trust: number;
+  data_accuracy: number;
+  proprietary_score: number;
+}
+
 interface SourceStats {
   domain: string;
   factCount: number;
-  trustLevel: string;
+  publicTrust: number;
+  dataAccuracy: number;
+  proprietaryScore: number;
+  overallTrustLevel: number;
 }
 
 export default function SourcesOverview() {
@@ -28,34 +38,42 @@ export default function SourcesOverview() {
   useEffect(() => {
     async function loadSources() {
       try {
-        const response = await fetch("/api/facts");
-        const facts: FactRecord[] = await response.json();
+        const [factsRes, sourcesRes] = await Promise.all([
+          fetch("/api/facts"),
+          fetch("/api/sources"),
+        ]);
+        
+        const facts: FactRecord[] = await factsRes.json();
+        const sourceMetrics: SourceMetrics[] = await sourcesRes.json();
 
-        const sourcesMap = new Map<string, { count: number; trustLevel: string }>();
-
+        // Count facts per domain
+        const factCountMap = new Map<string, number>();
         facts.forEach((fact) => {
           try {
             const url = new URL(fact.source_url);
             const domain = url.hostname.replace(/^www\./, "");
-            
-            if (!sourcesMap.has(domain)) {
-              sourcesMap.set(domain, { count: 0, trustLevel: fact.source_trust });
-            }
-            
-            const current = sourcesMap.get(domain)!;
-            current.count++;
+            factCountMap.set(domain, (factCountMap.get(domain) || 0) + 1);
           } catch (error) {
             console.error("Invalid URL:", fact.source_url);
           }
         });
 
-        const sourcesList: SourceStats[] = Array.from(sourcesMap.entries())
-          .map(([domain, data]) => ({
-            domain,
-            factCount: data.count,
-            trustLevel: data.trustLevel,
-          }))
-          .sort((a, b) => b.factCount - a.factCount);
+        // Combine metrics with fact counts
+        const sourcesList: SourceStats[] = sourceMetrics.map((source) => {
+          // Calculate weighted average (equal weights)
+          const overallTrustLevel = Math.round(
+            (source.public_trust + source.data_accuracy + source.proprietary_score) / 3
+          );
+
+          return {
+            domain: source.domain,
+            factCount: factCountMap.get(source.domain) || 0,
+            publicTrust: source.public_trust,
+            dataAccuracy: source.data_accuracy,
+            proprietaryScore: source.proprietary_score,
+            overallTrustLevel,
+          };
+        }).sort((a, b) => b.factCount - a.factCount);
 
         setSources(sourcesList);
       } catch (error) {
@@ -68,17 +86,10 @@ export default function SourcesOverview() {
     loadSources();
   }, []);
 
-  const getTrustBadgeVariant = (trustLevel: string) => {
-    switch (trustLevel) {
-      case "high":
-        return "default";
-      case "medium":
-        return "secondary";
-      case "low":
-        return "outline";
-      default:
-        return "outline";
-    }
+  const getTrustBadgeVariant = (score: number) => {
+    if (score >= 80) return "default";
+    if (score >= 60) return "secondary";
+    return "outline";
   };
 
   if (isLoading) {
@@ -121,7 +132,7 @@ export default function SourcesOverview() {
           <CardHeader>
             <CardTitle>Data Sources</CardTitle>
             <CardDescription>
-              Overview of sources used in the fact database and their assigned trust levels.
+              Source reliability metrics: Public Trust (reputation), Data Accuracy (verification rate), and Proprietary Score (transparency). Overall Trust Level is a weighted average.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -132,8 +143,11 @@ export default function SourcesOverview() {
               <TableHeader>
                 <TableRow>
                   <TableHead data-testid="header-domain">Domain</TableHead>
-                  <TableHead data-testid="header-facts">Facts Count</TableHead>
-                  <TableHead data-testid="header-trust">Trust Level</TableHead>
+                  <TableHead data-testid="header-facts">Facts</TableHead>
+                  <TableHead data-testid="header-public-trust">Public Trust</TableHead>
+                  <TableHead data-testid="header-data-accuracy">Data Accuracy</TableHead>
+                  <TableHead data-testid="header-proprietary">Proprietary Score</TableHead>
+                  <TableHead data-testid="header-overall">Overall Trust</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -145,9 +159,18 @@ export default function SourcesOverview() {
                     <TableCell data-testid={`text-count-${source.domain}`}>
                       {source.factCount}
                     </TableCell>
+                    <TableCell data-testid={`text-public-trust-${source.domain}`}>
+                      {source.publicTrust}
+                    </TableCell>
+                    <TableCell data-testid={`text-data-accuracy-${source.domain}`}>
+                      {source.dataAccuracy}
+                    </TableCell>
+                    <TableCell data-testid={`text-proprietary-${source.domain}`}>
+                      {source.proprietaryScore}
+                    </TableCell>
                     <TableCell>
-                      <Badge variant={getTrustBadgeVariant(source.trustLevel)} data-testid={`badge-trust-${source.domain}`}>
-                        {source.trustLevel}
+                      <Badge variant={getTrustBadgeVariant(source.overallTrustLevel)} data-testid={`badge-overall-${source.domain}`}>
+                        {source.overallTrustLevel}
                       </Badge>
                     </TableCell>
                   </TableRow>
