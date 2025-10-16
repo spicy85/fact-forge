@@ -43,7 +43,16 @@ export const factsEvaluation = pgTable("facts_evaluation", {
   value_type: text("value_type").notNull(),
   source_url: text("source_url").notNull(),
   source_trust: text("source_trust").notNull(),
-  evaluation_score: integer("evaluation_score"),
+  // Evaluation criteria scores (0-100)
+  source_trust_score: integer("source_trust_score"),
+  recency_score: integer("recency_score"),
+  consensus_score: integer("consensus_score"),
+  // Adjustable weights for each criterion
+  source_trust_weight: integer("source_trust_weight").default(1),
+  recency_weight: integer("recency_weight").default(1),
+  consensus_weight: integer("consensus_weight").default(1),
+  // Calculated weighted average trust score (0-100)
+  trust_score: integer("trust_score"),
   evaluation_notes: text("evaluation_notes"),
   evaluated_at: text("evaluated_at").notNull(),
   status: text("status").notNull().default("pending"),
