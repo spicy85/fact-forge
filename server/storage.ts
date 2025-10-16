@@ -1,7 +1,7 @@
-import { type User, type InsertUser, type Fact, type InsertFact } from "@shared/schema";
+import { type User, type InsertUser, type Fact, type InsertFact, type Source, type InsertSource } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { facts } from "@shared/schema";
+import { facts, sources } from "@shared/schema";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -13,6 +13,8 @@ export interface IStorage {
   getAllFacts(): Promise<Fact[]>;
   insertFact(fact: InsertFact): Promise<Fact>;
   clearAllFacts(): Promise<void>;
+  getAllSources(): Promise<Source[]>;
+  insertSource(source: InsertSource): Promise<Source>;
 }
 
 export class MemStorage implements IStorage {
@@ -50,6 +52,15 @@ export class MemStorage implements IStorage {
 
   async clearAllFacts(): Promise<void> {
     await db.delete(facts);
+  }
+
+  async getAllSources(): Promise<Source[]> {
+    return db.select().from(sources);
+  }
+
+  async insertSource(source: InsertSource): Promise<Source> {
+    const [insertedSource] = await db.insert(sources).values(source).returning();
+    return insertedSource;
   }
 }
 

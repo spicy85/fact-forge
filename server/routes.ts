@@ -19,6 +19,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Sources API endpoint
+  app.get("/api/sources", async (req, res) => {
+    try {
+      const allSources = await storage.getAllSources();
+      res.json(allSources);
+    } catch (error) {
+      console.error("Error fetching sources:", error);
+      res.status(500).json({ error: "Failed to fetch sources" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
