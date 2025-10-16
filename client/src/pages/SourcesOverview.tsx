@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,10 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { FactRecord } from "@/lib/factChecker";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 
 interface SourceMetrics {
   domain: string;
@@ -32,64 +35,82 @@ interface SourceStats {
 }
 
 export default function SourcesOverview() {
-  const [sources, setSources] = useState<SourceStats[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [editingValues, setEditingValues] = useState<Record<string, SourceMetrics>>({});
 
-  useEffect(() => {
-    async function loadSources() {
-      try {
-        const [factsRes, sourcesRes] = await Promise.all([
-          fetch("/api/facts"),
-          fetch("/api/sources"),
-        ]);
-        
-        const facts: FactRecord[] = await factsRes.json();
-        const sourceMetrics: SourceMetrics[] = await sourcesRes.json();
+  const { data: facts = [] } = useQuery<FactRecord[]>({
+    queryKey: ["/api/facts"],
+  });
 
-        // Count facts per domain
-        const factCountMap = new Map<string, number>();
-        facts.forEach((fact) => {
-          try {
-            const url = new URL(fact.source_url);
-            const domain = url.hostname.replace(/^www\./, "");
-            factCountMap.set(domain, (factCountMap.get(domain) || 0) + 1);
-          } catch (error) {
-            console.error("Invalid URL:", fact.source_url);
-          }
-        });
+  const { data: sourceMetrics = [], isLoading } = useQuery<SourceMetrics[]>({
+    queryKey: ["/api/sources"],
+  });
 
-        // Combine metrics with fact counts
-        const sourcesList: SourceStats[] = sourceMetrics.map((source) => {
-          // Calculate weighted average (equal weights)
-          const overallTrustLevel = Math.round(
-            (source.public_trust + source.data_accuracy + source.proprietary_score) / 3
-          );
-
-          return {
-            domain: source.domain,
-            factCount: factCountMap.get(source.domain) || 0,
-            publicTrust: source.public_trust,
-            dataAccuracy: source.data_accuracy,
-            proprietaryScore: source.proprietary_score,
-            overallTrustLevel,
-          };
-        }).sort((a, b) => b.factCount - a.factCount);
-
-        setSources(sourcesList);
-      } catch (error) {
-        console.error("Error loading sources:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    loadSources();
-  }, []);
+  const updateSourceMutation = useMutation({
+    mutationFn: async ({ domain, updates }: { domain: string; updates: Partial<SourceMetrics> }) => {
+      return apiRequest("PUT", `/api/sources/${domain}`, updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sources"] });
+    },
+  });
 
   const getTrustBadgeVariant = (score: number) => {
     if (score >= 80) return "default";
     if (score >= 60) return "secondary";
     return "outline";
+  };
+
+  // Count facts per domain
+  const factCountMap = new Map<string, number>();
+  facts.forEach((fact) => {
+    try {
+      const url = new URL(fact.source_url);
+      const domain = url.hostname.replace(/^www\./, "");
+      factCountMap.set(domain, (factCountMap.get(domain) || 0) + 1);
+    } catch (error) {
+      console.error("Invalid URL:", fact.source_url);
+    }
+  });
+
+  // Combine metrics with fact counts
+  const sources: SourceStats[] = sourceMetrics.map((source) => {
+    const editedSource = editingValues[source.domain] || source;
+    const overallTrustLevel = Math.round(
+      (editedSource.public_trust + editedSource.data_accuracy + editedSource.proprietary_score) / 3
+    );
+
+    return {
+      domain: source.domain,
+      factCount: factCountMap.get(source.domain) || 0,
+      publicTrust: editedSource.public_trust,
+      dataAccuracy: editedSource.data_accuracy,
+      proprietaryScore: editedSource.proprietary_score,
+      overallTrustLevel,
+    };
+  }).sort((a, b) => b.factCount - a.factCount);
+
+  const handleValueChange = (domain: string, field: keyof Pick<SourceMetrics, 'public_trust' | 'data_accuracy' | 'proprietary_score'>, value: string) => {
+    const numValue = parseInt(value) || 0;
+    const clampedValue = Math.min(Math.max(numValue, 0), 100);
+    
+    const currentSource = sourceMetrics.find(s => s.domain === domain);
+    if (!currentSource) return;
+
+    const updatedSource = {
+      ...currentSource,
+      ...(editingValues[domain] || {}),
+      [field]: clampedValue,
+    };
+
+    setEditingValues(prev => ({
+      ...prev,
+      [domain]: updatedSource,
+    }));
+
+    updateSourceMutation.mutate({
+      domain,
+      updates: { [field]: clampedValue },
+    });
   };
 
   if (isLoading) {
@@ -159,14 +180,38 @@ export default function SourcesOverview() {
                     <TableCell data-testid={`text-count-${source.domain}`}>
                       {source.factCount}
                     </TableCell>
-                    <TableCell data-testid={`text-public-trust-${source.domain}`}>
-                      {source.publicTrust}
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={source.publicTrust}
+                        onChange={(e) => handleValueChange(source.domain, 'public_trust', e.target.value)}
+                        className="w-20"
+                        data-testid={`input-public-trust-${source.domain}`}
+                      />
                     </TableCell>
-                    <TableCell data-testid={`text-data-accuracy-${source.domain}`}>
-                      {source.dataAccuracy}
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={source.dataAccuracy}
+                        onChange={(e) => handleValueChange(source.domain, 'data_accuracy', e.target.value)}
+                        className="w-20"
+                        data-testid={`input-data-accuracy-${source.domain}`}
+                      />
                     </TableCell>
-                    <TableCell data-testid={`text-proprietary-${source.domain}`}>
-                      {source.proprietaryScore}
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={source.proprietaryScore}
+                        onChange={(e) => handleValueChange(source.domain, 'proprietary_score', e.target.value)}
+                        className="w-20"
+                        data-testid={`input-proprietary-${source.domain}`}
+                      />
                     </TableCell>
                     <TableCell>
                       <Badge variant={getTrustBadgeVariant(source.overallTrustLevel)} data-testid={`badge-overall-${source.domain}`}>

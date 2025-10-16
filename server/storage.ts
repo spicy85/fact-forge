@@ -1,7 +1,8 @@
-import { type User, type InsertUser, type Fact, type InsertFact, type Source, type InsertSource } from "@shared/schema";
+import { type User, type InsertUser, type Fact, type InsertFact, type Source, type InsertSource, type UpdateSource } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { facts, sources } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -15,6 +16,7 @@ export interface IStorage {
   clearAllFacts(): Promise<void>;
   getAllSources(): Promise<Source[]>;
   insertSource(source: InsertSource): Promise<Source>;
+  updateSource(domain: string, updates: UpdateSource): Promise<Source | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -61,6 +63,15 @@ export class MemStorage implements IStorage {
   async insertSource(source: InsertSource): Promise<Source> {
     const [insertedSource] = await db.insert(sources).values(source).returning();
     return insertedSource;
+  }
+
+  async updateSource(domain: string, updates: UpdateSource): Promise<Source | undefined> {
+    const [updatedSource] = await db
+      .update(sources)
+      .set(updates)
+      .where(eq(sources.domain, domain))
+      .returning();
+    return updatedSource;
   }
 }
 

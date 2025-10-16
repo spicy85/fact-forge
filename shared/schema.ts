@@ -43,6 +43,12 @@ export const sources = pgTable("sources", {
 });
 
 export const insertSourceSchema = createInsertSchema(sources);
+export const updateSourceSchema = createInsertSchema(sources).pick({
+  public_trust: true,
+  data_accuracy: true,
+  proprietary_score: true,
+}).partial();
 
 export type InsertSource = z.infer<typeof insertSourceSchema>;
+export type UpdateSource = z.infer<typeof updateSourceSchema>;
 export type Source = typeof sources.$inferSelect;
