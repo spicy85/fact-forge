@@ -30,8 +30,8 @@ The application is a multi-page React application built with Vite, utilizing an 
 
 **Technical Implementations:**
 - **Data Layer:** PostgreSQL database accessed via Drizzle ORM.
-    - `verified_facts`: Stores immutable, verified numerical facts (e.g., country founding years, population).
-    - `facts_evaluation`: Manages a workflow for evaluating new claims before promotion to `verified_facts`, incorporating a multi-criteria scoring system (`source_trust_score`, `recency_score`, `consensus_score`, `trust_score`) with adjustable weights.
+    - `verified_facts`: Stores 192 immutable, verified numerical facts for 48 countries (e.g., founding years, population, area, GDP).
+    - `facts_evaluation`: Manages a workflow for evaluating claims before promotion to `verified_facts`. Currently populated with all 192 verified facts demonstrating the multi-criteria scoring system (`source_trust_score`, `recency_score`, `consensus_score`, `trust_score`) with adjustable weights.
     - `sources`: Stores reliability metrics (public trust, data accuracy, proprietary score) for data domains, which are editable via the UI.
 - **Backend:** Express server handling API requests for facts, facts evaluation, and sources.
 - **Evaluation Scoring (`server/evaluation-scoring.ts`):** Centralized logic for calculating scores for `facts_evaluation` records, including automatic source trust (derived from `sources` table), recency, and a weighted average trust score.

@@ -1,19 +1,16 @@
 import { storage } from "../server/storage";
 
 async function populateEvaluationTable() {
-  console.log("Populating facts_evaluation table with 50 records...\n");
+  console.log("Populating facts_evaluation table with ALL verified facts...\n");
 
   const verifiedFacts = await storage.getAllVerifiedFacts();
-  console.log(`Found ${verifiedFacts.length} verified facts to choose from`);
-
-  const factsToEvaluate = verifiedFacts.slice(1, 51);
-  console.log(`Selected ${factsToEvaluate.length} facts for evaluation\n`);
+  console.log(`Found ${verifiedFacts.length} verified facts to copy\n`);
 
   let successCount = 0;
   const today = new Date();
 
-  for (let i = 0; i < factsToEvaluate.length; i++) {
-    const fact = factsToEvaluate[i];
+  for (let i = 0; i < verifiedFacts.length; i++) {
+    const fact = verifiedFacts[i];
     
     const daysAgo = i % 15;
     const evaluatedDate = new Date(today);
@@ -43,7 +40,7 @@ async function populateEvaluationTable() {
     }
   }
 
-  console.log(`\n✅ Successfully inserted ${successCount}/${factsToEvaluate.length} evaluation records`);
+  console.log(`\n✅ Successfully inserted ${successCount}/${verifiedFacts.length} evaluation records`);
   
   const allEvaluations = await storage.getAllFactsEvaluation();
   console.log(`📊 Total evaluations in table: ${allEvaluations.length}`);
