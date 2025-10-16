@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme-provider";
 import FactChecker from "@/pages/FactChecker";
 import ClaimsMatrix from "@/pages/ClaimsMatrix";
+import SourcesOverview from "@/pages/SourcesOverview";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -13,6 +14,7 @@ function Router() {
     <Switch>
       <Route path="/" component={FactChecker} />
       <Route path="/claims-matrix" component={ClaimsMatrix} />
+      <Route path="/sources" component={SourcesOverview} />
       <Route component={NotFound} />
     </Switch>
   );
