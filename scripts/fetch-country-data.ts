@@ -223,7 +223,6 @@ async function saveToDatabase(countries: Record<string, Country>): Promise<numbe
         attribute: 'founded_year',
         value: country.founded_year.toString(),
         value_type: 'integer',
-        as_of_date: `${country.founded_year}-01-01`,
         source_url: wikiUrl,
         source_trust: 'high',
         last_verified_at: today
@@ -242,7 +241,6 @@ async function saveToDatabase(countries: Record<string, Country>): Promise<numbe
         attribute: 'population',
         value: country.population.toString(),
         value_type: 'integer',
-        as_of_date: `${popYear}-01-01`,
         source_url: popSource,
         source_trust: 'high',
         last_verified_at: today
@@ -257,7 +255,6 @@ async function saveToDatabase(countries: Record<string, Country>): Promise<numbe
         attribute: 'area_km2',
         value: Math.round(country.area).toString(),
         value_type: 'integer',
-        as_of_date: '2024-01-01',
         source_url: wikiUrl,
         source_trust: 'high',
         last_verified_at: today
@@ -272,7 +269,6 @@ async function saveToDatabase(countries: Record<string, Country>): Promise<numbe
         attribute: 'gdp_usd',
         value: country.gdp.toString(),
         value_type: 'integer',
-        as_of_date: `${country.gdp_year}-01-01`,
         source_url: `https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=${country.iso}`,
         source_trust: 'high',
         last_verified_at: today
