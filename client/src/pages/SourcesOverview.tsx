@@ -18,7 +18,6 @@ import { FactRecord } from "@/lib/factChecker";
 interface SourceStats {
   domain: string;
   factCount: number;
-  reliabilityScore: number | null;
   trustLevel: string;
 }
 
@@ -54,7 +53,6 @@ export default function SourcesOverview() {
           .map(([domain, data]) => ({
             domain,
             factCount: data.count,
-            reliabilityScore: null,
             trustLevel: data.trustLevel,
           }))
           .sort((a, b) => b.factCount - a.factCount);
@@ -123,7 +121,7 @@ export default function SourcesOverview() {
           <CardHeader>
             <CardTitle>Data Sources</CardTitle>
             <CardDescription>
-              Overview of sources used in the fact database. Reliability scores will be populated based on verification accuracy.
+              Overview of sources used in the fact database and their assigned trust levels.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -136,7 +134,6 @@ export default function SourcesOverview() {
                   <TableHead data-testid="header-domain">Domain</TableHead>
                   <TableHead data-testid="header-facts">Facts Count</TableHead>
                   <TableHead data-testid="header-trust">Trust Level</TableHead>
-                  <TableHead data-testid="header-reliability">Reliability Score</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -152,9 +149,6 @@ export default function SourcesOverview() {
                       <Badge variant={getTrustBadgeVariant(source.trustLevel)} data-testid={`badge-trust-${source.domain}`}>
                         {source.trustLevel}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground" data-testid={`text-score-${source.domain}`}>
-                      {source.reliabilityScore !== null ? source.reliabilityScore : "—"}
                     </TableCell>
                   </TableRow>
                 ))}
