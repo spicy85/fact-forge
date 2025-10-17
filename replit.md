@@ -23,7 +23,10 @@ The application is a multi-page React application built with Vite, utilizing an 
     - `SourcesOverview` (`/sources`): Manages and displays data source reliability metrics.
     - `EvaluationScoring` (`/evaluation-scoring`): Interactive page showing detailed scoring formulas, statistics, and calculation breakdowns for all evaluations.
 - **Core Logic (`lib/factChecker.ts`):**
-    1.  **Entity Detection:** Automatically identifies country names in text.
+    1.  **Entity Detection:** Automatically identifies country names in text using two-tier detection:
+        - First checks aliases from `entity-mapping.json` (e.g., "USA" → "United States", "China" → "People's Republic of China")
+        - Falls back to direct canonical name matching
+        - Supports 100+ common aliases for all 48 countries in database
     2.  **Claim Extraction:** Uses regex to extract numeric claims and their context.
     3.  **Attribute Inference:** Matches keywords to predefined attributes using `attribute-mapping.json`.
     4.  **Claim Verification:** Performs exact matches against the `verified_facts` database.
@@ -41,6 +44,15 @@ The application is a multi-page React application built with Vite, utilizing an 
     - **Consensus Score:** Manual rating (currently all set to 95)
     - **Trust Score:** Weighted average of the three component scores with adjustable weights (default 1:1:1)
 - **Attribute Mapping:** Keyword-to-attribute mappings defined in `public/attribute-mapping.json` for flexible attribute inference.
+- **Entity Alias Mapping (`public/entity-mapping.json`):** Maps 100+ common country aliases to canonical database names:
+    - Examples: "USA"/"America" → "United States", "China"/"PRC" → "People's Republic of China", "Deutschland" → "Germany", "Holland" → "Kingdom of the Netherlands"
+    - Only includes aliases for the 48 countries with facts in the database
+    - Supports multiple languages and informal names (e.g., "Россия" → "Russia", "Bharat" → "India", "Nippon" → "Japan")
+
+**Supported Countries (48):**
+Argentina, Australia, Austria, Bangladesh, Belgium, Brazil, Canada, Chile, Colombia, Czech Republic, Denmark, Egypt, Finland, France, Germany, Greece, Hungary, India, Indonesia, Ireland, Israel, Italy, Japan, Kingdom of the Netherlands, Malaysia, Mexico, New Zealand, Nigeria, Norway, Pakistan, Paraguay, People's Republic of China, Philippines, Poland, Portugal, Romania, Russia, Saudi Arabia, Singapore, South Africa, South Korea, Spain, Sweden, Switzerland, Thailand, Turkey, United States, Vietnam
+
+**Note:** Countries not in this list (e.g., United Kingdom, UAE) will show "No entity detected" as they don't have facts in the database yet.
 
 **Features:**
 - Automatic entity detection and numeric claim extraction.
