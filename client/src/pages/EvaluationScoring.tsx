@@ -85,6 +85,7 @@ export default function EvaluationScoring() {
     mediumTrust: evaluations.filter(e => e.trust_score >= 60 && e.trust_score < 80).length,
     lowTrust: evaluations.filter(e => e.trust_score < 60).length,
     recentCount: evaluations.filter(e => e.recency_score === 100).length,
+    mediumRecencyCount: evaluations.filter(e => e.recency_score === 50).length,
     olderCount: evaluations.filter(e => e.recency_score === 10).length,
   };
 
@@ -212,7 +213,11 @@ export default function EvaluationScoring() {
                   <span className="font-mono" data-testid="text-recent-count">{stats.recentCount}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Older (&gt;7 days):</span>
+                  <span className="text-muted-foreground">Medium (≤30 days):</span>
+                  <span className="font-mono" data-testid="text-medium-recency-count">{stats.mediumRecencyCount}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Older (&gt;30 days):</span>
                   <span className="font-mono" data-testid="text-older-count">{stats.olderCount}</span>
                 </div>
               </div>
@@ -263,10 +268,11 @@ export default function EvaluationScoring() {
               </div>
               <div className="bg-muted p-4 rounded-md font-mono text-sm">
                 if (days_since_evaluation ≤ 7) → 100<br />
+                if (days_since_evaluation ≤ 30) → 50<br />
                 else → 10
               </div>
               <p className="text-sm text-muted-foreground">
-                Recent evaluations (within 7 days) score 100. Older evaluations score 10.
+                Three-tier scoring based on evaluation age: within 1 week (100), within 1 month (50), older than 1 month (10).
               </p>
             </div>
 
@@ -348,7 +354,7 @@ export default function EvaluationScoring() {
                           <Info className="h-3 w-3" />
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>100 if ≤7 days, else 10</p>
+                          <p>100 if ≤7 days, 50 if ≤30 days, else 10</p>
                         </TooltipContent>
                       </Tooltip>
                     </TableHead>

@@ -31,6 +31,10 @@ export function calculateRecencyScore(evaluatedAt: string): number {
     return 100;
   }
   
+  if (daysDiff <= 30) {
+    return 50;
+  }
+  
   return 10;
 }
 
