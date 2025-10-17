@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { updateSourceSchema } from "@shared/schema";
+import { updateSourceSchema, updateScoringSettingsSchema } from "@shared/schema";
 import express from "express";
 import path from "path";
 
@@ -58,6 +58,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating source:", error);
       res.status(400).json({ error: "Failed to update source" });
+    }
+  });
+
+  // Scoring Settings API endpoints
+  app.get("/api/scoring-settings", async (req, res) => {
+    try {
+      const settings = await storage.getScoringSettings();
+      res.json(settings || null);
+    } catch (error) {
+      console.error("Error fetching scoring settings:", error);
+      res.status(500).json({ error: "Failed to fetch scoring settings" });
+    }
+  });
+
+  app.put("/api/scoring-settings", async (req, res) => {
+    try {
+      const validatedData = updateScoringSettingsSchema.parse(req.body);
+      const updatedSettings = await storage.upsertScoringSettings(validatedData);
+      res.json(updatedSettings);
+    } catch (error) {
+      console.error("Error updating scoring settings:", error);
+      res.status(400).json({ error: "Failed to update scoring settings" });
     }
   });
 

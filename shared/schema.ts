@@ -82,3 +82,33 @@ export const updateSourceSchema = createInsertSchema(sources).pick({
 export type InsertSource = z.infer<typeof insertSourceSchema>;
 export type UpdateSource = z.infer<typeof updateSourceSchema>;
 export type Source = typeof sources.$inferSelect;
+
+export const scoringSettings = pgTable("scoring_settings", {
+  id: serial("id").primaryKey(),
+  // Default weights for scoring (1-10 scale)
+  source_trust_weight: integer("source_trust_weight").notNull().default(1),
+  recency_weight: integer("recency_weight").notNull().default(1),
+  consensus_weight: integer("consensus_weight").notNull().default(1),
+  // Recency scoring tiers (days)
+  recency_tier1_days: integer("recency_tier1_days").notNull().default(7),
+  recency_tier1_score: integer("recency_tier1_score").notNull().default(100),
+  recency_tier2_days: integer("recency_tier2_days").notNull().default(30),
+  recency_tier2_score: integer("recency_tier2_score").notNull().default(50),
+  recency_tier3_score: integer("recency_tier3_score").notNull().default(10),
+  // Updated timestamp
+  updated_at: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const insertScoringSettingsSchema = createInsertSchema(scoringSettings).omit({
+  id: true,
+  updated_at: true,
+});
+
+export const updateScoringSettingsSchema = createInsertSchema(scoringSettings).omit({
+  id: true,
+  updated_at: true,
+}).partial();
+
+export type InsertScoringSettings = z.infer<typeof insertScoringSettingsSchema>;
+export type UpdateScoringSettings = z.infer<typeof updateScoringSettingsSchema>;
+export type ScoringSettings = typeof scoringSettings.$inferSelect;

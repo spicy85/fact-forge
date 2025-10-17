@@ -1,7 +1,7 @@
-import { type User, type InsertUser, type VerifiedFact, type InsertVerifiedFact, type FactsEvaluation, type InsertFactsEvaluation, type Source, type InsertSource, type UpdateSource } from "@shared/schema";
+import { type User, type InsertUser, type VerifiedFact, type InsertVerifiedFact, type FactsEvaluation, type InsertFactsEvaluation, type Source, type InsertSource, type UpdateSource, type ScoringSettings, type InsertScoringSettings, type UpdateScoringSettings } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { verifiedFacts, factsEvaluation, sources } from "@shared/schema";
+import { verifiedFacts, factsEvaluation, sources, scoringSettings } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { calculateSourceTrustScore, calculateRecencyScore, calculateTrustScore } from "./evaluation-scoring";
 
@@ -19,6 +19,8 @@ export interface IStorage {
   getAllSources(): Promise<Source[]>;
   insertSource(source: InsertSource): Promise<Source>;
   updateSource(domain: string, updates: UpdateSource): Promise<Source | undefined>;
+  getScoringSettings(): Promise<ScoringSettings | undefined>;
+  upsertScoringSettings(settings: UpdateScoringSettings): Promise<ScoringSettings>;
 }
 
 export class MemStorage implements IStorage {
@@ -105,6 +107,30 @@ export class MemStorage implements IStorage {
       .where(eq(sources.domain, domain))
       .returning();
     return updatedSource;
+  }
+
+  async getScoringSettings(): Promise<ScoringSettings | undefined> {
+    const [settings] = await db.select().from(scoringSettings).limit(1);
+    return settings;
+  }
+
+  async upsertScoringSettings(updates: UpdateScoringSettings): Promise<ScoringSettings> {
+    const existing = await this.getScoringSettings();
+    
+    if (existing) {
+      const [updatedSettings] = await db
+        .update(scoringSettings)
+        .set({ ...updates, updated_at: new Date().toISOString() })
+        .where(eq(scoringSettings.id, existing.id))
+        .returning();
+      return updatedSettings;
+    } else {
+      const [insertedSettings] = await db
+        .insert(scoringSettings)
+        .values({ ...updates, updated_at: new Date().toISOString() } as InsertScoringSettings)
+        .returning();
+      return insertedSettings;
+    }
   }
 }
 
