@@ -10,6 +10,7 @@ import {
   processText,
   FactRecord,
   AttributeMapping,
+  EntityMapping,
 } from "@/lib/factChecker";
 import { VerifiedClaim } from "@/components/RenderedParagraph";
 import { VerificationResult } from "@/components/ResultsTable";
@@ -17,6 +18,7 @@ import { VerificationResult } from "@/components/ResultsTable";
 export default function FactChecker() {
   const [facts, setFacts] = useState<FactRecord[]>([]);
   const [attributeMapping, setAttributeMapping] = useState<AttributeMapping>({});
+  const [entityMapping, setEntityMapping] = useState<EntityMapping>({});
   const [entities, setEntities] = useState<string[]>([]);
   const [paragraph, setParagraph] = useState("");
   const [verifiedClaims, setVerifiedClaims] = useState<VerifiedClaim[]>([]);
@@ -27,16 +29,19 @@ export default function FactChecker() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [factsRes, mappingRes] = await Promise.all([
+        const [factsRes, attributeMappingRes, entityMappingRes] = await Promise.all([
           fetch("/api/facts"),
           fetch("/attribute-mapping.json"),
+          fetch("/entity-mapping.json"),
         ]);
 
         const parsedFacts: FactRecord[] = await factsRes.json();
-        const mappingData = await mappingRes.json();
+        const attributeMappingData = await attributeMappingRes.json();
+        const entityMappingData = await entityMappingRes.json();
 
         setFacts(parsedFacts);
-        setAttributeMapping(mappingData);
+        setAttributeMapping(attributeMappingData);
+        setEntityMapping(entityMappingData);
 
         const uniqueEntities = Array.from(
           new Set(parsedFacts.map((f) => f.entity))
@@ -57,7 +62,8 @@ export default function FactChecker() {
       paragraph,
       facts,
       attributeMapping,
-      entities
+      entities,
+      entityMapping
     );
     setVerifiedClaims(claims);
     setResults(res);

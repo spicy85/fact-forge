@@ -16,6 +16,10 @@ export interface AttributeMapping {
   [key: string]: string;
 }
 
+export interface EntityMapping {
+  [key: string]: string;
+}
+
 export interface NumericClaim {
   value: string;
   startIndex: number;
@@ -27,11 +31,35 @@ export interface NumericClaim {
 /**
  * Detect entity (country) mentioned in text
  * Returns the first detected entity or null if none found
+ * Now supports alias detection via entity mapping
  */
-export function detectEntity(text: string, availableEntities: string[]): string | null {
+export function detectEntity(
+  text: string, 
+  availableEntities: string[],
+  entityMapping: EntityMapping = {}
+): string | null {
+  // First, try to match against aliases in the entity mapping
+  // Sort aliases by length (descending) to match longer phrases first
+  const sortedAliases = Object.entries(entityMapping).sort(
+    ([a], [b]) => b.length - a.length
+  );
+  
+  for (const [alias, canonicalName] of sortedAliases) {
+    // Check if the canonical name exists in available entities
+    if (!availableEntities.includes(canonicalName)) {
+      continue;
+    }
+    
+    // Use word boundary matching for aliases
+    const regex = new RegExp(`\\b${alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    if (regex.test(text)) {
+      return canonicalName;
+    }
+  }
+  
+  // Fall back to direct entity name matching
   // Sort entities by length (descending) to match longer names first
   // e.g., "United States" before "United"
-  // Create a copy to avoid mutating the original array
   const sortedEntities = [...availableEntities].sort((a, b) => b.length - a.length);
   
   for (const entity of sortedEntities) {
@@ -135,7 +163,8 @@ export function processText(
   text: string,
   facts: FactRecord[],
   attributeMapping: AttributeMapping,
-  availableEntities: string[]
+  availableEntities: string[],
+  entityMapping: EntityMapping = {}
 ): {
   verifiedClaims: VerifiedClaim[];
   results: VerificationResult[];
@@ -145,8 +174,8 @@ export function processText(
     return { verifiedClaims: [], results: [], detectedEntity: null };
   }
 
-  // Auto-detect entity from text
-  const entity = detectEntity(text, availableEntities);
+  // Auto-detect entity from text using entity mapping for alias support
+  const entity = detectEntity(text, availableEntities, entityMapping);
   
   if (!entity) {
     return { verifiedClaims: [], results: [], detectedEntity: null };

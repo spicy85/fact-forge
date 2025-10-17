@@ -1,0 +1,161 @@
+{
+  "USA": "United States",
+  "US": "United States",
+  "U.S.": "United States",
+  "U.S.A.": "United States",
+  "America": "United States",
+  "United States of America": "United States",
+  "the United States": "United States",
+  "the US": "United States",
+  "the USA": "United States",
+  
+  "Netherlands": "Kingdom of the Netherlands",
+  "Holland": "Kingdom of the Netherlands",
+  "the Netherlands": "Kingdom of the Netherlands",
+  
+  "China": "People's Republic of China",
+  "PRC": "People's Republic of China",
+  "P.R.C.": "People's Republic of China",
+  "mainland China": "People's Republic of China",
+  "the PRC": "People's Republic of China",
+  "Zhongguo": "People's Republic of China",
+  "中国": "People's Republic of China",
+  
+  "Korea": "South Korea",
+  "Republic of Korea": "South Korea",
+  "ROK": "South Korea",
+  "R.O.K.": "South Korea",
+  
+  "Czech": "Czech Republic",
+  "Czechia": "Czech Republic",
+  "the Czech Republic": "Czech Republic",
+  
+  "Deutschland": "Germany",
+  "BRD": "Germany",
+  "the Federal Republic of Germany": "Germany",
+  
+  "Nippon": "Japan",
+  "Nihon": "Japan",
+  
+  "Россия": "Russia",
+  "Russian Federation": "Russia",
+  "the Russian Federation": "Russia",
+  
+  "Saudi": "Saudi Arabia",
+  "KSA": "Saudi Arabia",
+  "Kingdom of Saudi Arabia": "Saudi Arabia",
+  
+  "RSA": "South Africa",
+  "R.S.A.": "South Africa",
+  "the Republic of South Africa": "South Africa",
+  
+  "NZ": "New Zealand",
+  "N.Z.": "New Zealand",
+  "Aotearoa": "New Zealand",
+  
+  "Oz": "Australia",
+  "Aus": "Australia",
+  "Aussie": "Australia",
+  
+  "España": "Spain",
+  "the Kingdom of Spain": "Spain",
+  
+  "République française": "France",
+  "the French Republic": "France",
+  
+  "Italia": "Italy",
+  "Italian Republic": "Italy",
+  
+  "Österreich": "Austria",
+  "the Republic of Austria": "Austria",
+  
+  "Schweiz": "Switzerland",
+  "Suisse": "Switzerland",
+  "Svizzera": "Switzerland",
+  "Swiss Confederation": "Switzerland",
+  
+  "België": "Belgium",
+  "Belgique": "Belgium",
+  "Kingdom of Belgium": "Belgium",
+  
+  "Danmark": "Denmark",
+  "Kingdom of Denmark": "Denmark",
+  
+  "Norge": "Norway",
+  "Kingdom of Norway": "Norway",
+  
+  "Sverige": "Sweden",
+  "Kingdom of Sweden": "Sweden",
+  
+  "Suomi": "Finland",
+  "Republic of Finland": "Finland",
+  
+  "Éire": "Ireland",
+  "Republic of Ireland": "Ireland",
+  "Éireann": "Ireland",
+  
+  "Polska": "Poland",
+  "Republic of Poland": "Poland",
+  
+  "Magyarország": "Hungary",
+  "Republic of Hungary": "Hungary",
+  
+  "România": "Romania",
+  
+  "Ελλάδα": "Greece",
+  "Hellas": "Greece",
+  "Hellenic Republic": "Greece",
+  
+  "Türkiye": "Turkey",
+  "Republic of Turkey": "Turkey",
+  "Republic of Türkiye": "Turkey",
+  
+  "Misr": "Egypt",
+  "Arab Republic of Egypt": "Egypt",
+  
+  "Bharat": "India",
+  "Republic of India": "India",
+  "Hindustan": "India",
+  
+  "Canadá": "Canada",
+  
+  "México": "Mexico",
+  "the United Mexican States": "Mexico",
+  
+  "Brasil": "Brazil",
+  "Federative Republic of Brazil": "Brazil",
+  
+  "Argentine": "Argentina",
+  "Argentine Republic": "Argentina",
+  
+  "Republic of Chile": "Chile",
+  
+  "Republic of Colombia": "Colombia",
+  
+  "Republic of Paraguay": "Paraguay",
+  
+  "Pilipinas": "Philippines",
+  "the Philippines": "Philippines",
+  "Republic of the Philippines": "Philippines",
+  
+  "Republic of Indonesia": "Indonesia",
+  
+  "Singapura": "Singapore",
+  "Republic of Singapore": "Singapore",
+  
+  "Siam": "Thailand",
+  "Kingdom of Thailand": "Thailand",
+  
+  "Việt Nam": "Vietnam",
+  "Socialist Republic of Vietnam": "Vietnam",
+  
+  "Islamic Republic of Pakistan": "Pakistan",
+  
+  "People's Republic of Bangladesh": "Bangladesh",
+  
+  "State of Israel": "Israel",
+  
+  "Federal Republic of Nigeria": "Nigeria",
+  
+  "Portuguese Republic": "Portugal"
+}
