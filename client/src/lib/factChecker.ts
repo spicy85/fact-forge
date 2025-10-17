@@ -38,6 +38,33 @@ export function detectEntity(
   availableEntities: string[],
   entityMapping: EntityMapping = {}
 ): string | null {
+  // Helper function to check if a string appears with proper word boundaries
+  const hasProperBoundaries = (haystack: string, needle: string): boolean => {
+    const lowerHaystack = haystack.toLowerCase();
+    const lowerNeedle = needle.toLowerCase();
+    
+    let index = lowerHaystack.indexOf(lowerNeedle);
+    while (index !== -1) {
+      // Check character before (if exists)
+      const charBefore = index > 0 ? haystack[index - 1] : ' ';
+      // Check character after (if exists)  
+      const charAfter = index + needle.length < haystack.length ? haystack[index + needle.length] : ' ';
+      
+      // Valid boundary if surrounded by non-alphanumeric chars (or start/end of string)
+      const validBefore = !/[a-zA-Z0-9]/.test(charBefore);
+      const validAfter = !/[a-zA-Z0-9]/.test(charAfter);
+      
+      if (validBefore && validAfter) {
+        return true;
+      }
+      
+      // Look for next occurrence
+      index = lowerHaystack.indexOf(lowerNeedle, index + 1);
+    }
+    
+    return false;
+  };
+  
   // First, try to match against aliases in the entity mapping
   // Sort aliases by length (descending) to match longer phrases first
   const sortedAliases = Object.entries(entityMapping).sort(
@@ -50,9 +77,7 @@ export function detectEntity(
       continue;
     }
     
-    // Use word boundary matching for aliases
-    const regex = new RegExp(`\\b${alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-    if (regex.test(text)) {
+    if (hasProperBoundaries(text, alias)) {
       return canonicalName;
     }
   }
@@ -63,9 +88,7 @@ export function detectEntity(
   const sortedEntities = [...availableEntities].sort((a, b) => b.length - a.length);
   
   for (const entity of sortedEntities) {
-    // Use word boundary matching for entity names
-    const regex = new RegExp(`\\b${entity.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-    if (regex.test(text)) {
+    if (hasProperBoundaries(text, entity)) {
       return entity;
     }
   }
