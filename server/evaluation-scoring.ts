@@ -22,20 +22,27 @@ export async function calculateSourceTrustScore(sourceUrl: string): Promise<numb
   return overallTrust;
 }
 
-export function calculateRecencyScore(evaluatedAt: string): number {
+export function calculateRecencyScore(
+  evaluatedAt: string,
+  tier1Days: number = 7,
+  tier1Score: number = 100,
+  tier2Days: number = 30,
+  tier2Score: number = 50,
+  tier3Score: number = 10
+): number {
   const evaluatedDate = new Date(evaluatedAt);
   const now = new Date();
   const daysDiff = Math.floor((now.getTime() - evaluatedDate.getTime()) / (1000 * 60 * 60 * 24));
   
-  if (daysDiff <= 7) {
-    return 100;
+  if (daysDiff <= tier1Days) {
+    return tier1Score;
   }
   
-  if (daysDiff <= 30) {
-    return 50;
+  if (daysDiff <= tier2Days) {
+    return tier2Score;
   }
   
-  return 10;
+  return tier3Score;
 }
 
 export function calculateTrustScore(

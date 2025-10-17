@@ -62,13 +62,24 @@ export class MemStorage implements IStorage {
 
   async insertFactsEvaluation(evaluation: InsertFactsEvaluation): Promise<FactsEvaluation> {
     const sourceTrustScore = await calculateSourceTrustScore(evaluation.source_url);
-    const recencyScore = calculateRecencyScore(evaluation.evaluated_at);
+    
+    const settings = await this.getScoringSettings();
+    const recencyScore = settings 
+      ? calculateRecencyScore(
+          evaluation.evaluated_at,
+          settings.recency_tier1_days,
+          settings.recency_tier1_score,
+          settings.recency_tier2_days,
+          settings.recency_tier2_score,
+          settings.recency_tier3_score
+        )
+      : calculateRecencyScore(evaluation.evaluated_at);
     
     const consensusScore = evaluation.consensus_score ?? 50;
     
-    const sourceTrustWeight = evaluation.source_trust_weight ?? 1;
-    const recencyWeight = evaluation.recency_weight ?? 1;
-    const consensusWeight = evaluation.consensus_weight ?? 1;
+    const sourceTrustWeight = evaluation.source_trust_weight ?? (settings?.source_trust_weight ?? 1);
+    const recencyWeight = evaluation.recency_weight ?? (settings?.recency_weight ?? 1);
+    const consensusWeight = evaluation.consensus_weight ?? (settings?.consensus_weight ?? 1);
     
     const trustScore = calculateTrustScore(
       sourceTrustScore,
@@ -84,6 +95,9 @@ export class MemStorage implements IStorage {
       source_trust_score: sourceTrustScore,
       recency_score: recencyScore,
       consensus_score: consensusScore,
+      source_trust_weight: sourceTrustWeight,
+      recency_weight: recencyWeight,
+      consensus_weight: consensusWeight,
       trust_score: trustScore,
     };
     
