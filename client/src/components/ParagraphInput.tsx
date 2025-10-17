@@ -42,7 +42,7 @@ export function ParagraphInput({
       </div>
       <Textarea
         id="paragraph-input"
-        placeholder="Enter a paragraph containing numeric claims here... Press Enter to verify, or Shift+Enter for new line."
+        placeholder="Enter a paragraph containing numeric claims here."
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
