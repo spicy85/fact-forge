@@ -32,6 +32,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Recalculate all evaluation scores
+  app.post("/api/facts-evaluation/recalculate", async (req, res) => {
+    try {
+      const updatedCount = await storage.recalculateAllEvaluations();
+      res.json({ 
+        success: true, 
+        message: `Recalculated ${updatedCount} evaluation records`,
+        updatedCount 
+      });
+    } catch (error) {
+      console.error("Error recalculating evaluations:", error);
+      res.status(500).json({ error: "Failed to recalculate evaluations" });
+    }
+  });
+
   // Sources API endpoint
   app.get("/api/sources", async (req, res) => {
     try {
