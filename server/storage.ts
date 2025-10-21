@@ -17,8 +17,11 @@ export interface IStorage {
   getAllFactsEvaluation(): Promise<FactsEvaluation[]>;
   insertFactsEvaluation(evaluation: InsertFactsEvaluation): Promise<FactsEvaluation>;
   getAllSources(): Promise<Source[]>;
+  getSourcesByStatus(status: string): Promise<Source[]>;
   insertSource(source: InsertSource): Promise<Source>;
   updateSource(domain: string, updates: UpdateSource): Promise<Source | undefined>;
+  promoteSource(domain: string): Promise<Source | undefined>;
+  rejectSource(domain: string, notes?: string): Promise<Source | undefined>;
   getScoringSettings(): Promise<ScoringSettings | undefined>;
   upsertScoringSettings(settings: UpdateScoringSettings): Promise<ScoringSettings>;
 }
@@ -109,6 +112,10 @@ export class MemStorage implements IStorage {
     return db.select().from(sources);
   }
 
+  async getSourcesByStatus(status: string): Promise<Source[]> {
+    return db.select().from(sources).where(eq(sources.status, status));
+  }
+
   async insertSource(source: InsertSource): Promise<Source> {
     const [insertedSource] = await db.insert(sources).values(source).returning();
     return insertedSource;
@@ -118,6 +125,30 @@ export class MemStorage implements IStorage {
     const [updatedSource] = await db
       .update(sources)
       .set(updates)
+      .where(eq(sources.domain, domain))
+      .returning();
+    return updatedSource;
+  }
+
+  async promoteSource(domain: string): Promise<Source | undefined> {
+    const [updatedSource] = await db
+      .update(sources)
+      .set({ 
+        status: 'trusted',
+        promoted_at: new Date().toISOString()
+      })
+      .where(eq(sources.domain, domain))
+      .returning();
+    return updatedSource;
+  }
+
+  async rejectSource(domain: string, notes?: string): Promise<Source | undefined> {
+    const [updatedSource] = await db
+      .update(sources)
+      .set({ 
+        status: 'rejected',
+        notes: notes || null
+      })
       .where(eq(sources.domain, domain))
       .returning();
     return updatedSource;
