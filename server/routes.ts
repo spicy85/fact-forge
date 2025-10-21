@@ -98,6 +98,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Demote source back to pipeline
+  app.put("/api/sources/:domain/demote", async (req, res) => {
+    try {
+      const { domain } = req.params;
+      const demotedSource = await storage.demoteSource(domain);
+      
+      if (!demotedSource) {
+        return res.status(404).json({ error: "Source not found" });
+      }
+      
+      res.json(demotedSource);
+    } catch (error) {
+      console.error("Error demoting source:", error);
+      res.status(400).json({ error: "Failed to demote source" });
+    }
+  });
+
   // Reject source
   app.put("/api/sources/:domain/reject", async (req, res) => {
     try {
