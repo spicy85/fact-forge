@@ -300,8 +300,11 @@ export function verifyClaimMultiSource(
     return { status: "unknown" };
   }
 
-  // Check if exactly matches consensus
-  if (Math.abs(claimedNum - sourceData.consensus) < 0.01) {
+  // Round consensus to integer for comparison (since most claims are integers)
+  const roundedConsensus = Math.round(sourceData.consensus);
+
+  // Check if exactly matches rounded consensus
+  if (claimedNum === roundedConsensus) {
     return { status: "verified", multiSource: sourceData, percentageDiff: 0 };
   }
 
