@@ -70,13 +70,25 @@ export const sources = pgTable("sources", {
   public_trust: integer("public_trust").notNull(),
   data_accuracy: integer("data_accuracy").notNull(),
   proprietary_score: integer("proprietary_score").notNull(),
+  status: text("status").notNull().default("pending_review"), // pending_review, evaluating, trusted, rejected
+  added_at: text("added_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  promoted_at: text("promoted_at"),
+  facts_count: integer("facts_count").notNull().default(0),
+  notes: text("notes"),
 });
 
-export const insertSourceSchema = createInsertSchema(sources);
+export const insertSourceSchema = createInsertSchema(sources).omit({
+  added_at: true,
+});
+
 export const updateSourceSchema = createInsertSchema(sources).pick({
   public_trust: true,
   data_accuracy: true,
   proprietary_score: true,
+  status: true,
+  promoted_at: true,
+  facts_count: true,
+  notes: true,
 }).partial();
 
 export type InsertSource = z.infer<typeof insertSourceSchema>;
