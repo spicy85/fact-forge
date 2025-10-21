@@ -29,10 +29,16 @@ The application is a multi-page React application built with Vite, utilizing an 
         - First checks aliases from `entity-mapping.json` (e.g., "USA" → "United States", "China" → "People's Republic of China")
         - Falls back to direct canonical name matching
         - Supports 100+ common aliases for all 48 countries in database
-    2.  **Claim Extraction:** Uses regex to extract numeric claims and their context.
+    2.  **Claim Extraction:** Uses regex to extract numeric claims and their context, including human-friendly formats:
+        - Supports formats like "12 million", "1.5B", "50K", "12 thousand", "39M", etc.
+        - Multipliers: K/thousand (×1,000), M/million (×1,000,000), B/billion (×1,000,000,000)
     3.  **Attribute Inference:** Matches keywords to predefined attributes using `attribute-mapping.json`.
-    4.  **Claim Verification:** Performs exact matches against the `verified_facts` database.
-    5.  **Result Generation:** Creates inline badges and detailed table data with citations.
+    4.  **Claim Verification:** Performs intelligent numeric comparison with 10% tolerance:
+        - **Exact Match:** Shows "Verified" badge (blue) for exact matches
+        - **Close Match:** Shows "Close" badge (green) when within 10% of actual value
+        - **Mismatch:** Shows "Mismatch" badge (red) when more than 10% off
+        - **Unknown:** Shows "Unknown" badge (gray) when no data available
+    5.  **Result Generation:** Creates inline badges with tooltips showing percentage differences and formatted values with commas for readability.
 
 **Technical Implementations:**
 - **Data Layer:** PostgreSQL database accessed via Drizzle ORM.
@@ -76,7 +82,12 @@ Argentina, Australia, Austria, Bangladesh, Belgium, Brazil, Canada, Chile, Colom
 
 **Features:**
 - Automatic entity detection and numeric claim extraction with 100+ country alias support.
-- Keyword-based attribute inference and exact-match verification.
+- Human-friendly number input supporting formats like "12 million", "1.5B", "50K", etc.
+- Intelligent verification with 10% tolerance - shows "Close" badge when within 10% of actual value.
+- Number formatting with commas for better readability (e.g., "12,123,456").
+- Keyword-based attribute inference and smart numeric comparison.
+- Four-level verification badges: Verified (exact match), Close (≤10%), Mismatch (>10%), Unknown.
+- Interactive tooltips showing percentage differences and formatted actual values.
 - Inline, color-coded verification badges and detailed results table with citations.
 - Claims matrix view showing coverage of facts across countries.
 - Source management system with trusted/pipeline separation for code-free source onboarding.
