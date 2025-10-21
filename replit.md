@@ -51,6 +51,11 @@ The application is a multi-page React application built with Vite, utilizing an 
     - **Recency Tiers:** Configurable day thresholds and scores for three-tier recency evaluation
     - **Persistence:** Settings stored in `scoring_settings` table and applied automatically to all new evaluations
     - **Reset Functionality:** One-click restore to default configuration
+- **Score Recalculation System:** Dynamic score synchronization with admin settings:
+    - **Recalculate Button:** Available on Evaluation Scoring page to sync all existing evaluation scores with current admin settings
+    - **Preserved Weights:** Per-record custom weights are preserved during recalculation; only scores are updated
+    - **API Endpoint:** `POST /api/facts-evaluation/recalculate` updates all evaluation records with current recency tiers and source trust scores
+    - **Use Case:** When admin changes recency tiers or source metrics, existing evaluations can be recalculated to reflect new criteria without losing custom weighting configurations
 - **Source Management System (`/sources` and `/sources/pipeline`):** Dual-view system for managing data sources:
     - **Trusted Sources (`/sources`):** Production-ready sources with status='trusted' used for active fact verification
     - **Source Pipeline (`/sources/pipeline`):** Evaluation workflow for new sources (status='pending_review' or 'evaluating')
@@ -79,6 +84,7 @@ Argentina, Australia, Austria, Bangladesh, Belgium, Brazil, Canada, Chile, Colom
 - Admin interface for centralized scoring configuration (weights and recency tiers).
 - Configurable three-tier recency scoring system with adjustable thresholds and scores.
 - Dynamic scoring weights (source trust, recency, consensus) with live percentage display.
+- One-click score recalculation to sync existing evaluations with updated admin settings while preserving custom weights.
 - Manual promote/reject workflow for source quality control.
 - Dark/light theme support and responsive design.
 
