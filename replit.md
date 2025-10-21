@@ -20,7 +20,8 @@ The application is a multi-page React application built with Vite, utilizing an 
 - **Pages:**
     - `FactChecker` (`/`): Main interface for fact verification.
     - `ClaimsMatrix` (`/claims-matrix`): Visual representation of supported claims by country.
-    - `SourcesOverview` (`/sources`): Manages and displays data source reliability metrics.
+    - `SourcesOverview` (`/sources`): Displays trusted, production-ready data sources with editable reliability metrics.
+    - `SourcePipeline` (`/sources/pipeline`): Source evaluation pipeline for onboarding new sources without code changes.
     - `EvaluationScoring` (`/evaluation-scoring`): Interactive page showing detailed scoring formulas, statistics, and calculation breakdowns for all evaluations.
     - `AdminScoring` (`/admin`): Centralized admin interface to configure scoring weights and recency tiers for the entire system.
 - **Core Logic (`lib/factChecker.ts`):**
@@ -37,7 +38,7 @@ The application is a multi-page React application built with Vite, utilizing an 
 - **Data Layer:** PostgreSQL database accessed via Drizzle ORM.
     - `verified_facts`: Stores 192 immutable, verified numerical facts for 48 countries (e.g., founding years, population, area, GDP).
     - `facts_evaluation`: Manages a workflow for evaluating claims before promotion to `verified_facts`. Currently populated with all 192 verified facts demonstrating the multi-criteria scoring system (`source_trust_score`, `recency_score`, `consensus_score`, `trust_score`) with adjustable weights.
-    - `sources`: Stores reliability metrics (public trust, data accuracy, proprietary score) for data domains, which are editable via the UI.
+    - `sources`: Stores data source reliability metrics with workflow status tracking (pending_review, evaluating, trusted, rejected). Enables source onboarding without code changes.
     - `scoring_settings`: Singleton table storing global scoring configuration (weights and recency tiers), configurable via the Admin interface.
 - **Backend:** Express server handling API requests for facts, facts evaluation, sources, and scoring settings.
 - **Evaluation Scoring (`server/evaluation-scoring.ts`):** Centralized logic for calculating scores for `facts_evaluation` records:
@@ -50,6 +51,13 @@ The application is a multi-page React application built with Vite, utilizing an 
     - **Recency Tiers:** Configurable day thresholds and scores for three-tier recency evaluation
     - **Persistence:** Settings stored in `scoring_settings` table and applied automatically to all new evaluations
     - **Reset Functionality:** One-click restore to default configuration
+- **Source Management System (`/sources` and `/sources/pipeline`):** Dual-view system for managing data sources:
+    - **Trusted Sources (`/sources`):** Production-ready sources with status='trusted' used for active fact verification
+    - **Source Pipeline (`/sources/pipeline`):** Evaluation workflow for new sources (status='pending_review' or 'evaluating')
+    - **Add Source:** Form to add new sources with domain and initial trust metrics
+    - **Promote/Reject:** Manual review actions to move sources from pipeline to trusted list or mark as rejected
+    - **Seeded Data:** 12 pre-configured sources (Wikipedia, World Bank, UN, IMF, OECD, etc.) - 2 trusted, 10 pending review
+    - **No Code Changes:** Complete source lifecycle management through UI without developer intervention
 - **Attribute Mapping:** Keyword-to-attribute mappings defined in `public/attribute-mapping.json` for flexible attribute inference.
 - **Entity Alias Mapping (`public/entity-mapping.json`):** Maps 100+ common country aliases to canonical database names:
     - Examples: "USA"/"America" → "United States", "China"/"PRC" → "People's Republic of China", "Deutschland" → "Germany", "Holland" → "Kingdom of the Netherlands"
@@ -65,11 +73,13 @@ Argentina, Australia, Austria, Bangladesh, Belgium, Brazil, Canada, Chile, Colom
 - Automatic entity detection and numeric claim extraction with 100+ country alias support.
 - Keyword-based attribute inference and exact-match verification.
 - Inline, color-coded verification badges and detailed results table with citations.
-- Claims matrix view and a sources overview page with editable reliability metrics.
+- Claims matrix view showing coverage of facts across countries.
+- Source management system with trusted/pipeline separation for code-free source onboarding.
 - Evaluation scoring page with interactive calculation breakdowns and comprehensive statistics.
 - Admin interface for centralized scoring configuration (weights and recency tiers).
 - Configurable three-tier recency scoring system with adjustable thresholds and scores.
 - Dynamic scoring weights (source trust, recency, consensus) with live percentage display.
+- Manual promote/reject workflow for source quality control.
 - Dark/light theme support and responsive design.
 
 ## External Dependencies
