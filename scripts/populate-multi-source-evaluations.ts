@@ -131,74 +131,94 @@ async function fetchWikidataCountries(): Promise<Record<string, CountryData>> {
 }
 
 /**
- * Fetch data from World Bank
+ * Fetch data from World Bank - using smaller batches to avoid 400 errors
  */
 async function fetchWorldBankData(countries: Record<string, CountryData>): Promise<Record<string, WorldBankData>> {
   console.log('📡 Fetching from World Bank...');
   
   const iso3ToIso2: Record<string, string> = {};
+  const iso2List: string[] = [];
+  
   for (const [iso2, country] of Object.entries(countries)) {
     if (country.iso3) {
       iso3ToIso2[country.iso3] = iso2;
+      iso2List.push(iso2);
     }
   }
   
-  const iso3Codes = Object.values(countries)
-    .map(c => c.iso3)
-    .filter(Boolean)
-    .join(';');
-  
-  if (!iso3Codes) {
-    console.warn('⚠️  No ISO-3 codes available');
+  if (iso2List.length === 0) {
+    console.warn('⚠️  No country codes available');
     return {};
   }
   
-  const gdpUrl = `https://api.worldbank.org/v2/country/${iso3Codes}/indicator/NY.GDP.MKTP.CD?format=json&mrnev=1&per_page=100`;
-  const popUrl = `https://api.worldbank.org/v2/country/${iso3Codes}/indicator/SP.POP.TOTL?format=json&mrnev=1&per_page=100`;
-  
   const worldBankData: Record<string, WorldBankData> = {};
   
-  try {
-    const [gdpResponse, popResponse] = await Promise.all([
-      fetch(gdpUrl),
-      fetch(popUrl)
-    ]);
+  // Split into smaller batches (10 countries at a time)
+  const batchSize = 10;
+  let totalGdp = 0;
+  let totalPop = 0;
+  
+  for (let i = 0; i < iso2List.length; i += batchSize) {
+    const batch = iso2List.slice(i, i + batchSize);
+    const iso2Codes = batch.join(';');
+    
+    console.log(`  Batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(iso2List.length / batchSize)}: ${batch.join(', ')}`);
+    
+    try {
+      // GDP data
+      const gdpUrl = `https://api.worldbank.org/v2/country/${iso2Codes}/indicator/NY.GDP.MKTP.CD?format=json&mrnev=1&per_page=50`;
+      const gdpResponse = await fetch(gdpUrl, {
+        headers: { 'User-Agent': 'KnowledgeAgent/1.0' }
+      });
 
-    if (gdpResponse.ok) {
-      const gdpData: any = await gdpResponse.json();
-      if (gdpData[1]) {
-        for (const item of gdpData[1]) {
-          const iso3 = item.countryiso3code;
-          if (!worldBankData[iso3]) {
-            worldBankData[iso3] = { iso3 };
-          }
-          if (item.value) {
-            worldBankData[iso3].gdp = Math.round(item.value);
+      if (gdpResponse.ok) {
+        const gdpData: any = await gdpResponse.json();
+        if (Array.isArray(gdpData) && gdpData[1]) {
+          for (const item of gdpData[1]) {
+            const iso3 = item.countryiso3code;
+            if (!worldBankData[iso3]) {
+              worldBankData[iso3] = { iso3 };
+            }
+            if (item.value) {
+              worldBankData[iso3].gdp = Math.round(item.value);
+              totalGdp++;
+            }
           }
         }
       }
-    }
 
-    if (popResponse.ok) {
-      const popData: any = await popResponse.json();
-      if (popData[1]) {
-        for (const item of popData[1]) {
-          const iso3 = item.countryiso3code;
-          if (!worldBankData[iso3]) {
-            worldBankData[iso3] = { iso3 };
-          }
-          if (item.value) {
-            worldBankData[iso3].population = Math.round(item.value);
+      // Population data
+      const popUrl = `https://api.worldbank.org/v2/country/${iso2Codes}/indicator/SP.POP.TOTL?format=json&mrnev=1&per_page=50`;
+      const popResponse = await fetch(popUrl, {
+        headers: { 'User-Agent': 'KnowledgeAgent/1.0' }
+      });
+
+      if (popResponse.ok) {
+        const popData: any = await popResponse.json();
+        if (Array.isArray(popData) && popData[1]) {
+          for (const item of popData[1]) {
+            const iso3 = item.countryiso3code;
+            if (!worldBankData[iso3]) {
+              worldBankData[iso3] = { iso3 };
+            }
+            if (item.value) {
+              worldBankData[iso3].population = Math.round(item.value);
+              totalPop++;
+            }
           }
         }
       }
+      
+      // Small delay to avoid rate limiting
+      if (i + batchSize < iso2List.length) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+    } catch (error: any) {
+      console.warn(`  ⚠️  Batch error:`, error.message);
     }
-
-    console.log(`✅ Fetched World Bank data for ${Object.keys(worldBankData).length} countries`);
-  } catch (error: any) {
-    console.warn('⚠️  World Bank API error:', error.message);
   }
 
+  console.log(`✅ World Bank: ${totalGdp} GDP values, ${totalPop} population values from ${Object.keys(worldBankData).length} countries`);
   return worldBankData;
 }
 
