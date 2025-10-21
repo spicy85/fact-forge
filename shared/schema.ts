@@ -107,6 +107,8 @@ export const scoringSettings = pgTable("scoring_settings", {
   recency_tier2_days: integer("recency_tier2_days").notNull().default(30),
   recency_tier2_score: integer("recency_tier2_score").notNull().default(50),
   recency_tier3_score: integer("recency_tier3_score").notNull().default(10),
+  // Multi-source verification threshold (0-100)
+  credible_threshold: integer("credible_threshold").notNull().default(80),
   // Updated timestamp
   updated_at: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
