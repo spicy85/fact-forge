@@ -17,6 +17,7 @@ export interface VerificationResult {
   recordedValue?: string;
   lastVerifiedAt?: string;
   citation?: string;
+  sourceTrust?: string;
 }
 
 interface ResultsTableProps {
@@ -40,6 +41,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
               <TableHead className="font-medium">Recorded Value</TableHead>
               <TableHead className="font-medium">Last Updated</TableHead>
               <TableHead className="font-medium">Citation</TableHead>
+              <TableHead className="font-medium">Source Trust</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -84,6 +86,9 @@ export function ResultsTable({ results }: ResultsTableProps) {
                   ) : (
                     <span className="text-sm text-muted-foreground">-</span>
                   )}
+                </TableCell>
+                <TableCell className="text-sm" data-testid={`text-source-trust-${idx}`}>
+                  {result.sourceTrust || "-"}
                 </TableCell>
               </TableRow>
             ))}

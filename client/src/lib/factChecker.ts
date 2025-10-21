@@ -236,6 +236,7 @@ export function processText(
       recordedValue: verification.fact?.value,
       lastVerifiedAt: verification.fact?.last_verified_at,
       citation: verification.fact?.source_url,
+      sourceTrust: verification.fact?.source_trust,
     });
   });
 
