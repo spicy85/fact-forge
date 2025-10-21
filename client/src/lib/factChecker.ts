@@ -12,6 +12,63 @@ export interface FactRecord {
   last_verified_at: string;
 }
 
+/**
+ * Parse human-friendly number formats into actual numbers
+ * Supports: 12M, 1.5 billion, 50K, 12 million, etc.
+ */
+export function parseHumanNumber(input: string): number | null {
+  if (!input) return null;
+  
+  // Remove commas and trim
+  const cleaned = input.replace(/,/g, '').trim().toLowerCase();
+  
+  // Try to match number with optional multiplier
+  // Matches: "12", "12.5", "12 million", "12M", "12m", "1.5billion", etc.
+  const match = cleaned.match(/^([\d.]+)\s*(k|thousand|m|million|b|billion)?$/i);
+  
+  if (!match) return null;
+  
+  const baseNumber = parseFloat(match[1]);
+  if (isNaN(baseNumber)) return null;
+  
+  const multiplier = match[2] ? match[2].toLowerCase() : '';
+  
+  const multipliers: { [key: string]: number } = {
+    'k': 1000,
+    'thousand': 1000,
+    'm': 1000000,
+    'million': 1000000,
+    'b': 1000000000,
+    'billion': 1000000000,
+  };
+  
+  const mult = multipliers[multiplier] || 1;
+  return baseNumber * mult;
+}
+
+/**
+ * Format a number with commas for display
+ */
+export function formatNumber(value: string): string {
+  const num = parseFloat(value.replace(/,/g, ''));
+  if (isNaN(num)) return value;
+  
+  // Don't add commas to years (4-digit numbers that look like years)
+  if (num >= 1000 && num <= 9999 && Number.isInteger(num)) {
+    return value;
+  }
+  
+  return num.toLocaleString('en-US', { maximumFractionDigits: 2 });
+}
+
+/**
+ * Calculate percentage difference between two numbers
+ */
+export function calculatePercentageDifference(claimed: number, actual: number): number {
+  if (actual === 0) return claimed === 0 ? 0 : 100;
+  return Math.abs((claimed - actual) / actual) * 100;
+}
+
 export interface AttributeMapping {
   [key: string]: string;
 }
