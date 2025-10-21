@@ -21,6 +21,7 @@ export interface IStorage {
   insertSource(source: InsertSource): Promise<Source>;
   updateSource(domain: string, updates: UpdateSource): Promise<Source | undefined>;
   promoteSource(domain: string): Promise<Source | undefined>;
+  demoteSource(domain: string): Promise<Source | undefined>;
   rejectSource(domain: string, notes?: string): Promise<Source | undefined>;
   getScoringSettings(): Promise<ScoringSettings | undefined>;
   upsertScoringSettings(settings: UpdateScoringSettings): Promise<ScoringSettings>;
@@ -136,6 +137,18 @@ export class MemStorage implements IStorage {
       .set({ 
         status: 'trusted',
         promoted_at: new Date().toISOString()
+      })
+      .where(eq(sources.domain, domain))
+      .returning();
+    return updatedSource;
+  }
+
+  async demoteSource(domain: string): Promise<Source | undefined> {
+    const [updatedSource] = await db
+      .update(sources)
+      .set({ 
+        status: 'pending_review',
+        promoted_at: null
       })
       .where(eq(sources.domain, domain))
       .returning();
