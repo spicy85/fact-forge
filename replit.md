@@ -114,6 +114,19 @@ Argentina, Australia, Austria, Bangladesh, Belgium, Brazil, Canada, Chile, Colom
 
 ## External Dependencies
 - **PostgreSQL (Neon):** Primary database for storing `verified_facts`, `facts_evaluation`, and `sources` data.
-- **Wikipedia (Wikidata) API:** Used by the `fetch-country-data.ts` script to gather country-specific facts.
-- **World Bank API:** Used by the `fetch-country-data.ts` script to gather country-specific facts.
+- **Wikipedia (Wikidata) API:** Used by the `fetch-country-data.ts` script to gather country-specific facts (baseline data source).
+- **World Bank API:** Multi-source integration providing population, GDP, GDP per capita, area, and inflation data. Enables trust-weighted consensus verification across sources.
+  - Integration: `server/integrations/worldbank-api.ts`
+  - Data fetch: `scripts/fetch-worldbank-subset.ts` (populated 50 evaluations for 10 countries)
+  - Status: Active and working (verified 2024-10-21)
 - **Drizzle ORM:** Used for interacting with the PostgreSQL database.
+
+## Multi-Source Verification Status
+The application currently has **multi-source consensus** working with Wikipedia + World Bank data:
+- **Canada**: 3 sources (Wikipedia: 37M, World Bank: 41M x2) → consensus 39.8M
+- **Poland**: 3 sources for population with range 36.5M - 37.5M
+- **Germany**: 2 sources for population both at ~83.5M
+- **United States**: Multiple sources for population, GDP, and area
+- **Total**: 50+ World Bank evaluations across 10 countries covering population, GDP, GDP per capita, area, and inflation
+
+**Note on API constraints:** IMF and UN Statistics SDMX APIs are blocked by Replit environment (connection refused/timeouts). World Bank API is the primary additional data source beyond Wikipedia.
