@@ -314,7 +314,7 @@ export default function SourcePipeline() {
                         <TableCell data-testid={`text-facts-${source.domain}`}>
                           {source.facts_count}
                         </TableCell>
-                        <TableCell className="max-w-xs truncate text-sm text-muted-foreground" data-testid={`text-notes-${source.domain}`}>
+                        <TableCell className="max-w-xs break-words text-sm text-muted-foreground" data-testid={`text-notes-${source.domain}`}>
                           {source.notes || "—"}
                         </TableCell>
                         <TableCell>
