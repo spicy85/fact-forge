@@ -336,6 +336,7 @@ export default function EvaluationScoring() {
                     <TableHead>Entity</TableHead>
                     <TableHead>Attribute</TableHead>
                     <TableHead>Value</TableHead>
+                    <TableHead>Source Domain</TableHead>
                     <TableHead className="text-center">
                       <Tooltip>
                         <TooltipTrigger className="flex items-center justify-center gap-1">
@@ -393,6 +394,16 @@ export default function EvaluationScoring() {
                       <TableCell className="font-medium">{evaluation.entity}</TableCell>
                       <TableCell className="text-muted-foreground">{evaluation.attribute}</TableCell>
                       <TableCell className="font-mono text-sm">{evaluation.value}</TableCell>
+                      <TableCell className="font-mono text-sm text-muted-foreground">
+                        {(() => {
+                          try {
+                            const url = new URL(evaluation.source_url);
+                            return url.hostname.replace(/^www\./, "");
+                          } catch {
+                            return "-";
+                          }
+                        })()}
+                      </TableCell>
                       <TableCell className="text-center">
                         <span className="font-mono text-sm" data-testid={`text-source-trust-${evaluation.id}`}>
                           {evaluation.source_trust_score}
