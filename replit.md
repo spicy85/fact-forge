@@ -33,12 +33,16 @@ The application is a multi-page React application built with Vite, utilizing an 
         - Supports formats like "12 million", "1.5B", "50K", "12 thousand", "39M", etc.
         - Multipliers: K/thousand (×1,000), M/million (×1,000,000), B/billion (×1,000,000,000)
     3.  **Attribute Inference:** Matches keywords to predefined attributes using `attribute-mapping.json`.
-    4.  **Claim Verification:** Performs intelligent numeric comparison with 10% tolerance:
-        - **Exact Match:** Shows "Verified" badge (blue) for exact matches
-        - **Close Match:** Shows "Close" badge (green) when within 10% of actual value
-        - **Mismatch:** Shows "Mismatch" badge (red) when more than 10% off
-        - **Unknown:** Shows "Unknown" badge (gray) when no data available
-    5.  **Result Generation:** Creates inline badges with tooltips showing percentage differences and formatted values with commas for readability.
+    4.  **Multi-Source Claim Verification:** Uses trust-weighted consensus from multiple credible sources:
+        - **Credible Sources:** Only sources with trust_score ≥ credible_threshold (default 80, configurable in Admin)
+        - **Consensus Calculation:** Trust-weighted average from all credible evaluations
+        - **Credible Range:** Minimum to maximum values from credible sources
+        - **Verification Logic:**
+          - **Exact Match:** Shows "Verified" badge (blue) when claim equals consensus value
+          - **Close Match:** Shows "Close" badge (green) when claim falls within credible range
+          - **Mismatch:** Shows "Mismatch" badge (red) when claim is outside credible range
+          - **Unknown:** Shows "Unknown" badge (gray) when no credible sources available
+    5.  **Result Generation:** Creates inline badges with tooltips showing consensus value, credible range, source count, and formatted values with commas for readability.
 
 **Technical Implementations:**
 - **Data Layer:** PostgreSQL database accessed via Drizzle ORM.
@@ -47,6 +51,12 @@ The application is a multi-page React application built with Vite, utilizing an 
     - `sources`: Stores data source reliability metrics with workflow status tracking (pending_review, evaluating, trusted, rejected). Enables source onboarding without code changes.
     - `scoring_settings`: Singleton table storing global scoring configuration (weights and recency tiers), configurable via the Admin interface.
 - **Backend:** Express server handling API requests for facts, facts evaluation, sources, and scoring settings.
+- **Multi-Source Verification API (`/api/multi-source-evaluations`):** Endpoint for fetching and aggregating credible evaluations:
+    - **Input:** Query parameters `entity` and `attribute`
+    - **Processing:** Filters evaluations by credible_threshold, calculates trust-weighted consensus, determines min/max range
+    - **Output:** Returns `{ consensus, min, max, sourceCount, credibleEvaluations }` for use in fact verification
+    - **Trust Weighting:** Each evaluation's value is weighted by its trust_score when calculating consensus
+    - **Batching:** Frontend batches requests per entity-attribute pair to avoid redundant API calls
 - **Evaluation Scoring (`server/evaluation-scoring.ts`):** Centralized logic for calculating scores for `facts_evaluation` records:
     - **Source Trust Score:** Automatically calculated from sources table metrics (public_trust + data_accuracy + proprietary_score) / 3
     - **Recency Score:** Configurable three-tier system (defaults: ≤7 days = 100, ≤30 days = 50, >30 days = 10)
@@ -55,6 +65,7 @@ The application is a multi-page React application built with Vite, utilizing an 
 - **Admin Configuration System (`/admin`):** Single-page interface for managing scoring methodology:
     - **Scoring Weights:** Adjustable sliders (0-10 scale) for source trust, recency, and consensus weights with live percentage display
     - **Recency Tiers:** Configurable day thresholds and scores for three-tier recency evaluation
+    - **Credible Threshold:** Slider to set minimum trust score (0-100) for sources to be considered credible in multi-source verification (default: 80)
     - **Persistence:** Settings stored in `scoring_settings` table and applied automatically to all new evaluations
     - **Reset Functionality:** One-click restore to default configuration
 - **Score Recalculation System:** Dynamic score synchronization with admin settings:
@@ -83,18 +94,20 @@ Argentina, Australia, Austria, Bangladesh, Belgium, Brazil, Canada, Chile, Colom
 **Features:**
 - Automatic entity detection and numeric claim extraction with 100+ country alias support.
 - Human-friendly number input supporting formats like "12 million", "1.5B", "50K", etc.
-- Intelligent verification with 10% tolerance - shows "Close" badge when within 10% of actual value.
+- **Multi-source verification with trust-weighted consensus** - aggregates data from multiple credible sources based on configurable trust threshold.
+- **Credible range validation** - shows "Close" badge when claim falls within range of credible sources (no arbitrary 10% tolerance).
 - Number formatting with commas for better readability (e.g., "12,123,456").
 - Keyword-based attribute inference and smart numeric comparison.
-- Four-level verification badges: Verified (exact match), Close (≤10%), Mismatch (>10%), Unknown.
-- Interactive tooltips showing percentage differences and formatted actual values.
+- Four-level verification badges: Verified (consensus match), Close (within credible range), Mismatch (outside range), Unknown.
+- Interactive tooltips showing consensus value, credible range, source count, and formatted actual values.
 - Inline, color-coded verification badges and detailed results table with citations.
 - Claims matrix view showing coverage of facts across countries.
 - Source management system with trusted/pipeline separation for code-free source onboarding.
 - Evaluation scoring page with interactive calculation breakdowns and comprehensive statistics.
-- Admin interface for centralized scoring configuration (weights and recency tiers).
+- Admin interface for centralized scoring configuration (weights, recency tiers, and credible threshold).
 - Configurable three-tier recency scoring system with adjustable thresholds and scores.
 - Dynamic scoring weights (source trust, recency, consensus) with live percentage display.
+- **Configurable credible threshold (default 80)** - control which sources qualify for multi-source consensus.
 - One-click score recalculation to sync existing evaluations with updated admin settings while preserving custom weights.
 - Manual promote/reject workflow for source quality control.
 - Dark/light theme support and responsive design.
