@@ -1,9 +1,10 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { updateSourceSchema, updateScoringSettingsSchema } from "@shared/schema";
+import { insertSourceSchema, updateSourceSchema, updateScoringSettingsSchema } from "@shared/schema";
 import express from "express";
 import path from "path";
+import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve static files from public directory
@@ -34,11 +35,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Sources API endpoint
   app.get("/api/sources", async (req, res) => {
     try {
+      const { status } = req.query;
+      
+      if (status && typeof status === 'string') {
+        const sourcesByStatus = await storage.getSourcesByStatus(status);
+        return res.json(sourcesByStatus);
+      }
+      
       const allSources = await storage.getAllSources();
       res.json(allSources);
     } catch (error) {
       console.error("Error fetching sources:", error);
       res.status(500).json({ error: "Failed to fetch sources" });
+    }
+  });
+
+  // Create new source
+  app.post("/api/sources", async (req, res) => {
+    try {
+      const validatedData = insertSourceSchema.parse(req.body);
+      const newSource = await storage.insertSource(validatedData);
+      res.status(201).json(newSource);
+    } catch (error) {
+      console.error("Error creating source:", error);
+      res.status(400).json({ error: "Failed to create source" });
     }
   });
 
@@ -58,6 +78,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating source:", error);
       res.status(400).json({ error: "Failed to update source" });
+    }
+  });
+
+  // Promote source to trusted
+  app.put("/api/sources/:domain/promote", async (req, res) => {
+    try {
+      const { domain } = req.params;
+      const promotedSource = await storage.promoteSource(domain);
+      
+      if (!promotedSource) {
+        return res.status(404).json({ error: "Source not found" });
+      }
+      
+      res.json(promotedSource);
+    } catch (error) {
+      console.error("Error promoting source:", error);
+      res.status(400).json({ error: "Failed to promote source" });
+    }
+  });
+
+  // Reject source
+  app.put("/api/sources/:domain/reject", async (req, res) => {
+    try {
+      const { domain } = req.params;
+      const { notes } = req.body;
+      const rejectedSource = await storage.rejectSource(domain, notes);
+      
+      if (!rejectedSource) {
+        return res.status(404).json({ error: "Source not found" });
+      }
+      
+      res.json(rejectedSource);
+    } catch (error) {
+      console.error("Error rejecting source:", error);
+      res.status(400).json({ error: "Failed to reject source" });
     }
   });
 
