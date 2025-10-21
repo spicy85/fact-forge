@@ -132,9 +132,9 @@ export class MemStorage implements IStorage {
       
       const consensusScore = evaluation.consensus_score;
       
-      const sourceTrustWeight = settings?.source_trust_weight ?? 1;
-      const recencyWeight = settings?.recency_weight ?? 1;
-      const consensusWeight = settings?.consensus_weight ?? 1;
+      const sourceTrustWeight = evaluation.source_trust_weight ?? (settings?.source_trust_weight ?? 1);
+      const recencyWeight = evaluation.recency_weight ?? (settings?.recency_weight ?? 1);
+      const consensusWeight = evaluation.consensus_weight ?? (settings?.consensus_weight ?? 1);
       
       const trustScore = calculateTrustScore(
         sourceTrustScore,
@@ -150,9 +150,6 @@ export class MemStorage implements IStorage {
         .set({
           source_trust_score: sourceTrustScore,
           recency_score: recencyScore,
-          source_trust_weight: sourceTrustWeight,
-          recency_weight: recencyWeight,
-          consensus_weight: consensusWeight,
           trust_score: trustScore,
         })
         .where(eq(factsEvaluation.id, evaluation.id));
