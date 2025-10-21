@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, Calculator, Info } from "lucide-react";
+import { ArrowLeft, Calculator, Info, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
@@ -13,7 +13,9 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import {
   Tooltip,
   TooltipContent,
@@ -45,6 +47,7 @@ interface SourceMetrics {
 
 export default function EvaluationScoring() {
   const [selectedRecord, setSelectedRecord] = useState<FactsEvaluationRecord | null>(null);
+  const { toast } = useToast();
 
   const { data: evaluations = [], isLoading } = useQuery<FactsEvaluationRecord[]>({
     queryKey: ["/api/facts-evaluation"],
@@ -52,6 +55,27 @@ export default function EvaluationScoring() {
 
   const { data: sources = [] } = useQuery<SourceMetrics[]>({
     queryKey: ["/api/sources"],
+  });
+
+  const recalculateMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/facts-evaluation/recalculate");
+      return await response.json();
+    },
+    onSuccess: (data: { message?: string; updatedCount?: number }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/facts-evaluation"] });
+      toast({
+        title: "Scores Recalculated",
+        description: data.message || "All evaluation scores have been updated with current settings.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to recalculate scores. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const getTrustBadgeVariant = (score: number) => {
@@ -128,7 +152,18 @@ export default function EvaluationScoring() {
               <h1 className="text-2xl font-bold">Evaluation Scoring</h1>
             </div>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => recalculateMutation.mutate()}
+              disabled={recalculateMutation.isPending}
+              data-testid="button-recalculate"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${recalculateMutation.isPending ? 'animate-spin' : ''}`} />
+              {recalculateMutation.isPending ? "Recalculating..." : "Recalculate Scores"}
+            </Button>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
