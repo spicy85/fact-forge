@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, Calculator, Info, RefreshCw } from "lucide-react";
+import { ArrowLeft, Calculator, Info, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
@@ -45,8 +45,13 @@ interface SourceMetrics {
   proprietary_score: number;
 }
 
+type SortColumn = 'entity' | 'attribute' | 'value' | 'source_trust_score' | 'recency_score' | 'consensus_score' | 'trust_score';
+type SortDirection = 'asc' | 'desc' | null;
+
 export default function EvaluationScoring() {
   const [selectedRecord, setSelectedRecord] = useState<FactsEvaluationRecord | null>(null);
+  const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const { toast } = useToast();
 
   const { data: evaluations = [], isLoading } = useQuery<FactsEvaluationRecord[]>({
@@ -88,6 +93,69 @@ export default function EvaluationScoring() {
     if (score >= 80) return "High";
     if (score >= 60) return "Medium";
     return "Low";
+  };
+
+  // Handle column sorting
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      // Cycle through: asc -> desc -> null
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else if (sortDirection === 'desc') {
+        setSortDirection(null);
+        setSortColumn(null);
+      }
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Sort evaluations with memoization
+  const sortedEvaluations = useMemo(() => {
+    if (!sortColumn || !sortDirection) return evaluations;
+
+    return [...evaluations].sort((a, b) => {
+      let aValue: any = a[sortColumn];
+      let bValue: any = b[sortColumn];
+
+      // Special handling for 'value' column - parse as number for numeric sorting
+      if (sortColumn === 'value') {
+        const aNum = parseFloat(aValue.replace(/,/g, ''));
+        const bNum = parseFloat(bValue.replace(/,/g, ''));
+        
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+          return sortDirection === 'asc' ? aNum - bNum : bNum - aNum;
+        }
+      }
+
+      // Handle numeric columns
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+
+      // Handle string columns with locale-aware comparison
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        const comparison = aValue.localeCompare(bValue, undefined, { sensitivity: 'base' });
+        return sortDirection === 'asc' ? comparison : -comparison;
+      }
+
+      // Fallback comparison
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [evaluations, sortColumn, sortDirection]);
+
+  // Render sort icon
+  const renderSortIcon = (column: SortColumn) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="h-3 w-3 ml-1 opacity-50" />;
+    }
+    if (sortDirection === 'asc') {
+      return <ArrowUp className="h-3 w-3 ml-1" />;
+    }
+    return <ArrowDown className="h-3 w-3 ml-1" />;
   };
 
   // Calculate statistics
@@ -368,15 +436,57 @@ export default function EvaluationScoring() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Entity</TableHead>
-                    <TableHead>Attribute</TableHead>
-                    <TableHead>Value</TableHead>
+                    <TableHead>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleSort('entity')}
+                        className="h-8 px-2 font-medium hover-elevate"
+                        data-testid="button-sort-entity"
+                      >
+                        Entity
+                        {renderSortIcon('entity')}
+                      </Button>
+                    </TableHead>
+                    <TableHead>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleSort('attribute')}
+                        className="h-8 px-2 font-medium hover-elevate"
+                        data-testid="button-sort-attribute"
+                      >
+                        Attribute
+                        {renderSortIcon('attribute')}
+                      </Button>
+                    </TableHead>
+                    <TableHead>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleSort('value')}
+                        className="h-8 px-2 font-medium hover-elevate"
+                        data-testid="button-sort-value"
+                      >
+                        Value
+                        {renderSortIcon('value')}
+                      </Button>
+                    </TableHead>
                     <TableHead>Source Domain</TableHead>
                     <TableHead className="text-center">
                       <Tooltip>
-                        <TooltipTrigger className="flex items-center justify-center gap-1">
-                          Source Trust
-                          <Info className="h-3 w-3" />
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleSort('source_trust_score')}
+                            className="h-8 px-2 font-medium hover-elevate"
+                            data-testid="button-sort-source-trust"
+                          >
+                            Source Trust
+                            <Info className="h-3 w-3 ml-1" />
+                            {renderSortIcon('source_trust_score')}
+                          </Button>
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>Average of source metrics</p>
@@ -385,9 +495,18 @@ export default function EvaluationScoring() {
                     </TableHead>
                     <TableHead className="text-center">
                       <Tooltip>
-                        <TooltipTrigger className="flex items-center justify-center gap-1">
-                          Recency
-                          <Info className="h-3 w-3" />
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleSort('recency_score')}
+                            className="h-8 px-2 font-medium hover-elevate"
+                            data-testid="button-sort-recency"
+                          >
+                            Recency
+                            <Info className="h-3 w-3 ml-1" />
+                            {renderSortIcon('recency_score')}
+                          </Button>
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>100 if ≤7 days, 50 if ≤30 days, else 10</p>
@@ -396,9 +515,18 @@ export default function EvaluationScoring() {
                     </TableHead>
                     <TableHead className="text-center">
                       <Tooltip>
-                        <TooltipTrigger className="flex items-center justify-center gap-1">
-                          Consensus
-                          <Info className="h-3 w-3" />
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleSort('consensus_score')}
+                            className="h-8 px-2 font-medium hover-elevate"
+                            data-testid="button-sort-consensus"
+                          >
+                            Consensus
+                            <Info className="h-3 w-3 ml-1" />
+                            {renderSortIcon('consensus_score')}
+                          </Button>
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>Manual agreement score</p>
@@ -407,9 +535,18 @@ export default function EvaluationScoring() {
                     </TableHead>
                     <TableHead className="text-center">
                       <Tooltip>
-                        <TooltipTrigger className="flex items-center justify-center gap-1">
-                          Trust Score
-                          <Info className="h-3 w-3" />
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleSort('trust_score')}
+                            className="h-8 px-2 font-medium hover-elevate"
+                            data-testid="button-sort-trust-score"
+                          >
+                            Trust Score
+                            <Info className="h-3 w-3 ml-1" />
+                            {renderSortIcon('trust_score')}
+                          </Button>
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>Weighted average of all scores</p>
@@ -419,7 +556,7 @@ export default function EvaluationScoring() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {evaluations.map((evaluation) => (
+                  {sortedEvaluations.map((evaluation) => (
                     <TableRow
                       key={evaluation.id}
                       className="cursor-pointer hover-elevate"
