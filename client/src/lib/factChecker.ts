@@ -300,16 +300,30 @@ export function verifyClaimMultiSource(
     return { status: "unknown" };
   }
 
-  // Round consensus to integer for comparison (since most claims are integers)
-  const roundedConsensus = Math.round(sourceData.consensus);
+  // Detect the precision level of the claim to match rounding appropriately
+  // If claim is a round million/billion, compare at that precision
+  const getRoundingPrecision = (num: number): number => {
+    if (num % 1000000000 === 0) return 1000000000; // Billion
+    if (num % 1000000 === 0) return 1000000; // Million
+    if (num % 1000 === 0) return 1000; // Thousand
+    return 1; // No rounding
+  };
 
-  // Check if exactly matches rounded consensus
+  const precision = getRoundingPrecision(claimedNum);
+  const roundedConsensus = Math.round(sourceData.consensus / precision) * precision;
+
+  // Check if matches consensus at the appropriate precision level
   if (claimedNum === roundedConsensus) {
     return { status: "verified", multiSource: sourceData, percentageDiff: 0 };
   }
 
   // Check if within credible range [min, max]
-  if (claimedNum >= sourceData.min && claimedNum <= sourceData.max) {
+  // Add small tolerance (2%) to account for rounding when users enter human-readable numbers like "36m"
+  const tolerance = 0.02; // 2% tolerance
+  const minWithTolerance = sourceData.min * (1 - tolerance);
+  const maxWithTolerance = sourceData.max * (1 + tolerance);
+  
+  if (claimedNum >= minWithTolerance && claimedNum <= maxWithTolerance) {
     const percentDiff = calculatePercentageDifference(claimedNum, sourceData.consensus);
     return { status: "close", multiSource: sourceData, percentageDiff: percentDiff };
   }
