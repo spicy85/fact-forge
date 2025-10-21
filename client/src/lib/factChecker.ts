@@ -155,7 +155,10 @@ export function detectEntity(
 
 export function extractNumericClaims(text: string): NumericClaim[] {
   const claims: NumericClaim[] = [];
-  const numberRegex = /\b\d+(?:,\d{3})*(?:\.\d+)?\b/g;
+  
+  // Updated regex to capture numbers with optional multipliers (K, M, B, thousand, million, billion)
+  // Matches: "12", "12.5", "12,000", "12 million", "12M", "1.5B", etc.
+  const numberRegex = /\b\d+(?:,\d{3})*(?:\.\d+)?\s*(?:k|thousand|m|million|b|billion)?\b/gi;
   let match;
 
   while ((match = numberRegex.exec(text)) !== null) {
@@ -165,7 +168,7 @@ export function extractNumericClaims(text: string): NumericClaim[] {
     const contextEnd = Math.min(text.length, endIndex + 20);
 
     claims.push({
-      value: match[0].replace(/,/g, ""),
+      value: match[0].trim(),
       startIndex,
       endIndex,
       contextBefore: text.slice(contextStart, startIndex).toLowerCase(),
@@ -214,6 +217,7 @@ export function verifyClaim(
 ): {
   status: VerificationStatus;
   fact?: FactRecord;
+  percentageDiff?: number;
 } {
   if (!attribute) {
     return { status: "unknown" };
@@ -232,11 +236,34 @@ export function verifyClaim(
   const claimedValue = claim.value;
   const recordedValue = matchingFact.value;
 
+  // Try exact string match first
   if (claimedValue === recordedValue) {
     return { status: "verified", fact: matchingFact };
-  } else {
-    return { status: "mismatch", fact: matchingFact };
   }
+
+  // Try numeric comparison with tolerance
+  const claimedNum = parseHumanNumber(claimedValue);
+  const recordedNum = parseHumanNumber(recordedValue);
+
+  if (claimedNum !== null && recordedNum !== null) {
+    const percentDiff = calculatePercentageDifference(claimedNum, recordedNum);
+    
+    // Exact numeric match
+    if (percentDiff === 0) {
+      return { status: "verified", fact: matchingFact, percentageDiff: 0 };
+    }
+    
+    // Within 10% tolerance
+    if (percentDiff <= 10) {
+      return { status: "close", fact: matchingFact, percentageDiff: percentDiff };
+    }
+    
+    // More than 10% difference
+    return { status: "mismatch", fact: matchingFact, percentageDiff: percentDiff };
+  }
+
+  // Fallback to string comparison
+  return { status: "mismatch", fact: matchingFact };
 }
 
 export function processText(
@@ -269,11 +296,18 @@ export function processText(
     const attribute = guessAttribute(claim, attributeMapping);
     const verification = verifyClaim(claim, attribute, entity, facts);
 
+    // Format the recorded value for display
+    const formattedRecordedValue = verification.fact?.value 
+      ? formatNumber(verification.fact.value)
+      : undefined;
+
     const tooltipContent =
       verification.status === "verified"
         ? `Verified: ${claim.value} (${attribute?.replace(/_/g, " ")})`
+        : verification.status === "close"
+        ? `Close: Claimed ${claim.value}, actual value is ${formattedRecordedValue} (within ${verification.percentageDiff?.toFixed(1)}%)`
         : verification.status === "mismatch"
-        ? `Mismatch: Claimed ${claim.value}, but recorded value is ${verification.fact?.value}`
+        ? `Mismatch: Claimed ${claim.value}, but recorded value is ${formattedRecordedValue}`
         : `No data available for ${attribute?.replace(/_/g, " ") || "this claim"}`;
 
     verifiedClaims.push({
@@ -290,7 +324,7 @@ export function processText(
       claimedValue: claim.value,
       attribute: attribute || "unknown",
       verdict: verification.status,
-      recordedValue: verification.fact?.value,
+      recordedValue: formattedRecordedValue,
       lastVerifiedAt: verification.fact?.last_verified_at,
       citation: verification.fact?.source_url,
     });

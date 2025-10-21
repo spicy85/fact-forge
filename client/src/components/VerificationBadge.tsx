@@ -1,4 +1,4 @@
-import { Check, X, HelpCircle, ExternalLink } from "lucide-react";
+import { Check, X, HelpCircle, ExternalLink, CheckCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -6,7 +6,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-export type VerificationStatus = "verified" | "mismatch" | "unknown";
+export type VerificationStatus = "verified" | "close" | "mismatch" | "unknown";
 
 interface VerificationBadgeProps {
   status: VerificationStatus;
@@ -26,6 +26,12 @@ export function VerificationBadge({
           icon: Check,
           label: "Verified",
           className: "bg-primary text-primary-foreground hover-elevate active-elevate-2",
+        };
+      case "close":
+        return {
+          icon: CheckCheck,
+          label: "Close",
+          className: "bg-green-600 dark:bg-green-700 text-white hover-elevate active-elevate-2",
         };
       case "mismatch":
         return {
