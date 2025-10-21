@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Settings, Save, RotateCcw, ExternalLink } from "lucide-react";
+import { Settings, Save, RotateCcw, ExternalLink, ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 import type { ScoringSettings } from "@shared/schema";
 
@@ -104,6 +104,12 @@ export default function AdminScoring() {
           <h1 className="text-3xl font-bold">Admin - Scoring Configuration</h1>
         </div>
         <div className="flex gap-2">
+          <Link href="/">
+            <Button variant="outline" data-testid="button-back-home">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Home
+            </Button>
+          </Link>
           <Button
             variant="outline"
             onClick={handleReset}
