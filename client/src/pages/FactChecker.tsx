@@ -15,8 +15,16 @@ import {
 import { VerifiedClaim } from "@/components/RenderedParagraph";
 import { VerificationResult } from "@/components/ResultsTable";
 
+interface Source {
+  domain: string;
+  public_trust: number;
+  data_accuracy: number;
+  proprietary_score: number;
+}
+
 export default function FactChecker() {
   const [facts, setFacts] = useState<FactRecord[]>([]);
+  const [sources, setSources] = useState<Source[]>([]);
   const [attributeMapping, setAttributeMapping] = useState<AttributeMapping>({});
   const [entityMapping, setEntityMapping] = useState<EntityMapping>({});
   const [entities, setEntities] = useState<string[]>([]);
@@ -29,17 +37,20 @@ export default function FactChecker() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [factsRes, attributeMappingRes, entityMappingRes] = await Promise.all([
+        const [factsRes, sourcesRes, attributeMappingRes, entityMappingRes] = await Promise.all([
           fetch("/api/facts"),
+          fetch("/api/sources"),
           fetch("/attribute-mapping.json"),
           fetch("/entity-mapping.json"),
         ]);
 
         const parsedFacts: FactRecord[] = await factsRes.json();
+        const parsedSources: Source[] = await sourcesRes.json();
         const attributeMappingData = await attributeMappingRes.json();
         const entityMappingData = await entityMappingRes.json();
 
         setFacts(parsedFacts);
+        setSources(parsedSources);
         setAttributeMapping(attributeMappingData);
         setEntityMapping(entityMappingData);
 
@@ -65,8 +76,36 @@ export default function FactChecker() {
       entities,
       entityMapping
     );
+    
+    // Create a map of domain to overall source trust
+    const sourceTrustMap = new Map<string, number>();
+    sources.forEach((source) => {
+      const overallTrust = Math.round(
+        (source.public_trust + source.data_accuracy + source.proprietary_score) / 3
+      );
+      sourceTrustMap.set(source.domain, overallTrust);
+    });
+    
+    // Enhance results with overall source trust
+    const enhancedResults = res.map((result) => {
+      if (result.citation) {
+        try {
+          const url = new URL(result.citation);
+          const domain = url.hostname.replace(/^www\./, "");
+          const overallTrust = sourceTrustMap.get(domain);
+          return {
+            ...result,
+            sourceTrust: overallTrust !== undefined ? String(overallTrust) : undefined,
+          };
+        } catch {
+          return result;
+        }
+      }
+      return result;
+    });
+    
     setVerifiedClaims(claims);
-    setResults(res);
+    setResults(enhancedResults);
     setDetectedEntity(entity);
   };
 
