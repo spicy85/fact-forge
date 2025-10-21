@@ -16,6 +16,7 @@ export interface IStorage {
   insertVerifiedFact(fact: InsertVerifiedFact): Promise<VerifiedFact>;
   getAllFactsEvaluation(): Promise<FactsEvaluation[]>;
   insertFactsEvaluation(evaluation: InsertFactsEvaluation): Promise<FactsEvaluation>;
+  recalculateAllEvaluations(): Promise<number>;
   getAllSources(): Promise<Source[]>;
   getSourcesByStatus(status: string): Promise<Source[]>;
   insertSource(source: InsertSource): Promise<Source>;
@@ -107,6 +108,59 @@ export class MemStorage implements IStorage {
     
     const [insertedEvaluation] = await db.insert(factsEvaluation).values(evaluationWithScores).returning();
     return insertedEvaluation;
+  }
+
+  async recalculateAllEvaluations(): Promise<number> {
+    const allEvaluations = await db.select().from(factsEvaluation);
+    const settings = await this.getScoringSettings();
+    
+    let updatedCount = 0;
+    
+    for (const evaluation of allEvaluations) {
+      const sourceTrustScore = await calculateSourceTrustScore(evaluation.source_url);
+      
+      const recencyScore = settings 
+        ? calculateRecencyScore(
+            evaluation.evaluated_at,
+            settings.recency_tier1_days,
+            settings.recency_tier1_score,
+            settings.recency_tier2_days,
+            settings.recency_tier2_score,
+            settings.recency_tier3_score
+          )
+        : calculateRecencyScore(evaluation.evaluated_at);
+      
+      const consensusScore = evaluation.consensus_score;
+      
+      const sourceTrustWeight = settings?.source_trust_weight ?? 1;
+      const recencyWeight = settings?.recency_weight ?? 1;
+      const consensusWeight = settings?.consensus_weight ?? 1;
+      
+      const trustScore = calculateTrustScore(
+        sourceTrustScore,
+        recencyScore,
+        consensusScore,
+        sourceTrustWeight,
+        recencyWeight,
+        consensusWeight
+      );
+      
+      await db
+        .update(factsEvaluation)
+        .set({
+          source_trust_score: sourceTrustScore,
+          recency_score: recencyScore,
+          source_trust_weight: sourceTrustWeight,
+          recency_weight: recencyWeight,
+          consensus_weight: consensusWeight,
+          trust_score: trustScore,
+        })
+        .where(eq(factsEvaluation.id, evaluation.id));
+      
+      updatedCount++;
+    }
+    
+    return updatedCount;
   }
 
   async getAllSources(): Promise<Source[]> {
