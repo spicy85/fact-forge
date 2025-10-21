@@ -65,6 +65,18 @@ export default function SourcesOverview() {
     },
   });
 
+  const demoteSourceMutation = useMutation({
+    mutationFn: async (domain: string) => {
+      return apiRequest("PUT", `/api/sources/${domain}/demote`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sources"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sources", "trusted"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sources", "pending_review"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sources", "evaluating"] });
+    },
+  });
+
   const getTrustBadgeVariant = (score: number) => {
     if (score >= 80) return "default";
     if (score >= 60) return "secondary";
@@ -186,6 +198,7 @@ export default function SourcesOverview() {
                   <TableHead data-testid="header-data-accuracy">Data Accuracy</TableHead>
                   <TableHead data-testid="header-proprietary">Proprietary Score</TableHead>
                   <TableHead data-testid="header-overall">Overall Trust</TableHead>
+                  <TableHead data-testid="header-actions">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -234,6 +247,17 @@ export default function SourcesOverview() {
                       <Badge variant={getTrustBadgeVariant(source.overallTrustLevel)} data-testid={`badge-overall-${source.domain}`}>
                         {source.overallTrustLevel}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => demoteSourceMutation.mutate(source.domain)}
+                        disabled={demoteSourceMutation.isPending}
+                        data-testid={`button-demote-${source.domain}`}
+                      >
+                        Demote
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
