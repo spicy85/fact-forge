@@ -12,6 +12,13 @@ export interface FactRecord {
   last_verified_at: string;
 }
 
+export interface MultiSourceData {
+  consensus: number;
+  min: number;
+  max: number;
+  sourceCount: number;
+}
+
 /**
  * Parse human-friendly number formats into actual numbers
  * Supports: 12M, 1.5 billion, 50K, 12 million, etc.
@@ -266,6 +273,49 @@ export function verifyClaim(
   return { status: "mismatch", fact: matchingFact };
 }
 
+export function verifyClaimMultiSource(
+  claim: NumericClaim,
+  attribute: string | null,
+  entity: string,
+  multiSourceData: Map<string, MultiSourceData>
+): {
+  status: VerificationStatus;
+  multiSource?: MultiSourceData;
+  percentageDiff?: number;
+} {
+  if (!attribute) {
+    return { status: "unknown" };
+  }
+
+  const key = `${entity}|${attribute}`;
+  const sourceData = multiSourceData.get(key);
+
+  if (!sourceData) {
+    return { status: "unknown" };
+  }
+
+  const claimedNum = parseHumanNumber(claim.value);
+  
+  if (claimedNum === null) {
+    return { status: "unknown" };
+  }
+
+  // Check if exactly matches consensus
+  if (Math.abs(claimedNum - sourceData.consensus) < 0.01) {
+    return { status: "verified", multiSource: sourceData, percentageDiff: 0 };
+  }
+
+  // Check if within credible range [min, max]
+  if (claimedNum >= sourceData.min && claimedNum <= sourceData.max) {
+    const percentDiff = calculatePercentageDifference(claimedNum, sourceData.consensus);
+    return { status: "close", multiSource: sourceData, percentageDiff: percentDiff };
+  }
+
+  // Outside the range
+  const percentDiff = calculatePercentageDifference(claimedNum, sourceData.consensus);
+  return { status: "mismatch", multiSource: sourceData, percentageDiff: percentDiff };
+}
+
 export function processText(
   text: string,
   facts: FactRecord[],
@@ -327,6 +377,79 @@ export function processText(
       recordedValue: formattedRecordedValue,
       lastVerifiedAt: verification.fact?.last_verified_at,
       citation: verification.fact?.source_url,
+    });
+  });
+
+  return { verifiedClaims, results, detectedEntity: entity };
+}
+
+export function processTextMultiSource(
+  text: string,
+  multiSourceData: Map<string, MultiSourceData>,
+  attributeMapping: AttributeMapping,
+  availableEntities: string[],
+  entityMapping: EntityMapping = {}
+): {
+  verifiedClaims: VerifiedClaim[];
+  results: VerificationResult[];
+  detectedEntity: string | null;
+} {
+  if (!text) {
+    return { verifiedClaims: [], results: [], detectedEntity: null };
+  }
+
+  // Auto-detect entity from text using entity mapping for alias support
+  const entity = detectEntity(text, availableEntities, entityMapping);
+  
+  if (!entity) {
+    return { verifiedClaims: [], results: [], detectedEntity: null };
+  }
+
+  const claims = extractNumericClaims(text);
+  const verifiedClaims: VerifiedClaim[] = [];
+  const results: VerificationResult[] = [];
+
+  claims.forEach((claim) => {
+    const attribute = guessAttribute(claim, attributeMapping);
+    const verification = verifyClaimMultiSource(claim, attribute, entity, multiSourceData);
+
+    const consensusValue = verification.multiSource?.consensus;
+    const minValue = verification.multiSource?.min;
+    const maxValue = verification.multiSource?.max;
+    const sourceCount = verification.multiSource?.sourceCount;
+
+    // Format values for display
+    const formattedConsensus = consensusValue !== undefined ? formatNumber(consensusValue.toString()) : undefined;
+    const formattedMin = minValue !== undefined ? formatNumber(minValue.toString()) : undefined;
+    const formattedMax = maxValue !== undefined ? formatNumber(maxValue.toString()) : undefined;
+
+    const tooltipContent =
+      verification.status === "verified"
+        ? `Verified: ${claim.value} matches consensus of ${formattedConsensus} (${sourceCount} ${sourceCount === 1 ? 'source' : 'sources'})`
+        : verification.status === "close"
+        ? `Close: ${claim.value} falls within credible range of ${formattedMin} - ${formattedMax} (consensus: ${formattedConsensus} from ${sourceCount} ${sourceCount === 1 ? 'source' : 'sources'})`
+        : verification.status === "mismatch"
+        ? `Mismatch: ${claim.value} is outside credible range of ${formattedMin} - ${formattedMax} (consensus: ${formattedConsensus})`
+        : `No data available for ${attribute?.replace(/_/g, " ") || "this claim"}`;
+
+    verifiedClaims.push({
+      value: claim.value,
+      status: verification.status,
+      attribute: attribute || "unknown",
+      sourceUrl: undefined,
+      tooltipContent,
+      startIndex: claim.startIndex,
+      endIndex: claim.endIndex,
+    });
+
+    results.push({
+      claimedValue: claim.value,
+      attribute: attribute || "unknown",
+      verdict: verification.status,
+      recordedValue: formattedConsensus || formattedMin && formattedMax ? `${formattedMin} - ${formattedMax}` : undefined,
+      lastVerifiedAt: undefined,
+      citation: undefined,
+      sourceTrust: sourceCount !== undefined ? `${sourceCount} ${sourceCount === 1 ? 'source' : 'sources'}` : undefined,
     });
   });
 

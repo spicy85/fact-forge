@@ -32,6 +32,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Multi-source evaluations endpoint
+  app.get("/api/multi-source-evaluations", async (req, res) => {
+    try {
+      const { entity, attribute } = req.query;
+      
+      if (!entity || !attribute || typeof entity !== 'string' || typeof attribute !== 'string') {
+        return res.status(400).json({ error: "Entity and attribute parameters are required" });
+      }
+      
+      const result = await storage.getMultiSourceEvaluations(entity, attribute);
+      
+      if (!result) {
+        return res.json(null);
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching multi-source evaluations:", error);
+      res.status(500).json({ error: "Failed to fetch multi-source evaluations" });
+    }
+  });
+
   // Recalculate all evaluation scores
   app.post("/api/facts-evaluation/recalculate", async (req, res) => {
     try {

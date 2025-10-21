@@ -2,11 +2,19 @@ import { type User, type InsertUser, type VerifiedFact, type InsertVerifiedFact,
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { verifiedFacts, factsEvaluation, sources, scoringSettings } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { calculateSourceTrustScore, calculateRecencyScore, calculateTrustScore } from "./evaluation-scoring";
 
 // modify the interface with any CRUD methods
 // you might need
+
+export interface MultiSourceResult {
+  consensus: number;
+  min: number;
+  max: number;
+  sourceCount: number;
+  credibleEvaluations: FactsEvaluation[];
+}
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -17,6 +25,7 @@ export interface IStorage {
   getAllFactsEvaluation(): Promise<FactsEvaluation[]>;
   insertFactsEvaluation(evaluation: InsertFactsEvaluation): Promise<FactsEvaluation>;
   recalculateAllEvaluations(): Promise<number>;
+  getMultiSourceEvaluations(entity: string, attribute: string): Promise<MultiSourceResult | null>;
   getAllSources(): Promise<Source[]>;
   getSourcesByStatus(status: string): Promise<Source[]>;
   insertSource(source: InsertSource): Promise<Source>;
@@ -130,7 +139,7 @@ export class MemStorage implements IStorage {
           )
         : calculateRecencyScore(evaluation.evaluated_at);
       
-      const consensusScore = evaluation.consensus_score;
+      const consensusScore = evaluation.consensus_score ?? 50;
       
       const sourceTrustWeight = evaluation.source_trust_weight ?? (settings?.source_trust_weight ?? 1);
       const recencyWeight = evaluation.recency_weight ?? (settings?.recency_weight ?? 1);
@@ -158,6 +167,59 @@ export class MemStorage implements IStorage {
     }
     
     return updatedCount;
+  }
+
+  async getMultiSourceEvaluations(entity: string, attribute: string): Promise<MultiSourceResult | null> {
+    const settings = await this.getScoringSettings();
+    const credibleThreshold = settings?.credible_threshold ?? 80;
+    
+    const evaluations = await db
+      .select()
+      .from(factsEvaluation)
+      .where(
+        and(
+          eq(factsEvaluation.entity, entity),
+          eq(factsEvaluation.attribute, attribute)
+        )
+      );
+    
+    const credibleEvaluations = evaluations.filter(
+      e => (e.trust_score ?? 0) >= credibleThreshold
+    );
+    
+    if (credibleEvaluations.length === 0) {
+      return null;
+    }
+    
+    const numericValues: { value: number; trustScore: number }[] = [];
+    for (const evaluation of credibleEvaluations) {
+      const numValue = parseFloat(evaluation.value.replace(/,/g, ''));
+      if (!isNaN(numValue)) {
+        numericValues.push({ 
+          value: numValue, 
+          trustScore: evaluation.trust_score ?? 0 
+        });
+      }
+    }
+    
+    if (numericValues.length === 0) {
+      return null;
+    }
+    
+    const totalTrustScore = numericValues.reduce((sum, v) => sum + v.trustScore, 0);
+    const consensus = numericValues.reduce((sum, v) => sum + (v.value * v.trustScore), 0) / totalTrustScore;
+    
+    const values = numericValues.map(v => v.value);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    
+    return {
+      consensus,
+      min,
+      max,
+      sourceCount: credibleEvaluations.length,
+      credibleEvaluations
+    };
   }
 
   async getAllSources(): Promise<Source[]> {

@@ -8,9 +8,14 @@ import { Button } from "@/components/ui/button";
 import { ShieldCheck, Table, Database, Calculator, Settings } from "lucide-react";
 import {
   processText,
+  processTextMultiSource,
   FactRecord,
   AttributeMapping,
   EntityMapping,
+  MultiSourceData,
+  detectEntity,
+  extractNumericClaims,
+  guessAttribute,
 } from "@/lib/factChecker";
 import { VerifiedClaim } from "@/components/RenderedParagraph";
 import { VerificationResult } from "@/components/ResultsTable";
@@ -68,45 +73,60 @@ export default function FactChecker() {
     loadData();
   }, []);
 
-  const handleCheckFacts = () => {
-    const { verifiedClaims: claims, results: res, detectedEntity: entity } = processText(
+  const handleCheckFacts = async () => {
+    // First detect entity
+    const entity = detectEntity(paragraph, entities, entityMapping);
+    
+    if (!entity) {
+      setVerifiedClaims([]);
+      setResults([]);
+      setDetectedEntity(null);
+      return;
+    }
+    
+    setDetectedEntity(entity);
+    
+    // Extract claims and guess attributes
+    const claims = extractNumericClaims(paragraph);
+    const entityAttributePairs = new Set<string>();
+    
+    claims.forEach((claim) => {
+      const attribute = guessAttribute(claim, attributeMapping);
+      if (attribute) {
+        entityAttributePairs.add(`${entity}|${attribute}`);
+      }
+    });
+    
+    // Fetch multi-source data for all entity-attribute pairs
+    const multiSourceData = new Map<string, MultiSourceData>();
+    
+    await Promise.all(
+      Array.from(entityAttributePairs).map(async (pair) => {
+        const [ent, attr] = pair.split('|');
+        try {
+          const response = await fetch(`/api/multi-source-evaluations?entity=${encodeURIComponent(ent)}&attribute=${encodeURIComponent(attr)}`);
+          const data = await response.json();
+          
+          if (data) {
+            multiSourceData.set(pair, data);
+          }
+        } catch (error) {
+          console.error(`Error fetching multi-source data for ${pair}:`, error);
+        }
+      })
+    );
+    
+    // Process text with multi-source data
+    const { verifiedClaims: claims_verified, results: res } = processTextMultiSource(
       paragraph,
-      facts,
+      multiSourceData,
       attributeMapping,
       entities,
       entityMapping
     );
     
-    // Create a map of domain to overall source trust
-    const sourceTrustMap = new Map<string, number>();
-    sources.forEach((source) => {
-      const overallTrust = Math.round(
-        (source.public_trust + source.data_accuracy + source.proprietary_score) / 3
-      );
-      sourceTrustMap.set(source.domain, overallTrust);
-    });
-    
-    // Enhance results with overall source trust
-    const enhancedResults = res.map((result) => {
-      if (result.citation) {
-        try {
-          const url = new URL(result.citation);
-          const domain = url.hostname.replace(/^www\./, "");
-          const overallTrust = sourceTrustMap.get(domain);
-          return {
-            ...result,
-            sourceTrust: overallTrust !== undefined ? String(overallTrust) : undefined,
-          };
-        } catch {
-          return result;
-        }
-      }
-      return result;
-    });
-    
-    setVerifiedClaims(claims);
-    setResults(enhancedResults);
-    setDetectedEntity(entity);
+    setVerifiedClaims(claims_verified);
+    setResults(res);
   };
 
   const handleClear = () => {

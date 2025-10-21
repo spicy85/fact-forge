@@ -27,6 +27,7 @@ export default function AdminScoring() {
     recency_tier2_days: 30,
     recency_tier2_score: 50,
     recency_tier3_score: 10,
+    credible_threshold: 80,
   });
 
   useEffect(() => {
@@ -40,6 +41,7 @@ export default function AdminScoring() {
         recency_tier2_days: settings.recency_tier2_days,
         recency_tier2_score: settings.recency_tier2_score,
         recency_tier3_score: settings.recency_tier3_score,
+        credible_threshold: settings.credible_threshold,
       });
     }
   }, [settings]);
@@ -79,6 +81,7 @@ export default function AdminScoring() {
       recency_tier2_days: 30,
       recency_tier2_score: 50,
       recency_tier3_score: 10,
+      credible_threshold: 80,
     });
   };
 
@@ -283,6 +286,40 @@ export default function AdminScoring() {
                   onChange={(e) => setFormData({ ...formData, recency_tier3_score: parseInt(e.target.value) || 10 })}
                   data-testid="input-tier3-score"
                 />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Multi-Source Verification Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Multi-Source Verification</CardTitle>
+            <CardDescription>
+              Configure the minimum trust score threshold for sources to be considered credible in multi-source verification
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <Label htmlFor="credible-threshold">Credible Threshold (0-100)</Label>
+                  <span className="text-sm font-medium" data-testid="text-credible-threshold">
+                    {formData.credible_threshold}
+                  </span>
+                </div>
+                <Slider
+                  id="credible-threshold"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={[formData.credible_threshold]}
+                  onValueChange={([value]) => setFormData({ ...formData, credible_threshold: value })}
+                  data-testid="slider-credible-threshold"
+                />
+                <p className="text-sm text-muted-foreground mt-2">
+                  Only sources with a trust score of {formData.credible_threshold} or higher will be used to calculate consensus and range in multi-source verification.
+                </p>
               </div>
             </div>
           </CardContent>
