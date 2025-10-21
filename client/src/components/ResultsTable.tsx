@@ -69,7 +69,16 @@ export function ResultsTable({ results }: ResultsTableProps) {
                       className="inline-flex items-center gap-1 text-sm text-primary hover:underline max-w-xs truncate"
                       data-testid={`link-citation-${idx}`}
                     >
-                      <span className="truncate">Source</span>
+                      <span className="truncate">
+                        {(() => {
+                          try {
+                            const url = new URL(result.citation);
+                            return url.hostname.replace(/^www\./, "");
+                          } catch {
+                            return "Source";
+                          }
+                        })()}
+                      </span>
                       <ExternalLink className="h-3 w-3 flex-shrink-0" />
                     </a>
                   ) : (
