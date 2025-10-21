@@ -445,11 +445,21 @@ export function processTextMultiSource(
       endIndex: claim.endIndex,
     });
 
+    // Display range only if we have multiple sources, otherwise show single value
+    let recordedValue: string | undefined;
+    if (sourceCount !== undefined && sourceCount > 1 && formattedMin && formattedMax) {
+      recordedValue = `${formattedMin} - ${formattedMax}`;
+    } else if (formattedConsensus) {
+      recordedValue = formattedConsensus;
+    } else if (formattedMin) {
+      recordedValue = formattedMin;
+    }
+
     results.push({
       claimedValue: claim.value,
       attribute: attribute || "unknown",
       verdict: verification.status,
-      recordedValue: formattedConsensus || formattedMin && formattedMax ? `${formattedMin} - ${formattedMax}` : undefined,
+      recordedValue,
       lastVerifiedAt: undefined,
       citation: undefined,
       sourceTrust: sourceCount !== undefined ? `${sourceCount} ${sourceCount === 1 ? 'source' : 'sources'}` : undefined,
