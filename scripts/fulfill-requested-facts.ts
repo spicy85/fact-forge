@@ -240,15 +240,14 @@ async function fetchFromWorldBank(entity: string, attribute: string): Promise<Fe
   }
 }
 
-async function main() {
+export async function fulfillRequestedFacts() {
   console.log("=== Fulfill Requested Facts ===\n");
 
   // Get scoring settings
   const [settings] = await db.select().from(scoringSettings).limit(1);
   
   if (!settings) {
-    console.error("No scoring settings found.");
-    process.exit(1);
+    throw new Error("No scoring settings found.");
   }
 
   // Fetch all requested facts
@@ -258,7 +257,12 @@ async function main() {
 
   if (requests.length === 0) {
     console.log("✓ No requests to process\n");
-    process.exit(0);
+    return {
+      fulfilledCount: 0,
+      notFoundCount: 0,
+      alreadyExistsCount: 0,
+      totalRequests: 0
+    };
   }
 
   let fulfilledCount = 0;
@@ -394,10 +398,22 @@ async function main() {
   console.log(`📊 Remaining in requested_facts: ${notFoundCount}`);
   console.log("\n✓ Process complete!\n");
 
-  process.exit(0);
+  return {
+    fulfilledCount,
+    notFoundCount,
+    alreadyExistsCount,
+    totalRequests: requests.length
+  };
 }
 
-main().catch((error) => {
-  console.error("Fatal error:", error);
-  process.exit(1);
-});
+// CLI execution
+if (import.meta.url === `file://${process.argv[1]}`) {
+  fulfillRequestedFacts()
+    .then(() => {
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error("Fatal error:", error);
+      process.exit(1);
+    });
+}
