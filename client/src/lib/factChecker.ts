@@ -481,14 +481,35 @@ export function processTextMultiSource(
       recordedValue = formattedMin;
     }
 
+    // Extract individual sources from credibleEvaluations
+    const sources = verification.multiSource?.credibleEvaluations.map((evaluation) => {
+      // Extract domain from source_url
+      let domain = evaluation.source_trust;
+      try {
+        const url = new URL(evaluation.source_url);
+        domain = url.hostname.replace(/^www\./, '');
+      } catch {
+        // If URL parsing fails, use source_trust as domain
+        domain = evaluation.source_trust;
+      }
+
+      return {
+        domain,
+        trustScore: evaluation.trust_score ?? 0,
+        url: evaluation.source_url,
+        evaluatedAt: evaluation.evaluated_at
+      };
+    });
+
     results.push({
       claimedValue: claim.value,
       attribute: attribute || "unknown",
       verdict: verification.status,
       recordedValue,
-      lastVerifiedAt: undefined,
+      lastVerifiedAt: sources && sources.length > 0 ? sources[0].evaluatedAt : undefined,
       citation: undefined,
       sourceTrust: sourceCount !== undefined ? `${sourceCount} ${sourceCount === 1 ? 'source' : 'sources'}` : undefined,
+      sources,
     });
   });
 
