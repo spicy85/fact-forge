@@ -7,9 +7,18 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Settings, Save, RotateCcw, ExternalLink, ArrowLeft } from "lucide-react";
+import { Settings, Save, RotateCcw, ExternalLink, ArrowLeft, RefreshCw, Database } from "lucide-react";
 import { Link } from "wouter";
 import type { ScoringSettings } from "@shared/schema";
+
+interface CrossCheckStats {
+  totalPairs: number;
+  wikipediaAdded: number;
+  worldBankAdded: number;
+  wikidataAdded: number;
+  duplicatesSkipped: number;
+  errors: string[];
+}
 
 export default function AdminScoring() {
   const { toast } = useToast();
@@ -29,6 +38,8 @@ export default function AdminScoring() {
     recency_tier3_score: 10,
     credible_threshold: 80,
   });
+
+  const [crossCheckResults, setCrossCheckResults] = useState<CrossCheckStats | null>(null);
 
   useEffect(() => {
     if (settings) {
@@ -62,6 +73,48 @@ export default function AdminScoring() {
       toast({
         title: "Error",
         description: "Failed to update scoring settings.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const recalculateMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/facts-evaluation/recalculate");
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/facts-evaluation"] });
+      toast({
+        title: "Scores recalculated",
+        description: `Updated ${data.updatedCount} evaluation records with new scoring settings.`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to recalculate scores.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const crossCheckMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/admin/cross-check-sources");
+    },
+    onSuccess: (data: any) => {
+      setCrossCheckResults(data.stats);
+      queryClient.invalidateQueries({ queryKey: ["/api/facts-evaluation"] });
+      const totalAdded = data.stats.wikipediaAdded + data.stats.worldBankAdded + data.stats.wikidataAdded;
+      toast({
+        title: "Cross-check complete",
+        description: `Added ${totalAdded} new facts across all sources.`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to cross-check sources.",
         variant: "destructive",
       });
     },
@@ -322,6 +375,87 @@ export default function AdminScoring() {
                 </p>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Data Management Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Data Management</CardTitle>
+            <CardDescription>
+              Perform data operations across all integrated sources
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-2">
+              <Button
+                onClick={() => crossCheckMutation.mutate()}
+                disabled={crossCheckMutation.isPending}
+                data-testid="button-cross-check"
+                className="w-full"
+              >
+                <Database className="h-4 w-4 mr-2" />
+                {crossCheckMutation.isPending ? "Cross-Checking..." : "Cross-Check All Sources"}
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                Identifies all entity-attribute pairs present in at least one source and fetches missing data from Wikipedia, World Bank, and Wikidata.
+              </p>
+            </div>
+
+            <div className="grid gap-2">
+              <Button
+                variant="outline"
+                onClick={() => recalculateMutation.mutate()}
+                disabled={recalculateMutation.isPending}
+                data-testid="button-recalculate"
+                className="w-full"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                {recalculateMutation.isPending ? "Recalculating..." : "Recalculate All Scores"}
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                Recalculates trust scores for all evaluations using current scoring settings.
+              </p>
+            </div>
+
+            {crossCheckResults && (
+              <div className="border rounded-lg p-4 bg-muted/50 space-y-2">
+                <h4 className="font-semibold text-sm">Cross-Check Results</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Total Pairs Checked:</span>
+                    <span className="ml-2 font-medium" data-testid="text-total-pairs">
+                      {crossCheckResults.totalPairs}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Wikipedia Added:</span>
+                    <span className="ml-2 font-medium" data-testid="text-wikipedia-added">
+                      {crossCheckResults.wikipediaAdded}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">World Bank Added:</span>
+                    <span className="ml-2 font-medium" data-testid="text-worldbank-added">
+                      {crossCheckResults.worldBankAdded}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Wikidata Added:</span>
+                    <span className="ml-2 font-medium" data-testid="text-wikidata-added">
+                      {crossCheckResults.wikidataAdded}
+                    </span>
+                  </div>
+                </div>
+                {crossCheckResults.errors.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-sm text-destructive font-medium">
+                      Errors: {crossCheckResults.errors.length}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
