@@ -59,7 +59,8 @@ export default function AdminScoring() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      return apiRequest("PUT", "/api/scoring-settings", data);
+      const response = await apiRequest("PUT", "/api/scoring-settings", data);
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/scoring-settings"] });
@@ -80,7 +81,8 @@ export default function AdminScoring() {
 
   const recalculateMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", "/api/facts-evaluation/recalculate");
+      const response = await apiRequest("POST", "/api/facts-evaluation/recalculate");
+      return await response.json();
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/facts-evaluation"] });
@@ -100,7 +102,8 @@ export default function AdminScoring() {
 
   const crossCheckMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", "/api/admin/cross-check-sources");
+      const response = await apiRequest("POST", "/api/admin/cross-check-sources");
+      return await response.json();
     },
     onSuccess: (data: any) => {
       setCrossCheckResults(data.stats);
