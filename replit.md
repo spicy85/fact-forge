@@ -54,12 +54,14 @@ Argentina, Australia, Austria, Bangladesh, Belgium, Brazil, Canada, Chile, Colom
 ## External Dependencies
 - **PostgreSQL (Neon):** Primary database for storing project data.
 - **Drizzle ORM:** Used for programmatic interaction with the PostgreSQL database.
-- **Wikipedia (Wikidata) API:** Utilized by `fetch-country-data.ts` and `fetch-wikipedia-evaluations.ts` scripts for baseline country facts and evaluations.
+- **Wikipedia API:** Utilized by `fetch-country-data.ts` and `fetch-wikipedia-evaluations.ts` scripts for baseline country facts and evaluations.
 - **World Bank API:** Integrated via `server/integrations/worldbank-api.ts` and `scripts/fetch-worldbank-subset.ts` to provide population, GDP, GDP per capita, area, and inflation data for multi-source verification.
-## Multi-Source Verification Status
-The application now has **comprehensive multi-source consensus** working with Wikipedia + World Bank data across all 48 countries:
+- **Wikidata SPARQL API:** Integrated via `scripts/fetch-wikidata.ts` to query structured knowledge base for population, GDP, area, and founding dates using SPARQL queries.
 
-**Data Coverage:**
+## Multi-Source Verification Status
+The application now has **comprehensive multi-source consensus** working with Wikipedia + World Bank + Wikidata across all 48 countries:
+
+**Data Coverage (562 total evaluations):**
 - **Wikipedia evaluations**: 150 entries across 48 supported countries
   - Attributes: population, area_km2, gdp_usd, founded_year
   - Source: `scripts/fetch-wikipedia-evaluations.ts`
@@ -73,16 +75,24 @@ The application now has **comprehensive multi-source consensus** working with Wi
   - Fetched via: `scripts/fetch-worldbank-subset.ts`
   - Deduplication: Pre-insert checks prevent duplicate entries
 
+- **Wikidata evaluations**: 192 entries across 48 countries
+  - Attributes: population, gdp_usd, area_km2, founded_year
+  - Source: **www.wikidata.org** via SPARQL queries
+  - Trust scores: 80 public_trust, 85 data_accuracy
+  - Fetched via: `scripts/fetch-wikidata.ts` using Q-ID mapping for all 48 countries
+  - Query endpoint: https://query.wikidata.org/sparql
+
 **Multi-Source Examples:**
-- **Argentina population**: 4 sources (Wikipedia + World Bank) with trust scores 80-94, values ranging 45.7M-47.3M
-- **Canada**: Multiple attributes with cross-source verification
-- **13 countries** have 8+ attributes with full Wikipedia + World Bank coverage
-- **All 48 countries** have at least 4 attributes from Wikipedia
+- **United States population**: 4 sources (Wikipedia + World Bank + Wikidata) with trust scores 75-92
+- **Canada population**: 5 evaluations from 3 different trusted sources
+- **All 48 countries** now have data from all 3 trusted sources (Wikipedia, World Bank, Wikidata)
+- **Typical coverage per country**: 8-12 attributes with multi-source verification
 
 **Data Scripts:**
 - `scripts/fetch-wikipedia-evaluations.ts`: Transfers Wikipedia data from verified_facts to facts_evaluation with proper filtering and deduplication
 - `scripts/fetch-worldbank-subset.ts`: Fetches World Bank data for all 48 countries with deduplication and error handling
-- `scripts/remove-duplicates.ts`: Cleanup script that removed 110 duplicate entries (370 unique evaluations remain)
+- `scripts/fetch-wikidata.ts`: Queries Wikidata SPARQL endpoint for population, GDP, area, and founding dates using Q-ID mappings
+- `scripts/remove-duplicates.ts`: Cleanup script that removed 110 duplicate entries
 - `scripts/consolidate-worldbank-sources.ts`: Merged api.worldbank.org into data.worldbank.org (220 total facts)
 - `scripts/recalculate-facts-count.ts`: Updates facts_count for all sources by extracting domains from source_url
 - `server/utils.ts`: Utility function `extractDomain()` for normalizing URLs to hostnames
