@@ -329,6 +329,20 @@ export function verifyClaimMultiSource(
     return { status: "verified", multiSource: sourceData, percentageDiff: 0 };
   }
 
+  // Check if matches any credible source at the appropriate precision level
+  // This handles cases where user input matches one source but consensus differs
+  const matchesAnySource = sourceData.credibleEvaluations.some(evaluation => {
+    const sourceNum = parseHumanNumber(evaluation.value);
+    if (sourceNum === null) return false;
+    const roundedSourceValue = Math.round(sourceNum / precision) * precision;
+    return claimedNum === roundedSourceValue;
+  });
+
+  if (matchesAnySource) {
+    const percentDiff = calculatePercentageDifference(claimedNum, sourceData.consensus);
+    return { status: "verified", multiSource: sourceData, percentageDiff: percentDiff };
+  }
+
   // Check if within credible range [min, max]
   // Add small tolerance (2%) to account for rounding when users enter human-readable numbers like "36m"
   const tolerance = 0.02; // 2% tolerance
