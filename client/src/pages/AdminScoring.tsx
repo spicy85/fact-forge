@@ -20,6 +20,13 @@ interface CrossCheckStats {
   errors: string[];
 }
 
+interface FulfillRequestedFactsStats {
+  fulfilledCount: number;
+  notFoundCount: number;
+  alreadyExistsCount: number;
+  totalRequests: number;
+}
+
 export default function AdminScoring() {
   const { toast } = useToast();
 
@@ -40,6 +47,7 @@ export default function AdminScoring() {
   });
 
   const [crossCheckResults, setCrossCheckResults] = useState<CrossCheckStats | null>(null);
+  const [fulfillResults, setFulfillResults] = useState<FulfillRequestedFactsStats | null>(null);
 
   useEffect(() => {
     if (settings) {
@@ -118,6 +126,29 @@ export default function AdminScoring() {
       toast({
         title: "Error",
         description: "Failed to cross-check sources.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const fulfillRequestedFactsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/fulfill-requested-facts");
+      return await response.json();
+    },
+    onSuccess: (data: any) => {
+      setFulfillResults(data.stats);
+      queryClient.invalidateQueries({ queryKey: ["/api/facts-evaluation"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/requested-facts"] });
+      toast({
+        title: "Fulfill complete",
+        description: `Fulfilled ${data.stats.fulfilledCount} of ${data.stats.totalRequests} requested facts.`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to fulfill requested facts.",
         variant: "destructive",
       });
     },
@@ -408,6 +439,22 @@ export default function AdminScoring() {
             <div className="grid gap-2">
               <Button
                 variant="outline"
+                onClick={() => fulfillRequestedFactsMutation.mutate()}
+                disabled={fulfillRequestedFactsMutation.isPending}
+                data-testid="button-fulfill-requested-facts"
+                className="w-full"
+              >
+                <Database className="h-4 w-4 mr-2" />
+                {fulfillRequestedFactsMutation.isPending ? "Fulfilling..." : "Fulfill Requested Facts"}
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                Processes user-requested facts and attempts to fetch data from existing sources (Wikidata, World Bank).
+              </p>
+            </div>
+
+            <div className="grid gap-2">
+              <Button
+                variant="outline"
                 onClick={() => recalculateMutation.mutate()}
                 disabled={recalculateMutation.isPending}
                 data-testid="button-recalculate"
@@ -457,6 +504,38 @@ export default function AdminScoring() {
                     </p>
                   </div>
                 )}
+              </div>
+            )}
+
+            {fulfillResults && (
+              <div className="border rounded-lg p-4 bg-muted/50 space-y-2">
+                <h4 className="font-semibold text-sm">Fulfill Results</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Total Requests:</span>
+                    <span className="ml-2 font-medium" data-testid="text-total-requests">
+                      {fulfillResults.totalRequests}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Fulfilled:</span>
+                    <span className="ml-2 font-medium" data-testid="text-fulfilled">
+                      {fulfillResults.fulfilledCount}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Not Found:</span>
+                    <span className="ml-2 font-medium" data-testid="text-not-found">
+                      {fulfillResults.notFoundCount}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Already Existed:</span>
+                    <span className="ml-2 font-medium" data-testid="text-already-exists">
+                      {fulfillResults.alreadyExistsCount}
+                    </span>
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>
