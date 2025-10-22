@@ -59,10 +59,10 @@ export default function FactChecker() {
         setAttributeMapping(attributeMappingData);
         setEntityMapping(entityMappingData);
 
-        const uniqueEntities = Array.from(
-          new Set(parsedFacts.map((f) => f.entity))
-        ).sort((a, b) => a.localeCompare(b));
-        setEntities(uniqueEntities);
+        // Use all canonical country names from entity mapping (values, not keys)
+        // This allows detection of unsupported countries for logging
+        const allEntities = Array.from(new Set(Object.values(entityMappingData) as string[])).sort((a, b) => a.localeCompare(b));
+        setEntities(allEntities);
       } catch (error) {
         console.error("Error loading data:", error);
       } finally {
