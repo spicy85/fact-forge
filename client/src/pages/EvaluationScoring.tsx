@@ -55,10 +55,10 @@ export default function EvaluationScoring() {
   const { toast } = useToast();
   const breakdownRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to breakdown when a record is selected
+  // Scroll to top when a record is selected (breakdown is now at top)
   useEffect(() => {
-    if (selectedRecord && breakdownRef.current) {
-      breakdownRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (selectedRecord) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [selectedRecord]);
 
@@ -244,6 +244,75 @@ export default function EvaluationScoring() {
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-8">
+        {/* Selected Record Details - Shown at top when a row is clicked */}
+        {selectedRecord && (
+          <Card ref={breakdownRef} data-testid="card-calculation-breakdown">
+            <CardHeader>
+              <CardTitle>Calculation Breakdown</CardTitle>
+              <CardDescription>
+                {selectedRecord.entity} - {selectedRecord.attribute}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Source Trust Score</p>
+                  <p className="text-2xl font-bold font-mono" data-testid="text-breakdown-source-trust">
+                    {selectedRecord.source_trust_score}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Weight: {selectedRecord.source_trust_weight}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Recency Score</p>
+                  <p className="text-2xl font-bold font-mono" data-testid="text-breakdown-recency">
+                    {selectedRecord.recency_score}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Weight: {selectedRecord.recency_weight}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Evaluated: {new Date(selectedRecord.evaluated_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Consensus Score</p>
+                  <p className="text-2xl font-bold font-mono" data-testid="text-breakdown-consensus">
+                    {selectedRecord.consensus_score}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Weight: {selectedRecord.consensus_weight}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-muted p-4 rounded-md space-y-2">
+                <p className="font-semibold">Calculation:</p>
+                <p className="font-mono text-sm">
+                  trust_score = ({selectedRecord.source_trust_score} × {selectedRecord.source_trust_weight} + {selectedRecord.recency_score} × {selectedRecord.recency_weight} + {selectedRecord.consensus_score} × {selectedRecord.consensus_weight}) / ({selectedRecord.source_trust_weight} + {selectedRecord.recency_weight} + {selectedRecord.consensus_weight})
+                </p>
+                <p className="font-mono text-sm">
+                  = ({selectedRecord.source_trust_score * selectedRecord.source_trust_weight} + {selectedRecord.recency_score * selectedRecord.recency_weight} + {selectedRecord.consensus_score * selectedRecord.consensus_weight}) / {selectedRecord.source_trust_weight + selectedRecord.recency_weight + selectedRecord.consensus_weight}
+                </p>
+                <p className="font-mono text-sm">
+                  = {selectedRecord.source_trust_score * selectedRecord.source_trust_weight + selectedRecord.recency_score * selectedRecord.recency_weight + selectedRecord.consensus_score * selectedRecord.consensus_weight} / {selectedRecord.source_trust_weight + selectedRecord.recency_weight + selectedRecord.consensus_weight}
+                </p>
+                <p className="font-mono text-sm font-bold">
+                  = {selectedRecord.trust_score}
+                </p>
+              </div>
+
+              <div className="pt-4">
+                <p className="text-sm font-medium mb-2">Source URL:</p>
+                <p className="text-xs text-muted-foreground break-all font-mono bg-muted p-2 rounded">
+                  {selectedRecord.source_url}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Statistics Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card data-testid="card-total-evaluations">
@@ -624,75 +693,6 @@ export default function EvaluationScoring() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Selected Record Details */}
-        {selectedRecord && (
-          <Card ref={breakdownRef} data-testid="card-calculation-breakdown">
-            <CardHeader>
-              <CardTitle>Calculation Breakdown</CardTitle>
-              <CardDescription>
-                {selectedRecord.entity} - {selectedRecord.attribute}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Source Trust Score</p>
-                  <p className="text-2xl font-bold font-mono" data-testid="text-breakdown-source-trust">
-                    {selectedRecord.source_trust_score}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Weight: {selectedRecord.source_trust_weight}
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Recency Score</p>
-                  <p className="text-2xl font-bold font-mono" data-testid="text-breakdown-recency">
-                    {selectedRecord.recency_score}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Weight: {selectedRecord.recency_weight}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Evaluated: {new Date(selectedRecord.evaluated_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Consensus Score</p>
-                  <p className="text-2xl font-bold font-mono" data-testid="text-breakdown-consensus">
-                    {selectedRecord.consensus_score}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Weight: {selectedRecord.consensus_weight}
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-muted p-4 rounded-md space-y-2">
-                <p className="font-semibold">Calculation:</p>
-                <p className="font-mono text-sm">
-                  trust_score = ({selectedRecord.source_trust_score} × {selectedRecord.source_trust_weight} + {selectedRecord.recency_score} × {selectedRecord.recency_weight} + {selectedRecord.consensus_score} × {selectedRecord.consensus_weight}) / ({selectedRecord.source_trust_weight} + {selectedRecord.recency_weight} + {selectedRecord.consensus_weight})
-                </p>
-                <p className="font-mono text-sm">
-                  = ({selectedRecord.source_trust_score * selectedRecord.source_trust_weight} + {selectedRecord.recency_score * selectedRecord.recency_weight} + {selectedRecord.consensus_score * selectedRecord.consensus_weight}) / {selectedRecord.source_trust_weight + selectedRecord.recency_weight + selectedRecord.consensus_weight}
-                </p>
-                <p className="font-mono text-sm">
-                  = {selectedRecord.source_trust_score * selectedRecord.source_trust_weight + selectedRecord.recency_score * selectedRecord.recency_weight + selectedRecord.consensus_score * selectedRecord.consensus_weight} / {selectedRecord.source_trust_weight + selectedRecord.recency_weight + selectedRecord.consensus_weight}
-                </p>
-                <p className="font-mono text-sm font-bold">
-                  = {selectedRecord.trust_score}
-                </p>
-              </div>
-
-              <div className="pt-4">
-                <p className="text-sm font-medium mb-2">Source URL:</p>
-                <p className="text-xs text-muted-foreground break-all font-mono bg-muted p-2 rounded">
-                  {selectedRecord.source_url}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </main>
     </div>
   );
