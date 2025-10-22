@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, Calculator, Info, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,14 @@ export default function EvaluationScoring() {
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const { toast } = useToast();
+  const breakdownRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to breakdown when a record is selected
+  useEffect(() => {
+    if (selectedRecord && breakdownRef.current) {
+      breakdownRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [selectedRecord]);
 
   const { data: evaluations = [], isLoading } = useQuery<FactsEvaluationRecord[]>({
     queryKey: ["/api/facts-evaluation"],
@@ -556,13 +564,19 @@ export default function EvaluationScoring() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedEvaluations.map((evaluation) => (
-                    <TableRow
-                      key={evaluation.id}
-                      className="cursor-pointer hover-elevate"
-                      onClick={() => setSelectedRecord(evaluation)}
-                      data-testid={`row-evaluation-${evaluation.id}`}
-                    >
+                  {sortedEvaluations.map((evaluation) => {
+                    const isSelected = selectedRecord?.id === evaluation.id;
+                    return (
+                      <TableRow
+                        key={evaluation.id}
+                        className="cursor-pointer hover-elevate"
+                        onClick={() => setSelectedRecord(evaluation)}
+                        data-testid={`row-evaluation-${evaluation.id}`}
+                        data-selected={isSelected ? 'true' : 'false'}
+                        style={{
+                          backgroundColor: isSelected ? 'hsl(var(--accent) / 0.5)' : undefined
+                        }}
+                      >
                       <TableCell className="font-medium">{evaluation.entity}</TableCell>
                       <TableCell className="text-muted-foreground">{evaluation.attribute}</TableCell>
                       <TableCell className="font-mono text-sm">{evaluation.value}</TableCell>
@@ -603,7 +617,8 @@ export default function EvaluationScoring() {
                         </Badge>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -612,7 +627,7 @@ export default function EvaluationScoring() {
 
         {/* Selected Record Details */}
         {selectedRecord && (
-          <Card data-testid="card-calculation-breakdown">
+          <Card ref={breakdownRef} data-testid="card-calculation-breakdown">
             <CardHeader>
               <CardTitle>Calculation Breakdown</CardTitle>
               <CardDescription>
