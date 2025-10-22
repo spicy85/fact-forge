@@ -14,7 +14,6 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { FactRecord } from "@/lib/factChecker";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 
@@ -41,10 +40,6 @@ interface SourceStats {
 
 export default function SourcesOverview() {
   const [editingValues, setEditingValues] = useState<Record<string, SourceMetrics>>({});
-
-  const { data: facts = [] } = useQuery<FactRecord[]>({
-    queryKey: ["/api/facts"],
-  });
 
   const { data: sourceMetrics = [], isLoading } = useQuery<SourceMetrics[]>({
     queryKey: ["/api/sources", "trusted"],
@@ -83,19 +78,7 @@ export default function SourcesOverview() {
     return "outline";
   };
 
-  // Count facts per domain
-  const factCountMap = new Map<string, number>();
-  facts.forEach((fact) => {
-    try {
-      const url = new URL(fact.source_url);
-      const domain = url.hostname.replace(/^www\./, "");
-      factCountMap.set(domain, (factCountMap.get(domain) || 0) + 1);
-    } catch (error) {
-      console.error("Invalid URL:", fact.source_url);
-    }
-  });
-
-  // Combine metrics with fact counts
+  // Combine metrics with fact counts from database
   const sources: SourceStats[] = sourceMetrics.map((source) => {
     const editedSource = editingValues[source.domain] || source;
     const overallTrustLevel = Math.round(
@@ -104,7 +87,7 @@ export default function SourcesOverview() {
 
     return {
       domain: source.domain,
-      factCount: factCountMap.get(source.domain) || 0,
+      factCount: source.facts_count,
       publicTrust: editedSource.public_trust,
       dataAccuracy: editedSource.data_accuracy,
       proprietaryScore: editedSource.proprietary_score,

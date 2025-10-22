@@ -78,9 +78,10 @@ The application now has **comprehensive multi-source consensus** working with Wi
 - **Wikidata evaluations**: 192 entries across 48 countries
   - Attributes: population, gdp_usd, area_km2, founded_year
   - Source: **www.wikidata.org** via SPARQL queries
-  - Trust scores: 80 public_trust, 85 data_accuracy
+  - Trust scores: 94 public_trust, 85 data_accuracy, 85 proprietary_score (overall trust: 88)
   - Fetched via: `scripts/fetch-wikidata.ts` using Q-ID mapping for all 48 countries
   - Query endpoint: https://query.wikidata.org/sparql
+  - Final trust_scores: 82-90 (all above credible threshold of 80)
 
 **Multi-Source Examples:**
 - **United States population**: 4 sources (Wikipedia + World Bank + Wikidata) with trust scores 75-92
@@ -92,6 +93,7 @@ The application now has **comprehensive multi-source consensus** working with Wi
 - `scripts/fetch-wikipedia-evaluations.ts`: Transfers Wikipedia data from verified_facts to facts_evaluation with proper filtering and deduplication
 - `scripts/fetch-worldbank-subset.ts`: Fetches World Bank data for all 48 countries with deduplication and error handling
 - `scripts/fetch-wikidata.ts`: Queries Wikidata SPARQL endpoint for population, GDP, area, and founding dates using Q-ID mappings
+- `scripts/recalculate-wikidata-scores.ts`: Recalculates trust scores for all Wikidata evaluations after source trust updates
 - `scripts/remove-duplicates.ts`: Cleanup script that removed 110 duplicate entries
 - `scripts/consolidate-worldbank-sources.ts`: Merged api.worldbank.org into data.worldbank.org (220 total facts)
 - `scripts/recalculate-facts-count.ts`: Updates facts_count for all sources by extracting domains from source_url
