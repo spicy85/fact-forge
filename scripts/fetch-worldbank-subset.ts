@@ -1,6 +1,6 @@
 import { db } from "../server/db";
 import { factsEvaluation, sources, scoringSettings } from "../shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { fetchAllIndicatorsForCountry } from "../server/integrations/worldbank-api";
 import { calculateSourceTrustScore, calculateRecencyScore, calculateTrustScore } from "../server/evaluation-scoring";
 
@@ -77,6 +77,25 @@ async function main() {
       );
 
       try {
+        // Check if this exact evaluation already exists
+        const existing = await db
+          .select()
+          .from(factsEvaluation)
+          .where(
+            and(
+              eq(factsEvaluation.entity, country),
+              eq(factsEvaluation.attribute, attribute),
+              eq(factsEvaluation.source_url, sourceUrl),
+              eq(factsEvaluation.evaluated_at, evaluatedAt)
+            )
+          )
+          .limit(1);
+
+        if (existing.length > 0) {
+          console.log(`  ⊘ ${attribute} already exists`);
+          continue;
+        }
+
         await db.insert(factsEvaluation).values({
           entity: country,
           attribute: attribute,
@@ -100,7 +119,7 @@ async function main() {
         console.log(`  ✓ ${attribute} = ${latestData.value.toLocaleString()} (${latestData.year})`);
       } catch (error: any) {
         if (error.code === '23505') {
-          console.log(`  ⊘ ${attribute} already exists`);
+          console.log(`  ⊘ ${attribute} already exists (unique constraint)`);
         } else {
           console.error(`  ✗ Error:`, error.message);
         }

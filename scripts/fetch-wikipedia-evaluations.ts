@@ -1,6 +1,6 @@
 import { db } from "../server/db";
 import { factsEvaluation, sources, scoringSettings, verifiedFacts } from "../shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { calculateSourceTrustScore, calculateRecencyScore, calculateTrustScore } from "../server/evaluation-scoring";
 
 async function main() {
@@ -18,12 +18,17 @@ async function main() {
   await ensureSourceExists();
 
   // Fetch all verified facts from Wikipedia to transfer to facts_evaluation
+  // Filter by source_url to ensure we only get Wikipedia facts
   const wikipediaFacts = await db
     .select()
-    .from(verifiedFacts)
-    .where(eq(verifiedFacts.source_trust, 'high'));
+    .from(verifiedFacts);
+  
+  // Filter for Wikipedia sources only (by checking source_url contains 'wikipedia')
+  const filteredFacts = wikipediaFacts.filter(fact => 
+    fact.source_url && fact.source_url.includes('wikipedia')
+  );
 
-  console.log(`Found ${wikipediaFacts.length} Wikipedia facts in verified_facts\n`);
+  console.log(`Found ${filteredFacts.length} Wikipedia facts in verified_facts\n`);
   console.log("=== Transferring to facts_evaluation ===\n");
 
   let totalCount = 0;
@@ -32,7 +37,7 @@ async function main() {
   // Target attributes: population, area_km2, gdp_usd, founded_year
   const targetAttributes = ['population', 'area_km2', 'gdp_usd', 'founded_year'];
 
-  for (const fact of wikipediaFacts) {
+  for (const fact of filteredFacts) {
     // Only process target attributes
     if (!targetAttributes.includes(fact.attribute)) {
       continue;
@@ -60,6 +65,25 @@ async function main() {
     );
 
     try {
+      // Check if this exact evaluation already exists
+      const existing = await db
+        .select()
+        .from(factsEvaluation)
+        .where(
+          and(
+            eq(factsEvaluation.entity, fact.entity),
+            eq(factsEvaluation.attribute, fact.attribute),
+            eq(factsEvaluation.source_url, fact.source_url || sourceUrl),
+            eq(factsEvaluation.evaluated_at, evaluatedAt)
+          )
+        )
+        .limit(1);
+
+      if (existing.length > 0) {
+        console.log(`⊘ ${fact.entity} - ${fact.attribute} already exists`);
+        continue;
+      }
+
       await db.insert(factsEvaluation).values({
         entity: fact.entity,
         attribute: fact.attribute,
@@ -83,7 +107,7 @@ async function main() {
       console.log(`✓ ${fact.entity} - ${fact.attribute}`);
     } catch (error: any) {
       if (error.code === '23505') {
-        console.log(`⊘ ${fact.entity} - ${fact.attribute} already exists`);
+        console.log(`⊘ ${fact.entity} - ${fact.attribute} already exists (unique constraint)`);
       } else {
         console.error(`✗ Error for ${fact.entity} - ${fact.attribute}:`, error.message);
       }
