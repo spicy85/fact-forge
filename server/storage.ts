@@ -1,8 +1,8 @@
-import { type User, type InsertUser, type VerifiedFact, type InsertVerifiedFact, type FactsEvaluation, type InsertFactsEvaluation, type Source, type InsertSource, type UpdateSource, type ScoringSettings, type InsertScoringSettings, type UpdateScoringSettings, type RequestedFact, type InsertRequestedFact } from "@shared/schema";
+import { type User, type InsertUser, type VerifiedFact, type InsertVerifiedFact, type FactsEvaluation, type InsertFactsEvaluation, type Source, type InsertSource, type UpdateSource, type ScoringSettings, type InsertScoringSettings, type UpdateScoringSettings, type RequestedFact, type InsertRequestedFact, type SourceActivityLog, type InsertSourceActivityLog } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { verifiedFacts, factsEvaluation, sources, scoringSettings, requestedFacts } from "@shared/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { verifiedFacts, factsEvaluation, sources, scoringSettings, requestedFacts, sourceActivityLog } from "@shared/schema";
+import { eq, and, sql, desc } from "drizzle-orm";
 import { calculateSourceTrustScore, calculateRecencyScore, calculateTrustScore } from "./evaluation-scoring";
 
 // modify the interface with any CRUD methods
@@ -36,6 +36,8 @@ export interface IStorage {
   getScoringSettings(): Promise<ScoringSettings | undefined>;
   upsertScoringSettings(settings: UpdateScoringSettings): Promise<ScoringSettings>;
   createOrIncrementRequestedFact(entity: string, attribute: string, claimValue?: string): Promise<RequestedFact>;
+  logSourceActivity(log: InsertSourceActivityLog): Promise<SourceActivityLog>;
+  getAllSourceActivityLogs(): Promise<SourceActivityLog[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -246,6 +248,16 @@ export class MemStorage implements IStorage {
   }
 
   async promoteSource(domain: string): Promise<Source | undefined> {
+    const [currentSource] = await db
+      .select()
+      .from(sources)
+      .where(eq(sources.domain, domain))
+      .limit(1);
+    
+    if (!currentSource) {
+      return undefined;
+    }
+
     const [updatedSource] = await db
       .update(sources)
       .set({ 
@@ -254,10 +266,29 @@ export class MemStorage implements IStorage {
       })
       .where(eq(sources.domain, domain))
       .returning();
+
+    await this.logSourceActivity({
+      domain,
+      action: 'promote',
+      from_status: currentSource.status,
+      to_status: 'trusted',
+      notes: null
+    });
+
     return updatedSource;
   }
 
   async demoteSource(domain: string): Promise<Source | undefined> {
+    const [currentSource] = await db
+      .select()
+      .from(sources)
+      .where(eq(sources.domain, domain))
+      .limit(1);
+    
+    if (!currentSource) {
+      return undefined;
+    }
+
     const [updatedSource] = await db
       .update(sources)
       .set({ 
@@ -266,10 +297,29 @@ export class MemStorage implements IStorage {
       })
       .where(eq(sources.domain, domain))
       .returning();
+
+    await this.logSourceActivity({
+      domain,
+      action: 'demote',
+      from_status: currentSource.status,
+      to_status: 'pending_review',
+      notes: null
+    });
+
     return updatedSource;
   }
 
   async rejectSource(domain: string, notes?: string): Promise<Source | undefined> {
+    const [currentSource] = await db
+      .select()
+      .from(sources)
+      .where(eq(sources.domain, domain))
+      .limit(1);
+    
+    if (!currentSource) {
+      return undefined;
+    }
+
     const [updatedSource] = await db
       .update(sources)
       .set({ 
@@ -278,6 +328,15 @@ export class MemStorage implements IStorage {
       })
       .where(eq(sources.domain, domain))
       .returning();
+
+    await this.logSourceActivity({
+      domain,
+      action: 'reject',
+      from_status: currentSource.status,
+      to_status: 'rejected',
+      notes: notes || null
+    });
+
     return updatedSource;
   }
 
@@ -340,6 +399,21 @@ export class MemStorage implements IStorage {
         .returning();
       return inserted;
     }
+  }
+
+  async logSourceActivity(log: InsertSourceActivityLog): Promise<SourceActivityLog> {
+    const [inserted] = await db
+      .insert(sourceActivityLog)
+      .values(log)
+      .returning();
+    return inserted;
+  }
+
+  async getAllSourceActivityLogs(): Promise<SourceActivityLog[]> {
+    return db
+      .select()
+      .from(sourceActivityLog)
+      .orderBy(desc(sourceActivityLog.created_at));
   }
 }
 
