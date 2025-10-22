@@ -111,6 +111,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Fulfill requested facts
+  app.post("/api/admin/fulfill-requested-facts", async (req, res) => {
+    try {
+      const { fulfillRequestedFacts } = await import("../scripts/fulfill-requested-facts");
+      const stats = await fulfillRequestedFacts();
+      res.json({
+        success: true,
+        stats
+      });
+    } catch (error) {
+      console.error("Error fulfilling requested facts:", error);
+      res.status(500).json({ error: "Failed to fulfill requested facts" });
+    }
+  });
+
   // Sources API endpoint
   app.get("/api/sources", async (req, res) => {
     try {
