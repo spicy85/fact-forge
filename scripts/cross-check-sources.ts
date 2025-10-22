@@ -92,6 +92,7 @@ export async function crossCheckAllSources(): Promise<CrossCheckStats> {
 
     for (const source of sources) {
       if (existingSources.has(source.name)) {
+        stats.duplicatesSkipped++;
         continue; // Already have data from this source
       }
 
@@ -102,6 +103,9 @@ export async function crossCheckAllSources(): Promise<CrossCheckStats> {
           else if (source.name === 'data.worldbank.org') stats.worldBankAdded++;
           else if (source.name === 'www.wikidata.org') stats.wikidataAdded++;
           console.log(`✓ Added ${entity} - ${attribute} from ${source.name}`);
+        } else {
+          // Fetcher returned false (duplicate found or unsupported)
+          stats.duplicatesSkipped++;
         }
       } catch (error) {
         const errMsg = `Error fetching ${entity} - ${attribute} from ${source.name}: ${error}`;
@@ -362,14 +366,4 @@ async function fetchFromWikidata(
   } catch (error) {
     throw error;
   }
-}
-
-// Run if called directly
-if (require.main === module) {
-  crossCheckAllSources()
-    .then(() => process.exit(0))
-    .catch((error) => {
-      console.error("Fatal error:", error);
-      process.exit(1);
-    });
 }

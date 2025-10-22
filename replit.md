@@ -36,6 +36,7 @@ The application is a multi-page React application built with Vite, utilizing an 
 - **Evaluation Scoring (`server/evaluation-scoring.ts`):** Centralized logic for calculating scores based on source trust, recency, and consensus, with configurable weights.
 - **Admin Configuration System (`/admin`):** Interface for managing scoring methodology, including adjustable weights, recency tiers, and a credible threshold for source consideration. Settings are stored in `scoring_settings` table.
 - **Score Recalculation System:** Dynamic score synchronization with admin settings via a recalculation button and API endpoint (`POST /api/facts-evaluation/recalculate`).
+- **Cross-Check Sources System (`/admin`):** Automated data management tool that identifies all entity-attribute pairs and ensures comprehensive coverage across Wikipedia, World Bank, and Wikidata. Features built-in deduplication to prevent duplicate entries. Accessible via Admin page with real-time statistics display showing facts added per source and duplicates skipped.
 - **Source Management System (`/sources` and `/sources/pipeline`):** Dual-view system for managing data sources, allowing for adding, promoting, and rejecting sources through the UI without code changes. Includes 12 pre-configured sources.
 - **Core Logic (`lib/factChecker.ts`):**
     - **Entity Detection:** Identifies country names using aliases from `entity-mapping.json` and canonical name matching for 48 supported countries.
@@ -93,6 +94,7 @@ The application now has **comprehensive multi-source consensus** working with Wi
 - `scripts/fetch-wikipedia-evaluations.ts`: Transfers Wikipedia data from verified_facts to facts_evaluation with proper filtering and deduplication
 - `scripts/fetch-worldbank-subset.ts`: Fetches World Bank data for all 48 countries with deduplication and error handling
 - `scripts/fetch-wikidata.ts`: Queries Wikidata SPARQL endpoint for population, GDP, area, and founding dates using Q-ID mappings
+- `scripts/cross-check-sources.ts`: **NEW** - Automated cross-checking tool that identifies all entity-attribute pairs and fetches missing data from Wikipedia, World Bank, and Wikidata. Features comprehensive deduplication checking by (entity, attribute, source_trust) tuple. Accessible via Admin page UI button with real-time statistics. Expected runtime: 2-5 minutes for full dataset depending on API response times.
 - `scripts/recalculate-wikidata-scores.ts`: Recalculates trust scores for all Wikidata evaluations after source trust updates
 - `scripts/remove-duplicates.ts`: Cleanup script that removed 110 duplicate entries
 - `scripts/consolidate-worldbank-sources.ts`: Merged api.worldbank.org into data.worldbank.org (220 total facts)
