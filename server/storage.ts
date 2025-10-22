@@ -1,8 +1,8 @@
-import { type User, type InsertUser, type VerifiedFact, type InsertVerifiedFact, type FactsEvaluation, type InsertFactsEvaluation, type Source, type InsertSource, type UpdateSource, type ScoringSettings, type InsertScoringSettings, type UpdateScoringSettings } from "@shared/schema";
+import { type User, type InsertUser, type VerifiedFact, type InsertVerifiedFact, type FactsEvaluation, type InsertFactsEvaluation, type Source, type InsertSource, type UpdateSource, type ScoringSettings, type InsertScoringSettings, type UpdateScoringSettings, type RequestedFact, type InsertRequestedFact } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { verifiedFacts, factsEvaluation, sources, scoringSettings } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import { verifiedFacts, factsEvaluation, sources, scoringSettings, requestedFacts } from "@shared/schema";
+import { eq, and, sql } from "drizzle-orm";
 import { calculateSourceTrustScore, calculateRecencyScore, calculateTrustScore } from "./evaluation-scoring";
 
 // modify the interface with any CRUD methods
@@ -35,6 +35,7 @@ export interface IStorage {
   rejectSource(domain: string, notes?: string): Promise<Source | undefined>;
   getScoringSettings(): Promise<ScoringSettings | undefined>;
   upsertScoringSettings(settings: UpdateScoringSettings): Promise<ScoringSettings>;
+  createOrIncrementRequestedFact(entity: string, attribute: string, claimValue?: string): Promise<RequestedFact>;
 }
 
 export class MemStorage implements IStorage {
@@ -301,6 +302,43 @@ export class MemStorage implements IStorage {
         .values({ ...updates, updated_at: new Date().toISOString() } as InsertScoringSettings)
         .returning();
       return insertedSettings;
+    }
+  }
+
+  async createOrIncrementRequestedFact(entity: string, attribute: string, claimValue?: string): Promise<RequestedFact> {
+    const [existing] = await db
+      .select()
+      .from(requestedFacts)
+      .where(
+        and(
+          eq(requestedFacts.entity, entity),
+          eq(requestedFacts.attribute, attribute)
+        )
+      )
+      .limit(1);
+
+    if (existing) {
+      const [updated] = await db
+        .update(requestedFacts)
+        .set({ 
+          request_count: existing.request_count + 1,
+          last_requested_at: sql`CURRENT_TIMESTAMP`,
+          claim_value: claimValue || existing.claim_value
+        })
+        .where(eq(requestedFacts.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [inserted] = await db
+        .insert(requestedFacts)
+        .values({
+          entity,
+          attribute,
+          claim_value: claimValue,
+          request_count: 1
+        })
+        .returning();
+      return inserted;
     }
   }
 }

@@ -54,6 +54,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Log requested facts for unsupported countries/attributes
+  const requestedFactSchema = z.object({
+    entity: z.string().min(1),
+    attribute: z.string().min(1),
+    claimValue: z.string().optional(),
+  });
+
+  app.post("/api/requested-facts", async (req, res) => {
+    try {
+      const validatedData = requestedFactSchema.parse(req.body);
+      
+      const requestedFact = await storage.createOrIncrementRequestedFact(
+        validatedData.entity,
+        validatedData.attribute,
+        validatedData.claimValue
+      );
+      
+      res.json({ success: true, fact: requestedFact });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      console.error("Error logging requested fact:", error);
+      res.status(500).json({ error: "Failed to log requested fact" });
+    }
+  });
+
   // Recalculate all evaluation scores
   app.post("/api/facts-evaluation/recalculate", async (req, res) => {
     try {

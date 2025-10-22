@@ -442,6 +442,21 @@ export function processTextMultiSource(
     const attribute = guessAttribute(claim, attributeMapping);
     const verification = verifyClaimMultiSource(claim, attribute, entity, multiSourceData);
 
+    // Log unsupported entity-attribute combinations for future data expansion
+    if (verification.status === "unknown" && entity && attribute) {
+      fetch('/api/requested-facts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entity,
+          attribute,
+          claimValue: claim.value
+        })
+      }).catch(() => {
+        // Silently ignore errors - logging is best-effort
+      });
+    }
+
     const consensusValue = verification.multiSource?.consensus;
     const minValue = verification.multiSource?.min;
     const maxValue = verification.multiSource?.max;

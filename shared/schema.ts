@@ -126,3 +126,22 @@ export const updateScoringSettingsSchema = createInsertSchema(scoringSettings).o
 export type InsertScoringSettings = z.infer<typeof insertScoringSettingsSchema>;
 export type UpdateScoringSettings = z.infer<typeof updateScoringSettingsSchema>;
 export type ScoringSettings = typeof scoringSettings.$inferSelect;
+
+export const requestedFacts = pgTable("requested_facts", {
+  id: serial("id").primaryKey(),
+  entity: text("entity").notNull(),
+  attribute: text("attribute").notNull(),
+  claim_value: text("claim_value"),
+  request_count: integer("request_count").notNull().default(1),
+  first_requested_at: text("first_requested_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  last_requested_at: text("last_requested_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const insertRequestedFactSchema = createInsertSchema(requestedFacts).omit({
+  id: true,
+  first_requested_at: true,
+  last_requested_at: true,
+});
+
+export type InsertRequestedFact = z.infer<typeof insertRequestedFactSchema>;
+export type RequestedFact = typeof requestedFacts.$inferSelect;
