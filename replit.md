@@ -60,17 +60,17 @@ Argentina, Australia, Austria, Bangladesh, Belgium, Brazil, Canada, Chile, Colom
 The application now has **comprehensive multi-source consensus** working with Wikipedia + World Bank data across all 48 countries:
 
 **Data Coverage:**
-- **Wikipedia evaluations**: 246 entries covering 50 countries (includes UK, UAE not in 48-country list)
+- **Wikipedia evaluations**: 150 entries across 48 supported countries
   - Attributes: population, area_km2, gdp_usd, founded_year
   - Source: `scripts/fetch-wikipedia-evaluations.ts`
-  - Trust scores: ~92 (calculated from source metrics)
+  - Trust scores: 94 public_trust, 85 data_accuracy
   - Filtering: Only genuine Wikipedia facts (filtered by source_url containing 'wikipedia')
 
-- **World Bank evaluations**: 124 entries across 48 countries
-  - Attributes: population, gdp, gdp_per_capita, area, inflation
-  - Sources: api.worldbank.org (84 entries), data.worldbank.org (40 entries)
-  - Source: `scripts/fetch-worldbank-subset.ts`
-  - Trust scores: 80-94 (calculated from source metrics)
+- **World Bank evaluations**: 220 entries across 51 countries
+  - Attributes: population, gdp, gdp_per_capita, area, inflation, gdp_usd
+  - Source: **data.worldbank.org** (consolidated from api.worldbank.org and data.worldbank.org)
+  - Trust scores: 92 public_trust, 95 data_accuracy (merged best values from both sources)
+  - Fetched via: `scripts/fetch-worldbank-subset.ts`
   - Deduplication: Pre-insert checks prevent duplicate entries
 
 **Multi-Source Examples:**
@@ -83,6 +83,9 @@ The application now has **comprehensive multi-source consensus** working with Wi
 - `scripts/fetch-wikipedia-evaluations.ts`: Transfers Wikipedia data from verified_facts to facts_evaluation with proper filtering and deduplication
 - `scripts/fetch-worldbank-subset.ts`: Fetches World Bank data for all 48 countries with deduplication and error handling
 - `scripts/remove-duplicates.ts`: Cleanup script that removed 110 duplicate entries (370 unique evaluations remain)
+- `scripts/consolidate-worldbank-sources.ts`: Merged api.worldbank.org into data.worldbank.org (220 total facts)
+- `scripts/recalculate-facts-count.ts`: Updates facts_count for all sources by extracting domains from source_url
+- `server/utils.ts`: Utility function `extractDomain()` for normalizing URLs to hostnames
 
 **Known Limitations:**
 - World Bank API sequential requests may timeout before completing all countries in a single run
