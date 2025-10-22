@@ -69,6 +69,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cross-check all sources for missing facts
+  app.post("/api/admin/cross-check-sources", async (req, res) => {
+    try {
+      const { crossCheckAllSources } = await import("../scripts/cross-check-sources");
+      const stats = await crossCheckAllSources();
+      res.json({
+        success: true,
+        stats
+      });
+    } catch (error) {
+      console.error("Error during cross-check:", error);
+      res.status(500).json({ error: "Failed to cross-check sources" });
+    }
+  });
+
   // Sources API endpoint
   app.get("/api/sources", async (req, res) => {
     try {
