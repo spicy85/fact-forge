@@ -10,6 +10,13 @@ import { Card } from "@/components/ui/card";
 import { VerificationBadge, VerificationStatus } from "./VerificationBadge";
 import { ExternalLink } from "lucide-react";
 
+export interface SourceDetail {
+  domain: string;
+  trustScore: number;
+  url: string;
+  evaluatedAt: string;
+}
+
 export interface VerificationResult {
   claimedValue: string;
   attribute: string;
@@ -18,6 +25,7 @@ export interface VerificationResult {
   lastVerifiedAt?: string;
   citation?: string;
   sourceTrust?: string;
+  sources?: SourceDetail[];
 }
 
 interface ResultsTableProps {
@@ -63,7 +71,23 @@ export function ResultsTable({ results }: ResultsTableProps) {
                   {result.lastVerifiedAt || "-"}
                 </TableCell>
                 <TableCell>
-                  {result.citation ? (
+                  {result.sources && result.sources.length > 0 ? (
+                    <div className="flex flex-col gap-1">
+                      {result.sources.map((source, sourceIdx) => (
+                        <a
+                          key={sourceIdx}
+                          href={source.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-sm text-primary hover:underline max-w-xs truncate"
+                          data-testid={`link-citation-${idx}-${sourceIdx}`}
+                        >
+                          <span className="truncate">{source.domain}</span>
+                          <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                        </a>
+                      ))}
+                    </div>
+                  ) : result.citation ? (
                     <a
                       href={result.citation}
                       target="_blank"
@@ -88,7 +112,22 @@ export function ResultsTable({ results }: ResultsTableProps) {
                   )}
                 </TableCell>
                 <TableCell className="text-sm" data-testid={`text-source-trust-${idx}`}>
-                  {result.sourceTrust || "-"}
+                  {result.sources && result.sources.length > 0 ? (
+                    <div className="flex flex-col gap-1">
+                      {result.sources.map((source, sourceIdx) => (
+                        <div key={sourceIdx} className="flex items-center gap-2">
+                          <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">
+                            {source.trustScore}
+                          </span>
+                          <span className="text-xs text-muted-foreground truncate">
+                            {source.domain}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    result.sourceTrust || "-"
+                  )}
                 </TableCell>
               </TableRow>
             ))}

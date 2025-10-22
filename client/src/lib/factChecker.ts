@@ -12,11 +12,23 @@ export interface FactRecord {
   last_verified_at: string;
 }
 
+export interface CredibleEvaluation {
+  id: number;
+  entity: string;
+  attribute: string;
+  value: string;
+  source_url: string;
+  source_trust: string;
+  trust_score: number | null;
+  evaluated_at: string;
+}
+
 export interface MultiSourceData {
   consensus: number;
   min: number;
   max: number;
   sourceCount: number;
+  credibleEvaluations: CredibleEvaluation[];
 }
 
 /**
