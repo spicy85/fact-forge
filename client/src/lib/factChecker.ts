@@ -495,18 +495,27 @@ export function processTextMultiSource(
 
       return {
         domain,
-        trustScore: evaluation.trust_score ?? 0,
+        trustScore: evaluation.trust_score ?? -1, // Use -1 to indicate missing score
         url: evaluation.source_url,
         evaluatedAt: evaluation.evaluated_at
       };
     });
+
+    // Find most recent evaluation date
+    let mostRecentDate: string | undefined;
+    if (sources && sources.length > 0) {
+      mostRecentDate = sources.reduce((latest, source) => {
+        if (!latest) return source.evaluatedAt;
+        return source.evaluatedAt > latest ? source.evaluatedAt : latest;
+      }, sources[0].evaluatedAt);
+    }
 
     results.push({
       claimedValue: claim.value,
       attribute: attribute || "unknown",
       verdict: verification.status,
       recordedValue,
-      lastVerifiedAt: sources && sources.length > 0 ? sources[0].evaluatedAt : undefined,
+      lastVerifiedAt: mostRecentDate,
       citation: undefined,
       sourceTrust: sourceCount !== undefined ? `${sourceCount} ${sourceCount === 1 ? 'source' : 'sources'}` : undefined,
       sources,

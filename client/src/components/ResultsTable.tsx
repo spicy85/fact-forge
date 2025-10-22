@@ -117,7 +117,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
                       {result.sources.map((source, sourceIdx) => (
                         <div key={sourceIdx} className="flex items-center gap-2">
                           <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">
-                            {source.trustScore}
+                            {source.trustScore >= 0 ? source.trustScore : "N/A"}
                           </span>
                           <span className="text-xs text-muted-foreground truncate">
                             {source.domain}
@@ -125,8 +125,10 @@ export function ResultsTable({ results }: ResultsTableProps) {
                         </div>
                       ))}
                     </div>
+                  ) : result.sourceTrust ? (
+                    result.sourceTrust
                   ) : (
-                    result.sourceTrust || "-"
+                    <span className="text-muted-foreground">-</span>
                   )}
                 </TableCell>
               </TableRow>
