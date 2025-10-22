@@ -4,18 +4,17 @@ import { eq } from "drizzle-orm";
 import { fetchAllIndicatorsForCountry } from "../server/integrations/worldbank-api";
 import { calculateSourceTrustScore, calculateRecencyScore, calculateTrustScore } from "../server/evaluation-scoring";
 
-// Subset of 10 diverse countries for quick testing
-const TEST_COUNTRIES = [
-  'United States',
-  'Canada',
-  'United Kingdom',
-  'Germany',
-  'Japan',
-  'Brazil',
-  'India',
-  'Australia',
-  'Poland',
-  'South Africa'
+// All 48 countries in the database
+const ALL_COUNTRIES = [
+  'Argentina', 'Australia', 'Austria', 'Bangladesh', 'Belgium', 'Brazil',
+  'Canada', 'Chile', 'Colombia', 'Czech Republic', 'Denmark', 'Egypt',
+  'Finland', 'France', 'Germany', 'Greece', 'Hungary', 'India',
+  'Indonesia', 'Ireland', 'Israel', 'Italy', 'Japan', 'Kingdom of the Netherlands',
+  'Malaysia', 'Mexico', 'New Zealand', 'Nigeria', 'Norway', 'Pakistan',
+  'Paraguay', 'People\'s Republic of China', 'Philippines', 'Poland',
+  'Portugal', 'Romania', 'Russia', 'Saudi Arabia', 'Singapore', 'South Africa',
+  'South Korea', 'Spain', 'Sweden', 'Switzerland', 'Thailand', 'Turkey',
+  'United States', 'Vietnam'
 ];
 
 async function main() {
@@ -36,9 +35,9 @@ async function main() {
   const sourceUrl = "https://api.worldbank.org/";
 
   console.log("=== Fetching & Inserting World Bank Data ===");
-  console.log(`Processing ${TEST_COUNTRIES.length} countries...\n`);
+  console.log(`Processing ${ALL_COUNTRIES.length} countries...\n`);
   
-  for (const country of TEST_COUNTRIES) {
+  for (const country of ALL_COUNTRIES) {
     console.log(`Fetching ${country}...`);
     const indicatorMap = await fetchAllIndicatorsForCountry(country);
     
@@ -112,7 +111,7 @@ async function main() {
 
   console.log(`\n=== Summary ===`);
   console.log(`✓ Inserted ${totalCount} World Bank evaluations`);
-  console.log(`  Countries: ${TEST_COUNTRIES.length}`);
+  console.log(`  Countries: ${ALL_COUNTRIES.length}`);
   console.log(`  Indicators: population, gdp, gdp_per_capita, area, inflation`);
   console.log("\n✓ Fetch complete! You now have multi-source consensus with Wikipedia + World Bank.\n");
   
