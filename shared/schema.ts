@@ -95,6 +95,24 @@ export type InsertSource = z.infer<typeof insertSourceSchema>;
 export type UpdateSource = z.infer<typeof updateSourceSchema>;
 export type Source = typeof sources.$inferSelect;
 
+export const sourceActivityLog = pgTable("source_activity_log", {
+  id: serial("id").primaryKey(),
+  domain: text("domain").notNull(),
+  action: text("action").notNull(), // promote, demote, reject
+  from_status: text("from_status"),
+  to_status: text("to_status").notNull(),
+  notes: text("notes"),
+  created_at: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const insertSourceActivityLogSchema = createInsertSchema(sourceActivityLog).omit({
+  id: true,
+  created_at: true,
+});
+
+export type InsertSourceActivityLog = z.infer<typeof insertSourceActivityLogSchema>;
+export type SourceActivityLog = typeof sourceActivityLog.$inferSelect;
+
 export const scoringSettings = pgTable("scoring_settings", {
   id: serial("id").primaryKey(),
   // Default weights for scoring (1-10 scale)
