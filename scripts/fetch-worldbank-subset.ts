@@ -32,7 +32,7 @@ async function main() {
   await ensureSourceExists();
 
   let totalCount = 0;
-  const sourceUrl = "https://api.worldbank.org/";
+  const sourceUrl = "https://data.worldbank.org/";
 
   console.log("=== Fetching & Inserting World Bank Data ===");
   console.log(`Processing ${ALL_COUNTRIES.length} countries...\n`);
@@ -102,7 +102,7 @@ async function main() {
           value: latestData.value.toString(),
           value_type: "numeric",
           source_url: sourceUrl,
-          source_trust: "api.worldbank.org",
+          source_trust: "data.worldbank.org",
           source_trust_score: sourceTrustScore,
           recency_score: recencyScore,
           consensus_score: consensusScore,
@@ -141,22 +141,22 @@ async function ensureSourceExists() {
   const [worldBank] = await db
     .select()
     .from(sources)
-    .where(eq(sources.domain, "api.worldbank.org"))
+    .where(eq(sources.domain, "data.worldbank.org"))
     .limit(1);
 
   if (!worldBank) {
     await db.insert(sources).values({
-      domain: "api.worldbank.org",
-      public_trust: 95,
-      data_accuracy: 98,
-      proprietary_score: 92,
+      domain: "data.worldbank.org",
+      public_trust: 92,
+      data_accuracy: 95,
+      proprietary_score: 94,
       status: "trusted",
       promoted_at: new Date().toISOString(),
       notes: "World Bank - authoritative source for global economic and development data"
     });
-    console.log("✓ Created source: api.worldbank.org\n");
+    console.log("✓ Created source: data.worldbank.org\n");
   } else {
-    console.log("✓ Source exists: api.worldbank.org\n");
+    console.log("✓ Source exists: data.worldbank.org\n");
   }
 }
 
