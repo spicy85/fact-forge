@@ -227,6 +227,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all source activity logs
+  app.get("/api/sources/activity-log", async (req, res) => {
+    try {
+      const logs = await storage.getAllSourceActivityLogs();
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching activity logs:", error);
+      res.status(500).json({ error: "Failed to fetch activity logs" });
+    }
+  });
+
   // Scoring Settings API endpoints
   app.get("/api/scoring-settings", async (req, res) => {
     try {
