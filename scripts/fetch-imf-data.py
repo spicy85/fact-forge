@@ -203,7 +203,9 @@ def fetch_imf_inflation(imf_client, country_code, country_name, conn, settings):
         return 1
         
     except Exception as e:
-        print(f"  ✗ inflation error: {str(e)[:100]}")
+        print(f"  ✗ inflation error: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return 0
 
 def fetch_imf_gdp(imf_client, country_code, country_name, conn, settings):
@@ -244,7 +246,7 @@ def fetch_imf_gdp(imf_client, country_code, country_name, conn, settings):
         return 1
         
     except Exception as e:
-        print(f"  ✗ gdp error: {str(e)[:100]}")
+        print(f"  ✗ gdp error: {type(e).__name__}: {str(e)}")
         return 0
 
 def main():
