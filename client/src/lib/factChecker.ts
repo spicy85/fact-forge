@@ -1,6 +1,16 @@
 import { VerificationStatus } from "@/components/VerificationBadge";
 import { VerifiedClaim } from "@/components/RenderedParagraph";
 import { VerificationResult } from "@/components/ResultsTable";
+import toleranceConfig from "../../../public/tolerance-config.json";
+
+/**
+ * Get percentage tolerance for a specific attribute
+ * Returns attribute-specific tolerance or default if not found
+ */
+export function getToleranceForAttribute(attribute: string | null): number {
+  if (!attribute) return toleranceConfig.default;
+  return (toleranceConfig as Record<string, number>)[attribute] ?? toleranceConfig.default;
+}
 
 export interface FactRecord {
   entity: string;
