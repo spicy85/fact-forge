@@ -3,62 +3,16 @@ import { requestedFacts, factsEvaluation, scoringSettings } from "../shared/sche
 import { eq, and } from "drizzle-orm";
 import { fetchAllIndicatorsForCountry } from "../server/integrations/worldbank-api";
 import { calculateSourceTrustScore, calculateRecencyScore, calculateTrustScore } from "../server/evaluation-scoring";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 // Wikidata SPARQL endpoint
 const WIKIDATA_ENDPOINT = "https://query.wikidata.org/sparql";
 
-// Map our country names to Wikidata Q-IDs
-const COUNTRY_QIDS: Record<string, string> = {
-  'Afghanistan': 'Q889',
-  'Argentina': 'Q414',
-  'Australia': 'Q408',
-  'Austria': 'Q40',
-  'Bangladesh': 'Q902',
-  'Belgium': 'Q31',
-  'Brazil': 'Q155',
-  'Canada': 'Q16',
-  'Chile': 'Q298',
-  'Colombia': 'Q739',
-  'Czech Republic': 'Q213',
-  'Denmark': 'Q35',
-  'Egypt': 'Q79',
-  'Finland': 'Q33',
-  'France': 'Q142',
-  'Germany': 'Q183',
-  'Greece': 'Q41',
-  'Hungary': 'Q28',
-  'India': 'Q668',
-  'Indonesia': 'Q252',
-  'Ireland': 'Q27',
-  'Israel': 'Q801',
-  'Italy': 'Q38',
-  'Japan': 'Q17',
-  'Kingdom of the Netherlands': 'Q29999',
-  'Malaysia': 'Q833',
-  'Mexico': 'Q96',
-  'New Zealand': 'Q664',
-  'Nigeria': 'Q1033',
-  'Norway': 'Q20',
-  'Pakistan': 'Q843',
-  'Paraguay': 'Q733',
-  'People\'s Republic of China': 'Q148',
-  'Philippines': 'Q928',
-  'Poland': 'Q36',
-  'Portugal': 'Q45',
-  'Romania': 'Q218',
-  'Russia': 'Q159',
-  'Saudi Arabia': 'Q851',
-  'Singapore': 'Q334',
-  'South Africa': 'Q258',
-  'South Korea': 'Q884',
-  'Spain': 'Q29',
-  'Sweden': 'Q34',
-  'Switzerland': 'Q39',
-  'Thailand': 'Q869',
-  'Turkey': 'Q43',
-  'United States': 'Q30',
-  'Vietnam': 'Q881'
-};
+// Load country Q-IDs from centralized mapping file
+const COUNTRY_QIDS: Record<string, string> = JSON.parse(
+  readFileSync(join(process.cwd(), "public/country-qids.json"), "utf-8")
+);
 
 // Attribute to source mapping - which sources support which attributes
 const ATTRIBUTE_SOURCE_MAP: Record<string, string[]> = {
