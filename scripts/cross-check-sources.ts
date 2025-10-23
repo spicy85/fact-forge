@@ -312,8 +312,8 @@ async function fetchFromWikidata(
 
     const result = bindings[0];
     let value = result.value.value;
-    let year = '2024';
-    let as_of_date = '2024-01-01';
+    let year: string;
+    let as_of_date: string | null = null;
 
     // Extract year and date from value or pointInTime
     if (result.pointInTime) {
@@ -321,10 +321,15 @@ async function fetchFromWikidata(
       year = pointInTimeValue.substring(0, 4);
       as_of_date = pointInTimeValue.split('T')[0]; // Extract YYYY-MM-DD
     } else if (attribute === 'founded_year') {
+      // For founded_year, the value itself contains the date
       const foundedDate = value.substring(0, 10); // Extract YYYY-MM-DD
       year = value.substring(0, 4);
       as_of_date = foundedDate.split('T')[0];
       value = year;
+    } else {
+      // No point-in-time qualifier available - use current year for evaluation date only
+      year = new Date().getFullYear().toString();
+      // as_of_date remains null - we don't fabricate dates
     }
 
     const evaluatedAt = `${year}-12-31`;
@@ -395,4 +400,17 @@ async function fetchFromWikidata(
   } catch (error) {
     throw error;
   }
+}
+
+// Run the script if executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  crossCheckAllSources()
+    .then(() => {
+      console.log("\n✓ Script completed successfully");
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error("\n✗ Script failed:", error);
+      process.exit(1);
+    });
 }
