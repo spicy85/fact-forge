@@ -492,10 +492,11 @@ export class MemStorage implements IStorage {
       return { promotedCount: 0, skippedCount: 0 };
     }
 
-    // Deduplicate: Keep most recent fact per (entity, attribute, source_trust)
+    // Deduplicate: Keep most recent fact per (entity, attribute, source_trust, as_of_date)
+    // Including as_of_date allows for time-series data (e.g., population in 2020, 2021, 2022)
     const deduplicatedMap = new Map<string, typeof candidateFacts[0]>();
     for (const fact of candidateFacts) {
-      const key = `${fact.entity}|||${fact.attribute}|||${fact.source_trust}`;
+      const key = `${fact.entity}|||${fact.attribute}|||${fact.source_trust}|||${fact.as_of_date || ''}`;
       if (!deduplicatedMap.has(key)) {
         deduplicatedMap.set(key, fact);
       }
@@ -506,7 +507,7 @@ export class MemStorage implements IStorage {
     // Check which facts already exist in verified_facts to avoid duplicates
     const existingFacts = await db.select().from(verifiedFacts);
     const existingKeys = new Set(
-      existingFacts.map(f => `${f.entity}|||${f.attribute}|||${f.source_trust}`)
+      existingFacts.map(f => `${f.entity}|||${f.attribute}|||${f.source_trust}|||${f.as_of_date || ''}`)
     );
 
     let promotedCount = 0;
@@ -514,7 +515,7 @@ export class MemStorage implements IStorage {
     const logsToInsert: InsertFactsActivityLog[] = [];
 
     for (const fact of factsToPromote) {
-      const key = `${fact.entity}|||${fact.attribute}|||${fact.source_trust}`;
+      const key = `${fact.entity}|||${fact.attribute}|||${fact.source_trust}|||${fact.as_of_date || ''}`;
       
       if (existingKeys.has(key)) {
         // Update existing fact with newer data
@@ -529,7 +530,8 @@ export class MemStorage implements IStorage {
             and(
               eq(verifiedFacts.entity, fact.entity),
               eq(verifiedFacts.attribute, fact.attribute),
-              eq(verifiedFacts.source_trust, fact.source_trust)
+              eq(verifiedFacts.source_trust, fact.source_trust),
+              fact.as_of_date ? eq(verifiedFacts.as_of_date, fact.as_of_date) : sql`${verifiedFacts.as_of_date} IS NULL`
             )
           );
         
