@@ -326,21 +326,27 @@ export function verifyClaimMultiSource(
     return { status: "unknown" };
   }
 
-  // Detect the precision level of the claim to match rounding appropriately
-  // If claim is a round million/billion, compare at that precision
-  const getRoundingPrecision = (num: number): number => {
-    if (num % 1000000000 === 0) return 1000000000; // Billion
-    if (num % 1000000 === 0) return 1000000; // Million
-    if (num % 1000 === 0) return 1000; // Thousand
-    return 1; // No rounding
-  };
+  // Skip rounding precision check for year-based attributes (founded_year)
+  // as rounding to nearest thousand would make 1000 match 789, which is incorrect
+  const isYearAttribute = attribute === 'founded_year';
+  
+  if (!isYearAttribute) {
+    // Detect the precision level of the claim to match rounding appropriately
+    // If claim is a round million/billion, compare at that precision
+    const getRoundingPrecision = (num: number): number => {
+      if (num % 1000000000 === 0) return 1000000000; // Billion
+      if (num % 1000000 === 0) return 1000000; // Million
+      if (num % 1000 === 0) return 1000; // Thousand
+      return 1; // No rounding
+    };
 
-  const precision = getRoundingPrecision(claimedNum);
-  const roundedConsensus = Math.round(sourceData.consensus / precision) * precision;
+    const precision = getRoundingPrecision(claimedNum);
+    const roundedConsensus = Math.round(sourceData.consensus / precision) * precision;
 
-  // Check if matches consensus at the appropriate precision level
-  if (claimedNum === roundedConsensus) {
-    return { status: "verified", multiSource: sourceData, percentageDiff: 0 };
+    // Check if matches consensus at the appropriate precision level
+    if (claimedNum === roundedConsensus) {
+      return { status: "verified", multiSource: sourceData, percentageDiff: 0 };
+    }
   }
 
   // Check if within credible range [min, max]

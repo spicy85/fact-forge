@@ -1,6 +1,5 @@
 {
-  "founded": 0.1,
-  "founding_year": 0.1,
+  "founded_year": 0.1,
   "population": 10,
   "gdp": 10,
   "gdp_per_capita": 10,
