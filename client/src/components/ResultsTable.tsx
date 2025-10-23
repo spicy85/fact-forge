@@ -86,7 +86,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
                   )}
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {result.asOfDate ? new Date(result.asOfDate).toLocaleDateString() : "-"}
+                  {result.lastVerifiedAt ? new Date(result.lastVerifiedAt).toLocaleDateString() : "-"}
                 </TableCell>
                 <TableCell>
                   {result.sources && result.sources.length > 0 ? (
