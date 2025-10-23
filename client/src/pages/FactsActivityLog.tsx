@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 interface FactActivityLog {
   id: number;
   entity: string;
+  entity_type: string;
   attribute: string;
   action: string;
   source: string | null;
@@ -93,6 +94,7 @@ export default function FactsActivityLog() {
                   <TableRow>
                     <TableHead>Timestamp</TableHead>
                     <TableHead>Entity</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead>Attribute</TableHead>
                     <TableHead>Action</TableHead>
                     <TableHead>Source</TableHead>
@@ -109,6 +111,9 @@ export default function FactsActivityLog() {
                       </TableCell>
                       <TableCell className="text-sm">
                         {log.entity}
+                      </TableCell>
+                      <TableCell className="text-sm capitalize text-muted-foreground">
+                        {log.entity_type}
                       </TableCell>
                       <TableCell className="text-sm capitalize">
                         {log.attribute.replace(/_/g, ' ')}
