@@ -139,6 +139,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Promote facts to verified
+  app.post("/api/admin/promote-facts", async (req, res) => {
+    try {
+      const result = await storage.promoteFactsToVerified();
+      res.json({
+        success: true,
+        ...result
+      });
+    } catch (error) {
+      console.error("Error promoting facts:", error);
+      res.status(500).json({ error: "Failed to promote facts" });
+    }
+  });
+
   // Sources API endpoint
   app.get("/api/sources", async (req, res) => {
     try {

@@ -41,6 +41,7 @@ export interface IStorage {
   logFactsActivity(log: InsertFactsActivityLog): Promise<FactsActivityLog>;
   logFactsActivityBatch(logs: InsertFactsActivityLog[]): Promise<FactsActivityLog[]>;
   getAllFactsActivityLogs(limit?: number, offset?: number): Promise<FactsActivityLog[]>;
+  promoteFactsToVerified(): Promise<{ promotedCount: number; skippedCount: number; }>;
 }
 
 export class MemStorage implements IStorage {
@@ -176,50 +177,39 @@ export class MemStorage implements IStorage {
   }
 
   async getMultiSourceEvaluations(entity: string, attribute: string): Promise<MultiSourceResult | null> {
-    const settings = await this.getScoringSettings();
-    const credibleThreshold = settings?.credible_threshold ?? 80;
-    
-    // Get all evaluations for this entity-attribute, ordered by date (most recent first)
-    const evaluations = await db
+    // Get all verified facts for this entity-attribute from verified_facts table
+    const verifiedFactsList = await db
       .select()
-      .from(factsEvaluation)
+      .from(verifiedFacts)
       .where(
         and(
-          eq(factsEvaluation.entity, entity),
-          eq(factsEvaluation.attribute, attribute)
+          eq(verifiedFacts.entity, entity),
+          eq(verifiedFacts.attribute, attribute)
         )
       )
-      .orderBy(desc(factsEvaluation.as_of_date));
+      .orderBy(desc(verifiedFacts.as_of_date));
     
-    // Filter to credible evaluations
-    const credibleEvaluations = evaluations.filter(
-      e => (e.trust_score ?? 0) >= credibleThreshold
-    );
-    
-    if (credibleEvaluations.length === 0) {
+    if (verifiedFactsList.length === 0) {
       return null;
     }
     
     // Group by source_trust and take the most recent entry from each source
-    const latestBySource = new Map<string, typeof credibleEvaluations[0]>();
-    for (const evaluation of credibleEvaluations) {
-      const sourceTrust = evaluation.source_trust;
+    const latestBySource = new Map<string, typeof verifiedFactsList[0]>();
+    for (const fact of verifiedFactsList) {
+      const sourceTrust = fact.source_trust;
       if (!latestBySource.has(sourceTrust)) {
-        latestBySource.set(sourceTrust, evaluation);
+        latestBySource.set(sourceTrust, fact);
       }
     }
     
-    // Use the latest evaluations from each source for consensus calculation
-    const latestEvaluations = Array.from(latestBySource.values());
+    // Use the latest facts from each source for consensus calculation
+    const latestFacts = Array.from(latestBySource.values());
     
-    const numericValues: { value: number; trustScore: number }[] = [];
-    for (const evaluation of latestEvaluations) {
-      const numValue = parseFloat(evaluation.value.replace(/,/g, ''));
+    const numericValues: number[] = [];
+    for (const fact of latestFacts) {
+      const numValue = parseFloat(fact.value.replace(/,/g, ''));
       if (!isNaN(numValue)) {
-        numericValues.push({ 
-          value: numValue, 
-          trustScore: evaluation.trust_score ?? 0 
-        });
+        numericValues.push(numValue);
       }
     }
     
@@ -227,19 +217,41 @@ export class MemStorage implements IStorage {
       return null;
     }
     
-    const totalTrustScore = numericValues.reduce((sum, v) => sum + v.trustScore, 0);
-    const consensus = numericValues.reduce((sum, v) => sum + (v.value * v.trustScore), 0) / totalTrustScore;
+    // For verified facts, calculate simple average consensus (all sources equally weighted)
+    const consensus = numericValues.reduce((sum, v) => sum + v, 0) / numericValues.length;
     
-    const values = numericValues.map(v => v.value);
-    const min = Math.min(...values);
-    const max = Math.max(...values);
+    const min = Math.min(...numericValues);
+    const max = Math.max(...numericValues);
+    
+    // Convert verified facts to evaluation format for compatibility
+    const credibleEvaluations: FactsEvaluation[] = latestFacts.map(fact => ({
+      id: 0, // placeholder
+      entity: fact.entity,
+      entity_type: fact.entity_type,
+      attribute: fact.attribute,
+      value: fact.value,
+      value_type: fact.value_type,
+      source_url: fact.source_url,
+      source_trust: fact.source_trust,
+      as_of_date: fact.as_of_date,
+      source_trust_score: null,
+      recency_score: null,
+      consensus_score: null,
+      source_trust_weight: null,
+      recency_weight: null,
+      consensus_weight: null,
+      trust_score: null,
+      evaluation_notes: null,
+      evaluated_at: fact.last_verified_at,
+      status: 'verified',
+    }));
     
     return {
       consensus,
       min,
       max,
-      sourceCount: latestEvaluations.length,
-      credibleEvaluations: latestEvaluations
+      sourceCount: latestFacts.length,
+      credibleEvaluations
     };
   }
 
@@ -459,6 +471,115 @@ export class MemStorage implements IStorage {
       .orderBy(desc(factsActivityLog.created_at))
       .limit(limit)
       .offset(offset);
+  }
+
+  async promoteFactsToVerified(): Promise<{ promotedCount: number; skippedCount: number; }> {
+    // Get promotion threshold from settings
+    const settings = await this.getScoringSettings();
+    const promotionThreshold = settings?.promotion_threshold ?? 85;
+
+    // Get all facts from evaluation that meet or exceed the threshold
+    const candidateFacts = await db
+      .select()
+      .from(factsEvaluation)
+      .where(sql`${factsEvaluation.trust_score} >= ${promotionThreshold}`)
+      .orderBy(
+        desc(factsEvaluation.as_of_date),
+        desc(factsEvaluation.evaluated_at)
+      );
+
+    if (candidateFacts.length === 0) {
+      return { promotedCount: 0, skippedCount: 0 };
+    }
+
+    // Deduplicate: Keep most recent fact per (entity, attribute, source_trust)
+    const deduplicatedMap = new Map<string, typeof candidateFacts[0]>();
+    for (const fact of candidateFacts) {
+      const key = `${fact.entity}|||${fact.attribute}|||${fact.source_trust}`;
+      if (!deduplicatedMap.has(key)) {
+        deduplicatedMap.set(key, fact);
+      }
+    }
+
+    const factsToPromote = Array.from(deduplicatedMap.values());
+    
+    // Check which facts already exist in verified_facts to avoid duplicates
+    const existingFacts = await db.select().from(verifiedFacts);
+    const existingKeys = new Set(
+      existingFacts.map(f => `${f.entity}|||${f.attribute}|||${f.source_trust}`)
+    );
+
+    let promotedCount = 0;
+    let skippedCount = 0;
+    const logsToInsert: InsertFactsActivityLog[] = [];
+
+    for (const fact of factsToPromote) {
+      const key = `${fact.entity}|||${fact.attribute}|||${fact.source_trust}`;
+      
+      if (existingKeys.has(key)) {
+        // Update existing fact with newer data
+        await db
+          .update(verifiedFacts)
+          .set({
+            value: fact.value,
+            as_of_date: fact.as_of_date,
+            last_verified_at: fact.evaluated_at,
+          })
+          .where(
+            and(
+              eq(verifiedFacts.entity, fact.entity),
+              eq(verifiedFacts.attribute, fact.attribute),
+              eq(verifiedFacts.source_trust, fact.source_trust)
+            )
+          );
+        
+        logsToInsert.push({
+          entity: fact.entity,
+          entity_type: fact.entity_type,
+          attribute: fact.attribute,
+          action: 'updated',
+          source: fact.source_trust,
+          process: 'promotion',
+          value: fact.value,
+          notes: `Updated from evaluation (trust_score: ${fact.trust_score})`,
+        });
+        
+        promotedCount++;
+      } else {
+        // Insert new fact
+        await db.insert(verifiedFacts).values({
+          entity: fact.entity,
+          entity_type: fact.entity_type,
+          attribute: fact.attribute,
+          value: fact.value,
+          value_type: fact.value_type,
+          source_url: fact.source_url,
+          source_trust: fact.source_trust,
+          as_of_date: fact.as_of_date,
+          last_verified_at: fact.evaluated_at,
+        });
+
+        logsToInsert.push({
+          entity: fact.entity,
+          entity_type: fact.entity_type,
+          attribute: fact.attribute,
+          action: 'promoted',
+          source: fact.source_trust,
+          process: 'promotion',
+          value: fact.value,
+          notes: `Promoted from evaluation (trust_score: ${fact.trust_score})`,
+        });
+        
+        promotedCount++;
+      }
+    }
+
+    // Batch insert logs
+    if (logsToInsert.length > 0) {
+      await this.logFactsActivityBatch(logsToInsert);
+    }
+
+    return { promotedCount, skippedCount };
   }
 }
 

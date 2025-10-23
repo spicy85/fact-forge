@@ -44,10 +44,12 @@ export default function AdminScoring() {
     recency_tier2_score: 50,
     recency_tier3_score: 10,
     credible_threshold: 80,
+    promotion_threshold: 85,
   });
 
   const [crossCheckResults, setCrossCheckResults] = useState<CrossCheckStats | null>(null);
   const [fulfillResults, setFulfillResults] = useState<FulfillRequestedFactsStats | null>(null);
+  const [promotionResults, setPromotionResults] = useState<{ promotedCount: number; skippedCount: number; } | null>(null);
 
   useEffect(() => {
     if (settings) {
@@ -61,6 +63,7 @@ export default function AdminScoring() {
         recency_tier2_score: settings.recency_tier2_score,
         recency_tier3_score: settings.recency_tier3_score,
         credible_threshold: settings.credible_threshold,
+        promotion_threshold: settings.promotion_threshold,
       });
     }
   }, [settings]);
@@ -154,6 +157,29 @@ export default function AdminScoring() {
     },
   });
 
+  const promoteFactsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/promote-facts");
+      return await response.json();
+    },
+    onSuccess: (data: any) => {
+      setPromotionResults({ promotedCount: data.promotedCount, skippedCount: data.skippedCount });
+      queryClient.invalidateQueries({ queryKey: ["/api/verified-facts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/facts-activity-log"] });
+      toast({
+        title: "Promotion complete",
+        description: `Promoted ${data.promotedCount} facts to verified gold standard.`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to promote facts.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSave = () => {
     updateMutation.mutate(formData);
   };
@@ -169,6 +195,7 @@ export default function AdminScoring() {
       recency_tier2_score: 50,
       recency_tier3_score: 10,
       credible_threshold: 80,
+      promotion_threshold: 85,
     });
   };
 
@@ -412,6 +439,40 @@ export default function AdminScoring() {
           </CardContent>
         </Card>
 
+        {/* Fact Promotion Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Fact Promotion</CardTitle>
+            <CardDescription>
+              Configure the threshold for promoting facts from evaluation to verified gold standard
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <Label htmlFor="promotion-threshold">Promotion Threshold (0-100)</Label>
+                  <span className="text-sm font-medium" data-testid="text-promotion-threshold">
+                    {formData.promotion_threshold}
+                  </span>
+                </div>
+                <Slider
+                  id="promotion-threshold"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={[formData.promotion_threshold]}
+                  onValueChange={([value]) => setFormData({ ...formData, promotion_threshold: value })}
+                  data-testid="slider-promotion-threshold"
+                />
+                <p className="text-sm text-muted-foreground mt-2">
+                  Facts with a trust score of {formData.promotion_threshold} or higher will be promoted to the verified_facts table when you run the promotion process.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Data Management Card */}
         <Card>
           <CardHeader>
@@ -465,6 +526,22 @@ export default function AdminScoring() {
               </Button>
               <p className="text-sm text-muted-foreground">
                 Recalculates trust scores for all evaluations using current scoring settings.
+              </p>
+            </div>
+
+            <div className="grid gap-2">
+              <Button
+                variant="default"
+                onClick={() => promoteFactsMutation.mutate()}
+                disabled={promoteFactsMutation.isPending}
+                data-testid="button-promote-facts"
+                className="w-full"
+              >
+                <Database className="h-4 w-4 mr-2" />
+                {promoteFactsMutation.isPending ? "Promoting..." : "Promote Facts to Verified"}
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                Promotes facts from evaluation table to verified gold standard (trust score ≥ {formData.promotion_threshold}).
               </p>
             </div>
 
@@ -533,6 +610,26 @@ export default function AdminScoring() {
                     <span className="text-muted-foreground">Already Existed:</span>
                     <span className="ml-2 font-medium" data-testid="text-already-exists">
                       {fulfillResults.alreadyExistsCount}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {promotionResults && (
+              <div className="border rounded-lg p-4 bg-muted/50 space-y-2">
+                <h4 className="font-semibold text-sm">Promotion Results</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Facts Promoted:</span>
+                    <span className="ml-2 font-medium" data-testid="text-promoted-count">
+                      {promotionResults.promotedCount}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Skipped:</span>
+                    <span className="ml-2 font-medium" data-testid="text-skipped-count">
+                      {promotionResults.skippedCount}
                     </span>
                   </div>
                 </div>
