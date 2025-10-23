@@ -4,6 +4,13 @@
 This project is an AI fact-checking application that verifies numeric claims in text against a trusted PostgreSQL database. It identifies numbers, infers their meaning, and displays inline verification badges (Verified, Mismatch, Unknown) with citations. The application aims to provide a reliable, data-driven solution for quickly validating information, reducing misinformation, and enhancing content credibility using a curated database of facts for 195 countries sourced from Wikipedia, World Bank, and Wikidata.
 
 ## Recent Changes (October 23, 2025)
+- **Data Flow Refactoring:** Corrected data pipeline to enforce unidirectional flow from working table to gold standard
+  - Fixed `fetch-country-data.ts` and `migrate-csv-to-db.ts` to insert into `facts_evaluation` instead of `verified_facts`
+  - All data now enters through `facts_evaluation` first (working table with trust scores)
+  - Promotion system moves high-trust facts (≥85 score) to `verified_facts` (gold standard)
+  - Eliminated backwards data flow: deprecated `fetch-wikipedia-evaluations.ts` and `populate-evaluation-table.ts`
+  - Current state: 917 facts in evaluation → 822 facts in verified_facts (195 countries, 6 attributes)
+  - Correct architecture: Data enters → facts_evaluation (scored) → promotion → verified_facts (UI queries this)
 - **Attribute-Specific Tolerance System:** Implemented configurable tolerance percentages per attribute to prevent false verifications
   - Created `public/tolerance-config.json` with attribute-specific tolerances (founded_year: 0.1%, population/gdp: 10%, area: 2%, etc.)
   - Added `getToleranceForAttribute()` helper in factChecker.ts for dynamic tolerance lookup

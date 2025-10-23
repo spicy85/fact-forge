@@ -5,19 +5,21 @@
  * Strategy:
  * - Single SPARQL query to Wikidata for ~50 major countries
  * - Batch World Bank API calls for economic data
- * - Outputs to PostgreSQL database
+ * - Inserts into facts_evaluation table with trust scores
+ * - Data then promoted to verified_facts via admin promotion system
  */
 
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { verifiedFacts } from "../shared/schema";
+import { factsEvaluation, scoringSettings } from "../shared/schema";
+import { calculateSourceTrustScore, calculateRecencyScore, calculateTrustScore } from "../server/evaluation-scoring";
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is not set");
 }
 
 const sql = neon(process.env.DATABASE_URL);
-const db = drizzle(sql, { schema: { verifiedFacts } });
+const db = drizzle(sql, { schema: { factsEvaluation, scoringSettings } });
 
 // Curated list of ~50 major countries by ISO code
 const TARGET_COUNTRIES = [
@@ -202,30 +204,61 @@ async function fetchWorldBankData(countries: Record<string, Country>): Promise<R
 }
 
 /**
- * Save country data to database
+ * Save country data to facts_evaluation table with trust scores
  */
 async function saveToDatabase(countries: Record<string, Country>): Promise<number> {
   const today = new Date().toISOString().split('T')[0];
   let factCount = 0;
 
-  // Clear existing facts
-  await db.delete(verifiedFacts);
-  console.log('🗑️  Cleared existing verified facts from database');
+  // Get scoring settings
+  const [settings] = await db.select().from(scoringSettings).limit(1);
+  if (!settings) {
+    throw new Error('No scoring settings found. Please run initialization first.');
+  }
+
+  console.log('💾 Inserting/updating facts in facts_evaluation table');
 
   for (const country of Object.values(countries)) {
     const name = country.name;
     const wikiUrl = country.wikipedia_url;
+    const entityType = 'country';
 
     // Founding year
     if (country.founded_year) {
-      await db.insert(verifiedFacts).values({
+      const sourceUrl = wikiUrl;
+      const as_of_date = `${country.founded_year}-01-01`;
+      const sourceTrustScore = await calculateSourceTrustScore(sourceUrl);
+      const recencyScore = calculateRecencyScore(
+        today,
+        settings.recency_tier1_days,
+        settings.recency_tier1_score,
+        settings.recency_tier2_days,
+        settings.recency_tier2_score,
+        settings.recency_tier3_score
+      );
+      const trustScore = calculateTrustScore(
+        sourceTrustScore,
+        recencyScore,
+        0, // no consensus for single-source data
+        settings.source_trust_weight,
+        settings.recency_weight,
+        settings.consensus_weight
+      );
+
+      await db.insert(factsEvaluation).values({
         entity: name,
+        entity_type: entityType,
         attribute: 'founded_year',
         value: country.founded_year.toString(),
         value_type: 'integer',
-        source_url: wikiUrl,
+        source_url: sourceUrl,
         source_trust: 'high',
-        last_verified_at: today
+        as_of_date: as_of_date,
+        evaluated_at: today,
+        source_trust_score: sourceTrustScore,
+        recency_score: recencyScore,
+        trust_score: trustScore,
+        status: 'pending'
       });
       factCount++;
     }
@@ -233,45 +266,121 @@ async function saveToDatabase(countries: Record<string, Country>): Promise<numbe
     // Population
     if (country.population) {
       const popYear = country.population_year || new Date().getFullYear().toString();
-      const popSource = country.population_year 
+      const sourceUrl = country.population_year 
         ? `https://data.worldbank.org/indicator/SP.POP.TOTL?locations=${country.iso}`
         : wikiUrl;
-      await db.insert(verifiedFacts).values({
+      const as_of_date = `${popYear}-01-01`;
+      const sourceTrustScore = await calculateSourceTrustScore(sourceUrl);
+      const recencyScore = calculateRecencyScore(
+        today,
+        settings.recency_tier1_days,
+        settings.recency_tier1_score,
+        settings.recency_tier2_days,
+        settings.recency_tier2_score,
+        settings.recency_tier3_score
+      );
+      const trustScore = calculateTrustScore(
+        sourceTrustScore,
+        recencyScore,
+        0,
+        settings.source_trust_weight,
+        settings.recency_weight,
+        settings.consensus_weight
+      );
+
+      await db.insert(factsEvaluation).values({
         entity: name,
+        entity_type: entityType,
         attribute: 'population',
         value: country.population.toString(),
         value_type: 'integer',
-        source_url: popSource,
+        source_url: sourceUrl,
         source_trust: 'high',
-        last_verified_at: today
+        as_of_date: as_of_date,
+        evaluated_at: today,
+        source_trust_score: sourceTrustScore,
+        recency_score: recencyScore,
+        trust_score: trustScore,
+        status: 'pending'
       });
       factCount++;
     }
 
     // Area
     if (country.area) {
-      await db.insert(verifiedFacts).values({
+      const sourceUrl = wikiUrl;
+      const sourceTrustScore = await calculateSourceTrustScore(sourceUrl);
+      const recencyScore = calculateRecencyScore(
+        today,
+        settings.recency_tier1_days,
+        settings.recency_tier1_score,
+        settings.recency_tier2_days,
+        settings.recency_tier2_score,
+        settings.recency_tier3_score
+      );
+      const trustScore = calculateTrustScore(
+        sourceTrustScore,
+        recencyScore,
+        0,
+        settings.source_trust_weight,
+        settings.recency_weight,
+        settings.consensus_weight
+      );
+
+      await db.insert(factsEvaluation).values({
         entity: name,
-        attribute: 'area_km2',
+        entity_type: entityType,
+        attribute: 'area',
         value: Math.round(country.area).toString(),
         value_type: 'integer',
-        source_url: wikiUrl,
+        source_url: sourceUrl,
         source_trust: 'high',
-        last_verified_at: today
+        evaluated_at: today,
+        source_trust_score: sourceTrustScore,
+        recency_score: recencyScore,
+        trust_score: trustScore,
+        status: 'pending'
       });
       factCount++;
     }
 
     // GDP
     if (country.gdp) {
-      await db.insert(verifiedFacts).values({
+      const gdpYear = country.gdp_year || new Date().getFullYear().toString();
+      const sourceUrl = `https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=${country.iso}`;
+      const as_of_date = `${gdpYear}-01-01`;
+      const sourceTrustScore = await calculateSourceTrustScore(sourceUrl);
+      const recencyScore = calculateRecencyScore(
+        today,
+        settings.recency_tier1_days,
+        settings.recency_tier1_score,
+        settings.recency_tier2_days,
+        settings.recency_tier2_score,
+        settings.recency_tier3_score
+      );
+      const trustScore = calculateTrustScore(
+        sourceTrustScore,
+        recencyScore,
+        0,
+        settings.source_trust_weight,
+        settings.recency_weight,
+        settings.consensus_weight
+      );
+
+      await db.insert(factsEvaluation).values({
         entity: name,
-        attribute: 'gdp_usd',
+        entity_type: entityType,
+        attribute: 'gdp',
         value: country.gdp.toString(),
         value_type: 'integer',
-        source_url: `https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=${country.iso}`,
+        source_url: sourceUrl,
         source_trust: 'high',
-        last_verified_at: today
+        as_of_date: as_of_date,
+        evaluated_at: today,
+        source_trust_score: sourceTrustScore,
+        recency_score: recencyScore,
+        trust_score: trustScore,
+        status: 'pending'
       });
       factCount++;
     }
@@ -296,10 +405,11 @@ async function main() {
     countries = await fetchWorldBankData(countries);
     console.log('');
 
-    // Step 3: Save to database
+    // Step 3: Save to facts_evaluation with scores
     const factCount = await saveToDatabase(countries);
     
-    console.log(`✅ Successfully saved ${factCount} facts to database`);
+    console.log(`✅ Successfully saved ${factCount} facts to facts_evaluation`);
+    console.log('💡 Run promotion from admin UI to move high-trust facts to verified_facts');
     console.log('\n✨ Done! Total API requests: 3 (1 Wikidata + 2 World Bank batch calls)');
 
   } catch (error: any) {
@@ -310,7 +420,7 @@ async function main() {
 
 main()
   .then(() => {
-    console.log('\n✅ Migration complete!');
+    console.log('\n✅ Data fetch complete!');
     process.exit(0);
   })
   .catch((error) => {

@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { verifiedFacts } from "../shared/schema";
+import { factsEvaluation, scoringSettings } from "../shared/schema";
+import { calculateSourceTrustScore, calculateRecencyScore, calculateTrustScore } from "../server/evaluation-scoring";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -9,13 +10,25 @@ if (!process.env.DATABASE_URL) {
 }
 
 const sql = neon(process.env.DATABASE_URL);
-const db = drizzle(sql, { schema: { verifiedFacts } });
+const db = drizzle(sql, { schema: { factsEvaluation, scoringSettings } });
 
 async function migrateCsvToDb() {
-  console.log("Starting CSV to database migration...");
+  console.log("Starting CSV to facts_evaluation migration...");
+
+  // Get scoring settings
+  const [settings] = await db.select().from(scoringSettings).limit(1);
+  if (!settings) {
+    throw new Error('No scoring settings found. Please run initialization first.');
+  }
 
   // Read CSV file
   const csvPath = path.join(process.cwd(), "public", "facts.csv");
+  
+  if (!fs.existsSync(csvPath)) {
+    console.error(`CSV file not found at: ${csvPath}`);
+    process.exit(1);
+  }
+
   const csvContent = fs.readFileSync(csvPath, "utf-8");
   const lines = csvContent.trim().split("\n");
 
@@ -24,25 +37,54 @@ async function migrateCsvToDb() {
 
   console.log(`Found ${dataLines.length} facts to migrate`);
 
-  // Clear existing verified facts
-  await db.delete(verifiedFacts);
-  console.log("Cleared existing verified facts from database");
+  console.log("Inserting facts into facts_evaluation...");
 
   // Parse and insert facts
   let successCount = 0;
+  const today = new Date().toISOString().split('T')[0];
+
   for (const line of dataLines) {
-    // Simple CSV parsing (assuming no commas in values)
+    // CSV format: entity,attribute,value,valueType,asOfDate,sourceUrl,sourceTrust,lastVerifiedAt
     const [entity, attribute, value, valueType, asOfDate, sourceUrl, sourceTrust, lastVerifiedAt] = line.split(",");
 
     try {
-      await db.insert(verifiedFacts).values({
+      const evaluatedAt = lastVerifiedAt?.trim() || today;
+      const as_of_date = asOfDate?.trim() || undefined;
+      const source_url = sourceUrl.trim();
+      
+      // Calculate scores
+      const sourceTrustScore = await calculateSourceTrustScore(source_url);
+      const recencyScore = calculateRecencyScore(
+        evaluatedAt,
+        settings.recency_tier1_days,
+        settings.recency_tier1_score,
+        settings.recency_tier2_days,
+        settings.recency_tier2_score,
+        settings.recency_tier3_score
+      );
+      const trustScore = calculateTrustScore(
+        sourceTrustScore,
+        recencyScore,
+        0, // no consensus for single-source CSV data
+        settings.source_trust_weight,
+        settings.recency_weight,
+        settings.consensus_weight
+      );
+
+      await db.insert(factsEvaluation).values({
         entity: entity.trim(),
+        entity_type: 'country',
         attribute: attribute.trim(),
         value: value.trim(),
-        value_type: valueType.trim(),
-        source_url: sourceUrl.trim(),
-        source_trust: sourceTrust.trim(),
-        last_verified_at: lastVerifiedAt.trim(),
+        value_type: valueType.trim() as 'integer' | 'decimal' | 'text',
+        source_url: source_url,
+        source_trust: sourceTrust.trim() as 'high' | 'medium' | 'low',
+        as_of_date: as_of_date,
+        evaluated_at: evaluatedAt,
+        source_trust_score: sourceTrustScore,
+        recency_score: recencyScore,
+        trust_score: trustScore,
+        status: 'pending'
       });
       successCount++;
     } catch (error) {
@@ -50,7 +92,8 @@ async function migrateCsvToDb() {
     }
   }
 
-  console.log(`Migration complete! Successfully migrated ${successCount}/${dataLines.length} facts`);
+  console.log(`Migration complete! Successfully migrated ${successCount}/${dataLines.length} facts to facts_evaluation`);
+  console.log('💡 Run promotion from admin UI to move high-trust facts to verified_facts');
 }
 
 migrateCsvToDb()
