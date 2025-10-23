@@ -4,6 +4,13 @@
 This project is an AI fact-checking application that verifies numeric claims in text against a trusted PostgreSQL database. It identifies numbers, infers their meaning, and displays inline verification badges (Verified, Mismatch, Unknown) with citations. The application aims to provide a reliable, data-driven solution for quickly validating information, reducing misinformation, and enhancing content credibility using a curated database of facts for 195 countries sourced from Wikipedia, World Bank, and Wikidata.
 
 ## Recent Changes (October 23, 2025)
+- **Attribute-Specific Tolerance System:** Implemented configurable tolerance percentages per attribute to prevent false verifications
+  - Created `public/tolerance-config.json` with attribute-specific tolerances (founded_year: 0.1%, population/gdp: 10%, area: 2%, etc.)
+  - Added `getToleranceForAttribute()` helper in factChecker.ts for dynamic tolerance lookup
+  - Updated `verifyClaim()` and `verifyClaimMultiSource()` to use attribute-aware tolerance instead of hardcoded 10%
+  - Fixed rounding precision logic to skip year attributes, preventing spurious matches (e.g., 1000 vs 789)
+  - Enhanced tolerance calculation with `Math.max(rangeSize, Math.abs(consensus))` to handle negative numbers and mixed-sign ranges
+  - Fixes critical bug: year 1000 no longer incorrectly matches year 789 (now uses 0.1% tolerance for years)
 - **Fact Promotion System:** Implemented automated promotion from facts_evaluation to verified_facts gold standard
   - Added `promotion_threshold` to scoring_settings schema (default: 85, configurable via admin UI)
   - Created `promoteFactsToVerified()` storage method with deduplication by (entity, attribute, source_trust)
@@ -68,6 +75,7 @@ The application is a multi-page React application built with Vite, utilizing an 
 - **Facts Activity Logging (`/facts/activity-log`):** Comprehensive audit trail for fact lifecycle events (requested, fulfilled, added, promoted) with fire-and-forget logging and batch inserts.
 - **Core Logic (`lib/factChecker.ts`):** Handles entity detection, claim extraction with support for k/m/b/t notation, attribute inference, multi-source claim verification with trust-weighted consensus, and requested facts tracking.
 - **Attribute Mapping:** Keyword-to-attribute mappings in `public/attribute-mapping.json`.
+- **Tolerance Configuration (`public/tolerance-config.json`):** Attribute-specific percentage tolerances for claim verification (founded_year: 0.1%, population/gdp: 10%, area: 2%, inflation: 5%, default: 10%).
 - **Entity Alias Mapping (`public/entity-mapping.json`):** Maps country aliases to canonical names.
 - **Temporal Tracking System:** Maintains critical distinction between two types of dates:
     - `evaluated_at`: When we last checked the source (e.g., "2024-12-31" when we ran the Wikipedia fetcher on Dec 31, 2024)
