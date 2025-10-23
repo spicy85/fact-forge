@@ -181,7 +181,7 @@ async function fetchFromWorldBank(
     }
 
     const latestData = dataPoints.sort((a, b) => b.year - a.year)[0];
-    const evaluatedAt = `${latestData.year}-12-31`;
+    const evaluatedAt = new Date().toISOString().split('T')[0];
     const as_of_date = latestData.as_of_date; // Use actual date from World Bank API
     const sourceUrl = "https://data.worldbank.org/";
 
@@ -332,7 +332,7 @@ async function fetchFromWikidata(
       // as_of_date remains null - we don't fabricate dates
     }
 
-    const evaluatedAt = `${year}-12-31`;
+    const evaluatedAt = new Date().toISOString().split('T')[0];
     const sourceUrl = `https://www.wikidata.org/wiki/${qid}#${propertyId}`;
 
     // Check for duplicates

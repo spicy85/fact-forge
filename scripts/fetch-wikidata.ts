@@ -195,7 +195,7 @@ async function main() {
     const countryResults = await fetchCountryData(countryName, qid);
     
     for (const result of countryResults) {
-      const evaluatedAt = `${result.year}-12-31`;
+      const evaluatedAt = new Date().toISOString().split('T')[0];
       
       const sourceTrustScore = await calculateSourceTrustScore(sourceUrl);
       const recencyScore = calculateRecencyScore(

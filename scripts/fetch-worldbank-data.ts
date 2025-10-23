@@ -35,7 +35,7 @@ async function main() {
 
       if (!latestData) continue;
 
-      const evaluatedAt = `${latestData.year}-12-31`;
+      const evaluatedAt = new Date().toISOString().split('T')[0];
 
       // Map indicator codes to attributes
       const attributeMap: Record<string, string> = {
