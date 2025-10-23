@@ -49,6 +49,11 @@ The application is a multi-page React application built with Vite, utilizing an 
 - **Core Logic (`lib/factChecker.ts`):** Handles entity detection, claim extraction, attribute inference, multi-source claim verification with trust-weighted consensus, and requested facts tracking.
 - **Attribute Mapping:** Keyword-to-attribute mappings in `public/attribute-mapping.json`.
 - **Entity Alias Mapping (`public/entity-mapping.json`):** Maps country aliases to canonical names.
+- **Temporal Tracking System:** Maintains critical distinction between two types of dates:
+    - `evaluated_at`: When we last checked the source (e.g., "2024-12-31" when we ran the Wikipedia fetcher on Dec 31, 2024)
+    - `as_of_date`: When the data itself is actually valid for (e.g., "2024-01-01" for 2024 population data, "1947-05-03" for Japan's founding date)
+    - Data integrity rule: Never fabricate dates - only store `as_of_date` when the source provides actual temporal metadata (World Bank year data, Wikidata P585 qualifiers, Wikipedia founded year extraction)
+    - UI displays `as_of_date` in "Last Updated" column to show users when the data is valid for, not when we checked the source
 
 ## External Dependencies
 - **PostgreSQL (Neon):** Primary database.
