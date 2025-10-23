@@ -400,6 +400,7 @@ export function processText(
     });
 
     results.push({
+      entity,
       claimedValue: claim.value,
       attribute: attribute || "unknown",
       verdict: verification.status,
@@ -526,6 +527,7 @@ export function processTextMultiSource(
     }
 
     results.push({
+      entity,
       claimedValue: claim.value,
       attribute: attribute || "unknown",
       verdict: verification.status,

@@ -18,6 +18,7 @@ export interface SourceDetail {
 }
 
 export interface VerificationResult {
+  entity?: string;
   claimedValue: string;
   attribute: string;
   verdict: VerificationStatus;
@@ -43,6 +44,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="font-medium">Entity</TableHead>
               <TableHead className="font-medium">Claimed Value</TableHead>
               <TableHead className="font-medium">Attribute</TableHead>
               <TableHead className="font-medium">Verdict</TableHead>
@@ -55,6 +57,9 @@ export function ResultsTable({ results }: ResultsTableProps) {
           <TableBody>
             {results.map((result, idx) => (
               <TableRow key={idx} data-testid={`row-result-${idx}`}>
+                <TableCell className="text-sm" data-testid={`text-entity-${idx}`}>
+                  {result.entity || "-"}
+                </TableCell>
                 <TableCell className="font-mono font-semibold">
                   {result.claimedValue}
                 </TableCell>
