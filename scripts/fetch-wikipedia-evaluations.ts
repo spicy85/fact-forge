@@ -45,6 +45,22 @@ async function main() {
 
     const evaluatedAt = fact.last_verified_at || new Date().toISOString().split('T')[0];
     
+    // Determine as_of_date based on attribute type
+    let as_of_date: string | undefined = undefined;
+    
+    if (fact.attribute === 'founded_year' && fact.value) {
+      // For founded_year, the value itself is the year, so use it as as_of_date
+      const yearMatch = fact.value.match(/\d{4}/);
+      if (yearMatch) {
+        as_of_date = `${yearMatch[0]}-01-01`;
+      }
+    } else if (fact.as_of_date) {
+      // Only use fact.as_of_date if it exists and is not the same as evaluated_at
+      // (to avoid using "when we checked" as "when data is valid for")
+      as_of_date = fact.as_of_date;
+    }
+    // Otherwise, leave as_of_date undefined (we don't know when the data is valid for)
+    
     const sourceTrustScore = await calculateSourceTrustScore(sourceUrl);
     const recencyScore = calculateRecencyScore(
       evaluatedAt,
@@ -91,7 +107,7 @@ async function main() {
         value_type: fact.value_type,
         source_url: fact.source_url || sourceUrl,
         source_trust: "Wikipedia",
-        as_of_date: fact.as_of_date || evaluatedAt,
+        as_of_date: as_of_date,
         source_trust_score: sourceTrustScore,
         recency_score: recencyScore,
         consensus_score: consensusScore,
@@ -105,7 +121,7 @@ async function main() {
       });
 
       totalCount++;
-      console.log(`✓ ${fact.entity} - ${fact.attribute}`);
+      console.log(`✓ ${fact.entity} - ${fact.attribute}${as_of_date ? ` (as of ${as_of_date})` : ''}`);
     } catch (error: any) {
       if (error.code === '23505') {
         console.log(`⊘ ${fact.entity} - ${fact.attribute} already exists (unique constraint)`);
