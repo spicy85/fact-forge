@@ -25,7 +25,7 @@ async function main() {
 
   // Process and insert World Bank data
   let totalCount = 0;
-  const sourceUrl = "https://api.worldbank.org/";
+  const sourceUrl = "https://data.worldbank.org/";
 
   console.log("=== Inserting World Bank Evaluations ===");
   for (const [country, indicatorMap] of worldBankData) {
@@ -76,7 +76,8 @@ async function main() {
           value: latestData.value.toString(),
           value_type: "numeric",
           source_url: sourceUrl,
-          source_trust: "api.worldbank.org",
+          source_trust: "data.worldbank.org",
+          as_of_date: latestData.as_of_date,
           source_trust_score: sourceTrustScore,
           recency_score: recencyScore,
           consensus_score: consensusScore,
@@ -115,12 +116,12 @@ async function ensureSourceExists() {
   const [worldBank] = await db
     .select()
     .from(sources)
-    .where(eq(sources.domain, "api.worldbank.org"))
+    .where(eq(sources.domain, "data.worldbank.org"))
     .limit(1);
 
   if (!worldBank) {
     await db.insert(sources).values({
-      domain: "api.worldbank.org",
+      domain: "data.worldbank.org",
       public_trust: 95,
       data_accuracy: 98,
       proprietary_score: 92,
@@ -128,7 +129,7 @@ async function ensureSourceExists() {
       promoted_at: new Date().toISOString(),
       notes: "World Bank - authoritative source for global economic and development data"
     });
-    console.log("✓ Created and promoted source: api.worldbank.org\n");
+    console.log("✓ Created and promoted source: data.worldbank.org\n");
   } else if (worldBank.status !== 'trusted') {
     await db
       .update(sources)
@@ -136,10 +137,10 @@ async function ensureSourceExists() {
         status: 'trusted',
         promoted_at: new Date().toISOString()
       })
-      .where(eq(sources.domain, "api.worldbank.org"));
-    console.log("✓ Promoted source to trusted: api.worldbank.org\n");
+      .where(eq(sources.domain, "data.worldbank.org"));
+    console.log("✓ Promoted source to trusted: data.worldbank.org\n");
   } else {
-    console.log("✓ Source already exists and is trusted: api.worldbank.org\n");
+    console.log("✓ Source already exists and is trusted: data.worldbank.org\n");
   }
 }
 
