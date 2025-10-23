@@ -22,6 +22,7 @@ The application is a multi-page React application built with Vite, utilizing an 
     - `ClaimsMatrix` (`/claims-matrix`): Visual representation of supported claims by country.
     - `SourcesOverview` (`/sources`): Displays trusted, production-ready data sources.
     - `SourcePipeline` (`/sources/pipeline`): Source evaluation pipeline for onboarding new sources.
+    - `SourceActivityLog` (`/sources/activity-log`): Audit trail showing all source status changes (promote/demote/reject).
     - `EvaluationScoring` (`/evaluation-scoring`): Interactive page showing detailed scoring formulas and breakdowns.
     - `AdminScoring` (`/admin`): Centralized admin interface to configure scoring weights and recency tiers.
 
@@ -32,6 +33,7 @@ The application is a multi-page React application built with Vite, utilizing an 
     - `sources`: Stores data source reliability metrics with workflow status tracking.
     - `scoring_settings`: Singleton table for global scoring configuration.
     - `requested_facts`: Tracks unsupported entity-attribute combinations requested by users for data prioritization. Includes request count, claim values, and timestamps.
+    - `source_activity_log`: Audit trail logging all source status changes with domain, action (promote/demote/reject), from_status, to_status, notes, and timestamps.
 - **Backend:** Express server handling API requests for facts, evaluations, sources, and scoring settings.
 - **Multi-Source Verification API (`/api/multi-source-evaluations`):** Endpoint for fetching and aggregating credible evaluations, calculating trust-weighted consensus, and determining min/max credible range.
 - **Evaluation Scoring (`server/evaluation-scoring.ts`):** Centralized logic for calculating scores based on source trust, recency, and consensus, with configurable weights.
@@ -40,6 +42,7 @@ The application is a multi-page React application built with Vite, utilizing an 
 - **Cross-Check Sources System (`/admin`):** Automated data management tool that identifies all entity-attribute pairs and ensures comprehensive coverage across Wikipedia, World Bank, and Wikidata. Features built-in deduplication to prevent duplicate entries. Accessible via Admin page with real-time statistics display showing facts added per source and duplicates skipped.
 - **Fulfill Requested Facts System (`/admin`):** UI button that processes user-requested facts from the `requested_facts` table. Attempts to fetch data from existing sources (Wikidata, World Bank), inserts into `facts_evaluation`, and removes fulfilled requests. Displays real-time statistics showing fulfilled count, not found count, and already existing count. Accessible via Admin page Data Management section.
 - **Source Management System (`/sources` and `/sources/pipeline`):** Dual-view system for managing data sources, allowing for adding, promoting, and rejecting sources through the UI without code changes. Includes 12 pre-configured sources.
+- **Source Activity Logging (`/sources/activity-log`):** Complete audit trail of all source status changes. Automatically logs promote/demote/reject actions with before/after status, optional notes, and timestamps. UI displays logs in reverse chronological order with automatic refresh after mutations. Accessible via navigation buttons on Sources and Pipeline pages.
 - **Core Logic (`lib/factChecker.ts`):**
     - **Entity Detection:** Identifies country names using aliases from `entity-mapping.json` and canonical name matching for ~195 countries worldwide.
     - **Claim Extraction:** Uses regex to extract numeric claims and context, supporting human-friendly formats (e.g., "12 million", "1.5B").
