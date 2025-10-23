@@ -344,10 +344,16 @@ export function verifyClaimMultiSource(
   }
 
   // Check if within credible range [min, max]
-  // Add small tolerance (2%) to account for rounding when users enter human-readable numbers like "36m"
-  const tolerance = 0.02; // 2% tolerance
-  const minWithTolerance = sourceData.min * (1 - tolerance);
-  const maxWithTolerance = sourceData.max * (1 + tolerance);
+  // Add attribute-specific tolerance to account for rounding when users enter human-readable numbers like "36m"
+  const tolerancePercent = getToleranceForAttribute(attribute);
+  // Base tolerance on the larger of range size or consensus value to ensure:
+  // 1. Symmetry for mixed-sign ranges (e.g., negative inflation)
+  // 2. Non-zero tolerance for single-point data (e.g., founding years where min === max)
+  const rangeSize = Math.abs(sourceData.max - sourceData.min);
+  const toleranceBase = Math.max(rangeSize, Math.abs(sourceData.consensus));
+  const toleranceAmount = toleranceBase * (tolerancePercent / 100);
+  const minWithTolerance = sourceData.min - toleranceAmount;
+  const maxWithTolerance = sourceData.max + toleranceAmount;
   
   if (claimedNum >= minWithTolerance && claimedNum <= maxWithTolerance) {
     const percentDiff = calculatePercentageDifference(claimedNum, sourceData.consensus);
