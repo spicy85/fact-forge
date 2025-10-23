@@ -94,27 +94,23 @@ async function fetchCountryData(countryName: string, qid: string): Promise<Wikid
     if (popData.results?.bindings?.length > 0) {
       const binding = popData.results.bindings[0];
       const pointInTimeValue = binding.pointInTime?.value;
-      let year: string;
-      let as_of_date: string;
       
+      // Only add if we have a point-in-time qualifier (actual date from Wikidata)
       if (pointInTimeValue) {
         const date = new Date(pointInTimeValue);
-        year = date.getFullYear().toString();
-        // Use the actual date from Wikidata
-        as_of_date = pointInTimeValue.split('T')[0]; // Extract YYYY-MM-DD
-      } else {
-        year = '2023';
-        as_of_date = '2023-01-01';
+        const year = date.getFullYear().toString();
+        const as_of_date = pointInTimeValue.split('T')[0]; // Extract YYYY-MM-DD
+        
+        results.push({
+          entity: countryName,
+          attribute: 'population',
+          value: binding.value.value,
+          year,
+          as_of_date,
+          referenceUrl: `https://www.wikidata.org/wiki/${qid}#P1082`
+        });
       }
-      
-      results.push({
-        entity: countryName,
-        attribute: 'population',
-        value: binding.value.value,
-        year,
-        as_of_date,
-        referenceUrl: `https://www.wikidata.org/wiki/${qid}#P1082`
-      });
+      // Skip if no point-in-time data - don't fabricate dates
     }
 
     // Fetch GDP
@@ -122,42 +118,29 @@ async function fetchCountryData(countryName: string, qid: string): Promise<Wikid
     if (gdpData.results?.bindings?.length > 0) {
       const binding = gdpData.results.bindings[0];
       const pointInTimeValue = binding.pointInTime?.value;
-      let year: string;
-      let as_of_date: string;
       
+      // Only add if we have a point-in-time qualifier (actual date from Wikidata)
       if (pointInTimeValue) {
         const date = new Date(pointInTimeValue);
-        year = date.getFullYear().toString();
-        // Use the actual date from Wikidata
-        as_of_date = pointInTimeValue.split('T')[0]; // Extract YYYY-MM-DD
-      } else {
-        year = '2023';
-        as_of_date = '2023-01-01';
+        const year = date.getFullYear().toString();
+        const as_of_date = pointInTimeValue.split('T')[0]; // Extract YYYY-MM-DD
+        
+        results.push({
+          entity: countryName,
+          attribute: 'gdp_usd',
+          value: binding.value.value,
+          year,
+          as_of_date,
+          referenceUrl: `https://www.wikidata.org/wiki/${qid}#P2131`
+        });
       }
-      
-      results.push({
-        entity: countryName,
-        attribute: 'gdp_usd',
-        value: binding.value.value,
-        year,
-        as_of_date,
-        referenceUrl: `https://www.wikidata.org/wiki/${qid}#P2131`
-      });
+      // Skip if no point-in-time data - don't fabricate dates
     }
 
-    // Fetch area
-    const areaData = await executeSparqlQuery(areaQuery);
-    if (areaData.results?.bindings?.length > 0) {
-      const binding = areaData.results.bindings[0];
-      results.push({
-        entity: countryName,
-        attribute: 'area_km2',
-        value: binding.value.value,
-        year: '2024',  // Area is generally static
-        as_of_date: '2024-01-01',
-        referenceUrl: `https://www.wikidata.org/wiki/${qid}#P2046`
-      });
-    }
+    // Fetch area - skip entirely since area values rarely have point-in-time qualifiers
+    // and we shouldn't fabricate dates
+    // const areaData = await executeSparqlQuery(areaQuery);
+    // Area is typically static and doesn't have temporal information in Wikidata
 
     // Fetch founded year
     const foundedData = await executeSparqlQuery(foundedQuery);
