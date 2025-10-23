@@ -4,6 +4,14 @@
 This project is an AI fact-checking application that verifies numeric claims in text against a trusted PostgreSQL database. It identifies numbers, infers their meaning, and displays inline verification badges (Verified, Mismatch, Unknown) with citations. The application aims to provide a reliable, data-driven solution for quickly validating information, reducing misinformation, and enhancing content credibility using a curated database of facts for 195 countries sourced from Wikipedia, World Bank, and Wikidata.
 
 ## Recent Changes (October 23, 2025)
+- **Fact Promotion System:** Implemented automated promotion from facts_evaluation to verified_facts gold standard
+  - Added `promotion_threshold` to scoring_settings schema (default: 85, configurable via admin UI)
+  - Created `promoteFactsToVerified()` storage method with deduplication by (entity, attribute, source_trust)
+  - Temporal metadata flow: as_of_date → as_of_date, evaluated_at → last_verified_at
+  - Updated `getMultiSourceEvaluations()` to query verified_facts (gold standard) instead of facts_evaluation
+  - Integrated promotion logging with facts_activity_log using fire-and-forget pattern
+  - Admin UI button triggers promotion and displays statistics (promoted count, skipped count)
+  - Architecture: facts_evaluation = working table, verified_facts = production table (UI queries this)
 - **Number Parsing Enhancement:** Added support for trillion notation ('t', 'trillion') in both extraction and parsing
   - Fixed `extractNumericClaims()` regex to capture 't' and 'trillion' suffixes
   - Updated `parseHumanNumber()` multipliers to handle compact trillion notation
@@ -40,23 +48,24 @@ The application is a multi-page React application built with Vite, utilizing an 
 
 **Technical Implementations:**
 - **Data Layer:** PostgreSQL database accessed via Drizzle ORM. Key tables include:
-    - `verified_facts`: Immutable verified facts with `entity_type` column (default: "country") for future non-country entity support
-    - `facts_evaluation`: Fact evaluations with scoring and `entity_type` classification
+    - `verified_facts`: Gold standard production table (UI queries this) with `entity_type` column (default: "country") for future non-country entity support
+    - `facts_evaluation`: Working table for all sources, scoring, and pending/rejected evaluations with `entity_type` classification
     - `sources`: Source reliability metrics and workflow tracking
-    - `scoring_settings`: Global scoring configuration
+    - `scoring_settings`: Global scoring configuration including `promotion_threshold` (default: 85)
     - `requested_facts`: User-requested entity-attribute combinations with `entity_type`
     - `source_activity_log`: Audit trail of source status changes
-    - `facts_activity_log`: Comprehensive lifecycle tracking with `entity_type` for all fact events
+    - `facts_activity_log`: Comprehensive lifecycle tracking with `entity_type` for all fact events (including promotions)
 - **Backend:** Express server handling API requests for facts, evaluations, sources, and scoring settings.
-- **Multi-Source Verification API (`/api/multi-source-evaluations`):** Endpoint for aggregating credible evaluations and determining consensus.
+- **Multi-Source Verification API (`/api/multi-source-evaluations`):** Endpoint for aggregating credible evaluations from verified_facts gold standard and determining consensus.
+- **Fact Promotion System (`POST /api/admin/promote-facts`):** Automated promotion of high-trust evaluations (≥ threshold) from facts_evaluation to verified_facts with deduplication by (entity, attribute, source_trust), temporal metadata flow, and activity logging.
 - **Evaluation Scoring (`server/evaluation-scoring.ts`):** Centralized logic for calculating scores based on source trust, recency, and consensus.
-- **Admin Configuration System (`/admin`):** Interface for managing scoring methodology (weights, recency, credible threshold).
+- **Admin Configuration System (`/admin`):** Interface for managing scoring methodology (weights, recency, credible threshold, promotion threshold).
 - **Score Recalculation System:** Dynamic score synchronization via `POST /api/facts-evaluation/recalculate`.
 - **Cross-Check Sources System (`/admin`):** Automated tool for identifying and fetching missing data from external sources, with deduplication.
 - **Fulfill Requested Facts System (`/admin`):** Processes user-requested facts, fetches data from external sources, and updates the database.
 - **Source Management System (`/sources` and `/sources/pipeline`):** UI-driven system for managing data sources, including adding, promoting, and rejecting.
 - **Source Activity Logging (`/sources/activity-log`):** Automatic logging of source status changes.
-- **Facts Activity Logging (`/facts/activity-log`):** Comprehensive audit trail for fact lifecycle events (requested, fulfilled, added) with fire-and-forget logging and batch inserts.
+- **Facts Activity Logging (`/facts/activity-log`):** Comprehensive audit trail for fact lifecycle events (requested, fulfilled, added, promoted) with fire-and-forget logging and batch inserts.
 - **Core Logic (`lib/factChecker.ts`):** Handles entity detection, claim extraction with support for k/m/b/t notation, attribute inference, multi-source claim verification with trust-weighted consensus, and requested facts tracking.
 - **Attribute Mapping:** Keyword-to-attribute mappings in `public/attribute-mapping.json`.
 - **Entity Alias Mapping (`public/entity-mapping.json`):** Maps country aliases to canonical names.
