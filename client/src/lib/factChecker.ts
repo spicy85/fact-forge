@@ -285,12 +285,13 @@ export function verifyClaim(
       return { status: "verified", fact: matchingFact, percentageDiff: 0 };
     }
     
-    // Within 10% tolerance
-    if (percentDiff <= 10) {
+    // Within attribute-specific tolerance
+    const tolerance = getToleranceForAttribute(attribute);
+    if (percentDiff <= tolerance) {
       return { status: "close", fact: matchingFact, percentageDiff: percentDiff };
     }
     
-    // More than 10% difference
+    // More than tolerance difference
     return { status: "mismatch", fact: matchingFact, percentageDiff: percentDiff };
   }
 
