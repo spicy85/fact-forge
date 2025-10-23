@@ -127,7 +127,7 @@ async function fetchCountryData(countryName: string, qid: string): Promise<Wikid
         
         results.push({
           entity: countryName,
-          attribute: 'gdp_usd',
+          attribute: 'gdp',
           value: binding.value.value,
           year,
           as_of_date,
