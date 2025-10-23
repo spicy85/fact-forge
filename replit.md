@@ -28,7 +28,14 @@ The application is a multi-page React application built with Vite, utilizing an 
     - `AdminScoring` (`/admin`): Admin interface for configuring scoring weights and recency tiers.
 
 **Technical Implementations:**
-- **Data Layer:** PostgreSQL database accessed via Drizzle ORM. Key tables include `verified_facts`, `facts_evaluation`, `sources`, `scoring_settings`, `requested_facts`, `source_activity_log`, and `facts_activity_log`.
+- **Data Layer:** PostgreSQL database accessed via Drizzle ORM. Key tables include:
+    - `verified_facts`: Immutable verified facts with `entity_type` column (default: "country") for future non-country entity support
+    - `facts_evaluation`: Fact evaluations with scoring and `entity_type` classification
+    - `sources`: Source reliability metrics and workflow tracking
+    - `scoring_settings`: Global scoring configuration
+    - `requested_facts`: User-requested entity-attribute combinations with `entity_type`
+    - `source_activity_log`: Audit trail of source status changes
+    - `facts_activity_log`: Comprehensive lifecycle tracking with `entity_type` for all fact events
 - **Backend:** Express server handling API requests for facts, evaluations, sources, and scoring settings.
 - **Multi-Source Verification API (`/api/multi-source-evaluations`):** Endpoint for aggregating credible evaluations and determining consensus.
 - **Evaluation Scoring (`server/evaluation-scoring.ts`):** Centralized logic for calculating scores based on source trust, recency, and consensus.
