@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, ShieldCheck, CheckCircle2, XCircle, Plus } from "lucide-react";
+import { ArrowLeft, ShieldCheck, CheckCircle2, XCircle, Plus, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
@@ -248,6 +248,12 @@ export default function SourcePipeline() {
               <Button variant="outline" size="sm" data-testid="button-view-trusted">
                 <ShieldCheck className="h-4 w-4 mr-2" />
                 View Trusted
+              </Button>
+            </Link>
+            <Link href="/sources/activity-log">
+              <Button variant="outline" size="sm" data-testid="button-activity-log">
+                <Clock className="h-4 w-4 mr-2" />
+                Activity Log
               </Button>
             </Link>
             <Link href="/">

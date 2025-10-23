@@ -8,6 +8,7 @@ import FactChecker from "@/pages/FactChecker";
 import ClaimsMatrix from "@/pages/ClaimsMatrix";
 import SourcesOverview from "@/pages/SourcesOverview";
 import SourcePipeline from "@/pages/SourcePipeline";
+import SourceActivityLog from "@/pages/SourceActivityLog";
 import EvaluationScoring from "@/pages/EvaluationScoring";
 import AdminScoring from "@/pages/AdminScoring";
 import NotFound from "@/pages/not-found";
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/claims-matrix" component={ClaimsMatrix} />
       <Route path="/sources" component={SourcesOverview} />
       <Route path="/sources/pipeline" component={SourcePipeline} />
+      <Route path="/sources/activity-log" component={SourceActivityLog} />
       <Route path="/evaluation-scoring" component={EvaluationScoring} />
       <Route path="/admin" component={AdminScoring} />
       <Route component={NotFound} />
