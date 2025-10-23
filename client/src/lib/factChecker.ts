@@ -444,6 +444,7 @@ export function processTextMultiSource(
     const verification = verifyClaimMultiSource(claim, attribute, entity, multiSourceData);
 
     // Log unsupported entity-attribute combinations for future data expansion
+    // Only logs when BOTH entity AND attribute are recognized but no data exists (status === "unknown")
     if (verification.status === "unknown" && entity && attribute) {
       fetch('/api/requested-facts', {
         method: 'POST',
