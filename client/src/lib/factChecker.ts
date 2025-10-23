@@ -34,7 +34,7 @@ export interface MultiSourceData {
 
 /**
  * Parse human-friendly number formats into actual numbers
- * Supports: 12M, 1.5 billion, 50K, 12 million, etc.
+ * Supports: 12M, 1.5 billion, 50K, 12 million, 3T, 2.5 trillion, etc.
  */
 export function parseHumanNumber(input: string): number | null {
   if (!input) return null;
@@ -43,8 +43,8 @@ export function parseHumanNumber(input: string): number | null {
   const cleaned = input.replace(/,/g, '').trim().toLowerCase();
   
   // Try to match number with optional multiplier
-  // Matches: "12", "12.5", "12 million", "12M", "12m", "1.5billion", etc.
-  const match = cleaned.match(/^([\d.]+)\s*(k|thousand|m|million|b|billion)?$/i);
+  // Matches: "12", "12.5", "12 million", "12M", "12m", "3t", "3 trillion", "1.5billion", etc.
+  const match = cleaned.match(/^([\d.]+)\s*(k|thousand|m|million|b|billion|t|trillion)?$/i);
   
   if (!match) return null;
   
@@ -60,6 +60,8 @@ export function parseHumanNumber(input: string): number | null {
     'million': 1000000,
     'b': 1000000000,
     'billion': 1000000000,
+    't': 1000000000000,
+    'trillion': 1000000000000,
   };
   
   const mult = multipliers[multiplier] || 1;
@@ -176,9 +178,9 @@ export function detectEntity(
 export function extractNumericClaims(text: string): NumericClaim[] {
   const claims: NumericClaim[] = [];
   
-  // Updated regex to capture numbers with optional multipliers (K, M, B, thousand, million, billion)
-  // Matches: "12", "12.5", "12,000", "12 million", "12M", "1.5B", etc.
-  const numberRegex = /\b\d+(?:,\d{3})*(?:\.\d+)?\s*(?:k|thousand|m|million|b|billion)?\b/gi;
+  // Updated regex to capture numbers with optional multipliers (K, M, B, T, thousand, million, billion, trillion)
+  // Matches: "12", "12.5", "12,000", "12 million", "12M", "1.5B", "3t", "2.5 trillion", etc.
+  const numberRegex = /\b\d+(?:,\d{3})*(?:\.\d+)?\s*(?:k|thousand|m|million|b|billion|t|trillion)?\b/gi;
   let match;
 
   while ((match = numberRegex.exec(text)) !== null) {
