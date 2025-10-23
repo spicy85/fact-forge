@@ -5,7 +5,13 @@ import { ParagraphInput } from "@/components/ParagraphInput";
 import { RenderedParagraph } from "@/components/RenderedParagraph";
 import { ResultsTable } from "@/components/ResultsTable";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Table, Database, Calculator, Settings, Clock } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ShieldCheck, Table, Database, Calculator, Settings, Clock, ChevronDown } from "lucide-react";
 import {
   processText,
   processTextMultiSource,
@@ -172,24 +178,35 @@ export default function FactChecker() {
                 Sources
               </Button>
             </Link>
-            <Link href="/facts/activity-log">
-              <Button variant="outline" size="sm" data-testid="button-view-facts-activity">
-                <Clock className="h-4 w-4 mr-2" />
-                Facts Log
-              </Button>
-            </Link>
-            <Link href="/evaluation-scoring">
-              <Button variant="outline" size="sm" data-testid="button-view-evaluation">
-                <Calculator className="h-4 w-4 mr-2" />
-                Evaluation
-              </Button>
-            </Link>
-            <Link href="/admin">
-              <Button variant="outline" size="sm" data-testid="button-view-admin">
-                <Settings className="h-4 w-4 mr-2" />
-                Admin
-              </Button>
-            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" data-testid="button-controls-menu">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Controls
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link href="/facts/activity-log" className="w-full cursor-pointer">
+                    <Clock className="h-4 w-4 mr-2" />
+                    Facts Log
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/evaluation-scoring" className="w-full cursor-pointer">
+                    <Calculator className="h-4 w-4 mr-2" />
+                    Evaluation
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/admin" className="w-full cursor-pointer">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Admin
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <ThemeToggle />
           </div>
         </div>
