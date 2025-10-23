@@ -19,6 +19,7 @@ export interface CredibleEvaluation {
   value: string;
   source_url: string;
   source_trust: string;
+  as_of_date: string | null;
   trust_score: number | null;
   evaluated_at: string;
 }
@@ -514,17 +515,28 @@ export function processTextMultiSource(
         domain,
         trustScore: evaluation.trust_score ?? -1, // Use -1 to indicate missing score
         url: evaluation.source_url,
-        evaluatedAt: evaluation.evaluated_at
+        evaluatedAt: evaluation.evaluated_at,
+        asOfDate: evaluation.as_of_date ?? undefined
       };
     });
 
-    // Find most recent evaluation date
+    // Find most recent evaluation date and as_of_date
     let mostRecentDate: string | undefined;
+    let mostRecentAsOfDate: string | undefined;
     if (sources && sources.length > 0) {
       mostRecentDate = sources.reduce((latest, source) => {
         if (!latest) return source.evaluatedAt;
         return source.evaluatedAt > latest ? source.evaluatedAt : latest;
       }, sources[0].evaluatedAt);
+      
+      // Find the most recent as_of_date from sources
+      const datesWithAsOfDate = sources.filter(s => s.asOfDate);
+      if (datesWithAsOfDate.length > 0) {
+        mostRecentAsOfDate = datesWithAsOfDate.reduce((latest, source) => {
+          if (!latest || !source.asOfDate) return source.asOfDate;
+          return (source.asOfDate && source.asOfDate > latest) ? source.asOfDate : latest;
+        }, datesWithAsOfDate[0].asOfDate);
+      }
     }
 
     results.push({
@@ -533,6 +545,7 @@ export function processTextMultiSource(
       attribute: attribute || "unknown",
       verdict: verification.status,
       recordedValue,
+      asOfDate: mostRecentAsOfDate,
       lastVerifiedAt: mostRecentDate,
       citation: undefined,
       sourceTrust: sourceCount !== undefined ? `${sourceCount} ${sourceCount === 1 ? 'source' : 'sources'}` : undefined,

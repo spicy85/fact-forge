@@ -179,6 +179,7 @@ export class MemStorage implements IStorage {
     const settings = await this.getScoringSettings();
     const credibleThreshold = settings?.credible_threshold ?? 80;
     
+    // Get all evaluations for this entity-attribute, ordered by date (most recent first)
     const evaluations = await db
       .select()
       .from(factsEvaluation)
@@ -187,8 +188,10 @@ export class MemStorage implements IStorage {
           eq(factsEvaluation.entity, entity),
           eq(factsEvaluation.attribute, attribute)
         )
-      );
+      )
+      .orderBy(desc(factsEvaluation.as_of_date));
     
+    // Filter to credible evaluations
     const credibleEvaluations = evaluations.filter(
       e => (e.trust_score ?? 0) >= credibleThreshold
     );
@@ -197,8 +200,20 @@ export class MemStorage implements IStorage {
       return null;
     }
     
-    const numericValues: { value: number; trustScore: number }[] = [];
+    // Group by source_trust and take the most recent entry from each source
+    const latestBySource = new Map<string, typeof credibleEvaluations[0]>();
     for (const evaluation of credibleEvaluations) {
+      const sourceTrust = evaluation.source_trust;
+      if (!latestBySource.has(sourceTrust)) {
+        latestBySource.set(sourceTrust, evaluation);
+      }
+    }
+    
+    // Use the latest evaluations from each source for consensus calculation
+    const latestEvaluations = Array.from(latestBySource.values());
+    
+    const numericValues: { value: number; trustScore: number }[] = [];
+    for (const evaluation of latestEvaluations) {
       const numValue = parseFloat(evaluation.value.replace(/,/g, ''));
       if (!isNaN(numValue)) {
         numericValues.push({ 
@@ -223,8 +238,8 @@ export class MemStorage implements IStorage {
       consensus,
       min,
       max,
-      sourceCount: credibleEvaluations.length,
-      credibleEvaluations
+      sourceCount: latestEvaluations.length,
+      credibleEvaluations: latestEvaluations
     };
   }
 

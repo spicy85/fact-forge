@@ -182,6 +182,7 @@ async function fetchFromWorldBank(
 
     const latestData = dataPoints.sort((a, b) => b.year - a.year)[0];
     const evaluatedAt = `${latestData.year}-12-31`;
+    const as_of_date = latestData.as_of_date; // Use actual date from World Bank API
     const sourceUrl = "https://data.worldbank.org/";
 
     // Check for duplicates
@@ -232,6 +233,7 @@ async function fetchFromWorldBank(
       value_type: "numeric",
       source_url: sourceUrl,
       source_trust: "data.worldbank.org",
+      as_of_date,
       source_trust_score: sourceTrustScore,
       recency_score: recencyScore,
       consensus_score: consensusScore,
@@ -311,12 +313,17 @@ async function fetchFromWikidata(
     const result = bindings[0];
     let value = result.value.value;
     let year = '2024';
+    let as_of_date = '2024-01-01';
 
-    // Extract year from value or pointInTime
+    // Extract year and date from value or pointInTime
     if (result.pointInTime) {
-      year = result.pointInTime.value.substring(0, 4);
+      const pointInTimeValue = result.pointInTime.value;
+      year = pointInTimeValue.substring(0, 4);
+      as_of_date = pointInTimeValue.split('T')[0]; // Extract YYYY-MM-DD
     } else if (attribute === 'founded_year') {
+      const foundedDate = value.substring(0, 10); // Extract YYYY-MM-DD
       year = value.substring(0, 4);
+      as_of_date = foundedDate.split('T')[0];
       value = year;
     }
 
@@ -371,6 +378,7 @@ async function fetchFromWikidata(
       value_type: "numeric",
       source_url: sourceUrl,
       source_trust: "www.wikidata.org",
+      as_of_date,
       source_trust_score: sourceTrustScore,
       recency_score: recencyScore,
       consensus_score: consensusScore,

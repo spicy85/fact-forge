@@ -8,6 +8,7 @@ export interface WorldBankData {
   value: number;
   indicator: string;
   indicatorName: string;
+  as_of_date: string; // ISO date string YYYY-MM-DD
 }
 
 export interface WorldBankResponse {
@@ -122,13 +123,20 @@ export async function fetchWorldBankIndicator(
     // Filter out null values and map to our format
     const data = observations
       .filter((obs: any) => obs.value !== null)
-      .map((obs: any) => ({
-        country: countryName,
-        year: parseInt(obs.date),
-        value: obs.value,
-        indicator: indicatorCode,
-        indicatorName: indicatorName
-      }));
+      .map((obs: any) => {
+        const year = parseInt(obs.date);
+        // Convert year to ISO date string (January 1st of that year)
+        const as_of_date = `${year}-01-01`;
+        
+        return {
+          country: countryName,
+          year,
+          value: obs.value,
+          indicator: indicatorCode,
+          indicatorName: indicatorName,
+          as_of_date
+        };
+      });
 
     if (data.length === 0) {
       return {

@@ -15,6 +15,7 @@ export interface SourceDetail {
   trustScore: number;
   url: string;
   evaluatedAt: string;
+  asOfDate?: string; // ISO date string YYYY-MM-DD
 }
 
 export interface VerificationResult {
@@ -23,6 +24,7 @@ export interface VerificationResult {
   attribute: string;
   verdict: VerificationStatus;
   recordedValue?: string;
+  asOfDate?: string; // ISO date string YYYY-MM-DD
   lastVerifiedAt?: string;
   citation?: string;
   sourceTrust?: string;
@@ -70,7 +72,18 @@ export function ResultsTable({ results }: ResultsTableProps) {
                   <VerificationBadge status={result.verdict} />
                 </TableCell>
                 <TableCell className="font-mono">
-                  {result.recordedValue || "-"}
+                  {result.recordedValue ? (
+                    <div className="flex flex-col gap-0.5">
+                      <span>{result.recordedValue}</span>
+                      {result.asOfDate && (
+                        <span className="text-xs text-muted-foreground font-normal">
+                          as of {new Date(result.asOfDate).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    "-"
+                  )}
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {result.lastVerifiedAt || "-"}

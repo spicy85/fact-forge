@@ -26,6 +26,7 @@ interface WikidataResult {
   attribute: string;
   value: string;
   year: string;
+  as_of_date: string; // ISO date string YYYY-MM-DD
   referenceUrl: string;
 }
 
@@ -92,12 +93,26 @@ async function fetchCountryData(countryName: string, qid: string): Promise<Wikid
     const popData = await executeSparqlQuery(populationQuery);
     if (popData.results?.bindings?.length > 0) {
       const binding = popData.results.bindings[0];
-      const year = binding.pointInTime?.value ? new Date(binding.pointInTime.value).getFullYear().toString() : '2023';
+      const pointInTimeValue = binding.pointInTime?.value;
+      let year: string;
+      let as_of_date: string;
+      
+      if (pointInTimeValue) {
+        const date = new Date(pointInTimeValue);
+        year = date.getFullYear().toString();
+        // Use the actual date from Wikidata
+        as_of_date = pointInTimeValue.split('T')[0]; // Extract YYYY-MM-DD
+      } else {
+        year = '2023';
+        as_of_date = '2023-01-01';
+      }
+      
       results.push({
         entity: countryName,
         attribute: 'population',
         value: binding.value.value,
         year,
+        as_of_date,
         referenceUrl: `https://www.wikidata.org/wiki/${qid}#P1082`
       });
     }
@@ -106,12 +121,26 @@ async function fetchCountryData(countryName: string, qid: string): Promise<Wikid
     const gdpData = await executeSparqlQuery(gdpQuery);
     if (gdpData.results?.bindings?.length > 0) {
       const binding = gdpData.results.bindings[0];
-      const year = binding.pointInTime?.value ? new Date(binding.pointInTime.value).getFullYear().toString() : '2023';
+      const pointInTimeValue = binding.pointInTime?.value;
+      let year: string;
+      let as_of_date: string;
+      
+      if (pointInTimeValue) {
+        const date = new Date(pointInTimeValue);
+        year = date.getFullYear().toString();
+        // Use the actual date from Wikidata
+        as_of_date = pointInTimeValue.split('T')[0]; // Extract YYYY-MM-DD
+      } else {
+        year = '2023';
+        as_of_date = '2023-01-01';
+      }
+      
       results.push({
         entity: countryName,
         attribute: 'gdp_usd',
         value: binding.value.value,
         year,
+        as_of_date,
         referenceUrl: `https://www.wikidata.org/wiki/${qid}#P2131`
       });
     }
@@ -125,6 +154,7 @@ async function fetchCountryData(countryName: string, qid: string): Promise<Wikid
         attribute: 'area_km2',
         value: binding.value.value,
         year: '2024',  // Area is generally static
+        as_of_date: '2024-01-01',
         referenceUrl: `https://www.wikidata.org/wiki/${qid}#P2046`
       });
     }
@@ -133,12 +163,15 @@ async function fetchCountryData(countryName: string, qid: string): Promise<Wikid
     const foundedData = await executeSparqlQuery(foundedQuery);
     if (foundedData.results?.bindings?.length > 0) {
       const binding = foundedData.results.bindings[0];
-      const foundedYear = new Date(binding.value.value).getFullYear().toString();
+      const foundedDate = new Date(binding.value.value);
+      const foundedYear = foundedDate.getFullYear().toString();
+      const as_of_date = binding.value.value.split('T')[0]; // Extract YYYY-MM-DD
       results.push({
         entity: countryName,
         attribute: 'founded_year',
         value: foundedYear,
         year: foundedYear,
+        as_of_date,
         referenceUrl: `https://www.wikidata.org/wiki/${qid}#P571`
       });
     }
@@ -226,6 +259,7 @@ async function main() {
           value_type: "numeric",
           source_url: result.referenceUrl,
           source_trust: "www.wikidata.org",
+          as_of_date: result.as_of_date,
           source_trust_score: sourceTrustScore,
           recency_score: recencyScore,
           consensus_score: consensusScore,

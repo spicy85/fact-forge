@@ -91,6 +91,7 @@ async function main() {
         value_type: fact.value_type,
         source_url: fact.source_url || sourceUrl,
         source_trust: "Wikipedia",
+        as_of_date: fact.as_of_date || evaluatedAt,
         source_trust_score: sourceTrustScore,
         recency_score: recencyScore,
         consensus_score: consensusScore,

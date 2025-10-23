@@ -31,6 +31,7 @@ interface FetchResult {
   attribute: string;
   value: string;
   evaluatedAt: string;
+  as_of_date: string; // ISO date string YYYY-MM-DD
   sourceUrl: string;
   sourceTrust: string;
   notes: string;
@@ -119,10 +120,13 @@ async function fetchFromWikidata(entity: string, attribute: string): Promise<Fet
     const binding = bindings[0];
     let value = binding.value?.value;
     let year = new Date().getFullYear();
+    let as_of_date = `${year}-01-01`;
 
     if (binding.pointInTime?.value) {
-      const date = new Date(binding.pointInTime.value);
+      const pointInTimeValue = binding.pointInTime.value;
+      const date = new Date(pointInTimeValue);
       year = date.getFullYear();
+      as_of_date = pointInTimeValue.split('T')[0]; // Extract YYYY-MM-DD
     }
 
     if (!value) {
@@ -132,6 +136,7 @@ async function fetchFromWikidata(entity: string, attribute: string): Promise<Fet
 
     // Extract year from founded_year
     if (attribute === 'founded_year' && value.includes('-')) {
+      as_of_date = value.split('T')[0]; // Extract YYYY-MM-DD from the founded date
       value = value.split('-')[0];
     }
 
@@ -142,6 +147,7 @@ async function fetchFromWikidata(entity: string, attribute: string): Promise<Fet
       attribute: attributeName,
       value: value.toString(),
       evaluatedAt,
+      as_of_date,
       sourceUrl: `https://www.wikidata.org/wiki/${qid}`,
       sourceTrust: 'www.wikidata.org',
       notes: `Wikidata property ${propertyId}, year ${year}`
@@ -178,12 +184,14 @@ async function fetchFromWorldBank(entity: string, attribute: string): Promise<Fe
 
     const latestData = dataPoints.sort((a, b) => b.year - a.year)[0];
     const evaluatedAt = `${latestData.year}-12-31`;
+    const as_of_date = latestData.as_of_date; // Use actual date from World Bank API
 
     return {
       entity,
       attribute,
       value: latestData.value.toString(),
       evaluatedAt,
+      as_of_date,
       sourceUrl: 'https://data.worldbank.org/',
       sourceTrust: 'data.worldbank.org',
       notes: `World Bank API, year ${latestData.year}`
@@ -313,6 +321,7 @@ export async function fulfillRequestedFacts() {
         value_type: "numeric",
         source_url: fetchResult.sourceUrl,
         source_trust: fetchResult.sourceTrust,
+        as_of_date: fetchResult.as_of_date,
         source_trust_score: sourceTrustScore,
         recency_score: recencyScore,
         consensus_score: consensusScore,
