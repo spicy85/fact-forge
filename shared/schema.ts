@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, serial, integer, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, serial, integer, index, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -26,6 +26,7 @@ export const verifiedFacts = pgTable("verified_facts", {
   value_type: text("value_type").notNull(),
   source_url: text("source_url").notNull(),
   source_trust: text("source_trust").notNull(),
+  as_of_date: date("as_of_date"),
   last_verified_at: text("last_verified_at").notNull(),
 });
 
@@ -45,6 +46,7 @@ export const factsEvaluation = pgTable("facts_evaluation", {
   value_type: text("value_type").notNull(),
   source_url: text("source_url").notNull(),
   source_trust: text("source_trust").notNull(),
+  as_of_date: date("as_of_date"),
   // Evaluation criteria scores (0-100)
   source_trust_score: integer("source_trust_score"),
   recency_score: integer("recency_score"),
