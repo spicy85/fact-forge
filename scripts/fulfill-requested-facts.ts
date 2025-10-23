@@ -1,5 +1,5 @@
 import { db } from "../server/db";
-import { requestedFacts, factsEvaluation, scoringSettings } from "../shared/schema";
+import { requestedFacts, factsEvaluation, scoringSettings, factsActivityLog, type InsertFactsActivityLog } from "../shared/schema";
 import { eq, and } from "drizzle-orm";
 import { fetchAllIndicatorsForCountry } from "../server/integrations/worldbank-api";
 import { calculateSourceTrustScore, calculateRecencyScore, calculateTrustScore } from "../server/evaluation-scoring";
@@ -222,6 +222,7 @@ export async function fulfillRequestedFacts() {
   let fulfilledCount = 0;
   let notFoundCount = 0;
   let alreadyExistsCount = 0;
+  const activityLogs: InsertFactsActivityLog[] = [];
 
   for (const request of requests) {
     console.log(`\nProcessing: ${request.entity} - ${request.attribute} (${request.request_count} requests)`);
@@ -326,6 +327,17 @@ export async function fulfillRequestedFacts() {
 
       console.log(`  ✓ Inserted into facts_evaluation: ${fetchResult.value}`);
 
+      // Queue activity log entry
+      activityLogs.push({
+        entity: fetchResult.entity,
+        attribute: fetchResult.attribute,
+        action: 'fulfilled',
+        source: fetchResult.sourceTrust,
+        process: 'fulfill-requested-facts',
+        value: fetchResult.value,
+        notes: fetchResult.notes
+      });
+
       // Remove from requested_facts
       await db.delete(requestedFacts).where(eq(requestedFacts.id, request.id));
       console.log(`  ✓ Removed from requested_facts`);
@@ -343,6 +355,17 @@ export async function fulfillRequestedFacts() {
       } else {
         console.error(`  ✗ Error:`, error.message);
       }
+    }
+  }
+
+  // Batch log all fulfilled facts (non-blocking, with error handling)
+  if (activityLogs.length > 0) {
+    try {
+      await db.insert(factsActivityLog).values(activityLogs);
+      console.log(`\n✓ Logged ${activityLogs.length} fulfilled facts to activity log`);
+    } catch (error: any) {
+      console.error(`⚠ Warning: Failed to log activity (non-critical): ${error.message}`);
+      // Script continues even if logging fails
     }
   }
 

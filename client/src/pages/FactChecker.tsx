@@ -5,7 +5,7 @@ import { ParagraphInput } from "@/components/ParagraphInput";
 import { RenderedParagraph } from "@/components/RenderedParagraph";
 import { ResultsTable } from "@/components/ResultsTable";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Table, Database, Calculator, Settings } from "lucide-react";
+import { ShieldCheck, Table, Database, Calculator, Settings, Clock } from "lucide-react";
 import {
   processText,
   processTextMultiSource,
@@ -170,6 +170,12 @@ export default function FactChecker() {
               <Button variant="outline" size="sm" data-testid="button-view-sources">
                 <Database className="h-4 w-4 mr-2" />
                 Sources
+              </Button>
+            </Link>
+            <Link href="/facts/activity-log">
+              <Button variant="outline" size="sm" data-testid="button-view-facts-activity">
+                <Clock className="h-4 w-4 mr-2" />
+                Facts Log
               </Button>
             </Link>
             <Link href="/evaluation-scoring">

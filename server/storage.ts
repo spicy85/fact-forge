@@ -1,7 +1,7 @@
-import { type User, type InsertUser, type VerifiedFact, type InsertVerifiedFact, type FactsEvaluation, type InsertFactsEvaluation, type Source, type InsertSource, type UpdateSource, type ScoringSettings, type InsertScoringSettings, type UpdateScoringSettings, type RequestedFact, type InsertRequestedFact, type SourceActivityLog, type InsertSourceActivityLog } from "@shared/schema";
+import { type User, type InsertUser, type VerifiedFact, type InsertVerifiedFact, type FactsEvaluation, type InsertFactsEvaluation, type Source, type InsertSource, type UpdateSource, type ScoringSettings, type InsertScoringSettings, type UpdateScoringSettings, type RequestedFact, type InsertRequestedFact, type SourceActivityLog, type InsertSourceActivityLog, type FactsActivityLog, type InsertFactsActivityLog } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { verifiedFacts, factsEvaluation, sources, scoringSettings, requestedFacts, sourceActivityLog } from "@shared/schema";
+import { verifiedFacts, factsEvaluation, sources, scoringSettings, requestedFacts, sourceActivityLog, factsActivityLog } from "@shared/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { calculateSourceTrustScore, calculateRecencyScore, calculateTrustScore } from "./evaluation-scoring";
 
@@ -38,6 +38,9 @@ export interface IStorage {
   createOrIncrementRequestedFact(entity: string, attribute: string, claimValue?: string): Promise<RequestedFact>;
   logSourceActivity(log: InsertSourceActivityLog): Promise<SourceActivityLog>;
   getAllSourceActivityLogs(): Promise<SourceActivityLog[]>;
+  logFactsActivity(log: InsertFactsActivityLog): Promise<FactsActivityLog>;
+  logFactsActivityBatch(logs: InsertFactsActivityLog[]): Promise<FactsActivityLog[]>;
+  getAllFactsActivityLogs(limit?: number, offset?: number): Promise<FactsActivityLog[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -414,6 +417,33 @@ export class MemStorage implements IStorage {
       .select()
       .from(sourceActivityLog)
       .orderBy(desc(sourceActivityLog.created_at));
+  }
+
+  async logFactsActivity(log: InsertFactsActivityLog): Promise<FactsActivityLog> {
+    const [inserted] = await db
+      .insert(factsActivityLog)
+      .values(log)
+      .returning();
+    return inserted;
+  }
+
+  async logFactsActivityBatch(logs: InsertFactsActivityLog[]): Promise<FactsActivityLog[]> {
+    if (logs.length === 0) {
+      return [];
+    }
+    return db
+      .insert(factsActivityLog)
+      .values(logs)
+      .returning();
+  }
+
+  async getAllFactsActivityLogs(limit: number = 100, offset: number = 0): Promise<FactsActivityLog[]> {
+    return db
+      .select()
+      .from(factsActivityLog)
+      .orderBy(desc(factsActivityLog.created_at))
+      .limit(limit)
+      .offset(offset);
   }
 }
 

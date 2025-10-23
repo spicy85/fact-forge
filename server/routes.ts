@@ -71,6 +71,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         validatedData.claimValue
       );
       
+      // Fire-and-forget activity logging (non-blocking)
+      storage.logFactsActivity({
+        entity: validatedData.entity,
+        attribute: validatedData.attribute,
+        action: 'requested',
+        source: null,
+        process: 'user_request',
+        value: validatedData.claimValue || null,
+        notes: null
+      }).catch((error) => {
+        console.error("Error logging facts activity (non-critical):", error);
+      });
+      
       res.json({ success: true, fact: requestedFact });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -235,6 +248,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching activity logs:", error);
       res.status(500).json({ error: "Failed to fetch activity logs" });
+    }
+  });
+
+  // Get all facts activity logs with pagination
+  app.get("/api/facts-activity-log", async (req, res) => {
+    try {
+      const requestedLimit = parseInt(req.query.limit as string);
+      const requestedOffset = parseInt(req.query.offset as string);
+      
+      // Sanitize inputs: clamp limit to [1, 1000] and offset to [0, Infinity]
+      const limit = Math.max(1, Math.min(isNaN(requestedLimit) ? 100 : requestedLimit, 1000));
+      const offset = Math.max(0, isNaN(requestedOffset) ? 0 : requestedOffset);
+      
+      const logs = await storage.getAllFactsActivityLogs(limit, offset);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching facts activity logs:", error);
+      res.status(500).json({ error: "Failed to fetch facts activity logs" });
     }
   });
 

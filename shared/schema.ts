@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, serial, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, serial, integer, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -163,3 +163,27 @@ export const insertRequestedFactSchema = createInsertSchema(requestedFacts).omit
 
 export type InsertRequestedFact = z.infer<typeof insertRequestedFactSchema>;
 export type RequestedFact = typeof requestedFacts.$inferSelect;
+
+export const factsActivityLog = pgTable("facts_activity_log", {
+  id: serial("id").primaryKey(),
+  entity: text("entity").notNull(),
+  attribute: text("attribute").notNull(),
+  action: text("action").notNull(), // requested, fulfilled, added, updated, removed
+  source: text("source"), // wikipedia, worldbank, wikidata, etc.
+  process: text("process"), // script name or endpoint
+  value: text("value"), // the fact value if applicable
+  notes: text("notes"),
+  created_at: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => ({
+  createdAtIdx: index("facts_activity_log_created_at_idx").on(table.created_at),
+  entityIdx: index("facts_activity_log_entity_idx").on(table.entity),
+  actionIdx: index("facts_activity_log_action_idx").on(table.action),
+}));
+
+export const insertFactsActivityLogSchema = createInsertSchema(factsActivityLog).omit({
+  id: true,
+  created_at: true,
+});
+
+export type InsertFactsActivityLog = z.infer<typeof insertFactsActivityLogSchema>;
+export type FactsActivityLog = typeof factsActivityLog.$inferSelect;

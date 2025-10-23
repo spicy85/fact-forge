@@ -1,5 +1,5 @@
 import { db } from "../server/db";
-import { factsEvaluation, scoringSettings } from "../shared/schema";
+import { factsEvaluation, scoringSettings, factsActivityLog, type InsertFactsActivityLog } from "../shared/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { fetchAllIndicatorsForCountry } from "../server/integrations/worldbank-api";
 import { calculateSourceTrustScore, calculateRecencyScore, calculateTrustScore } from "../server/evaluation-scoring";
@@ -39,6 +39,8 @@ export async function crossCheckAllSources(): Promise<CrossCheckStats> {
     duplicatesSkipped: 0,
     errors: []
   };
+  
+  const activityLogs: InsertFactsActivityLog[] = [];
 
   // Get scoring settings
   const [settings] = await db.select().from(scoringSettings).limit(1);
@@ -88,12 +90,23 @@ export async function crossCheckAllSources(): Promise<CrossCheckStats> {
       }
 
       try {
-        const added = await source.fetch(entity, attribute, settings);
-        if (added) {
+        const result = await source.fetch(entity, attribute, settings);
+        if (result) {
           if (source.name === 'en.wikipedia.org') stats.wikipediaAdded++;
           else if (source.name === 'data.worldbank.org') stats.worldBankAdded++;
           else if (source.name === 'www.wikidata.org') stats.wikidataAdded++;
           console.log(`✓ Added ${entity} - ${attribute} from ${source.name}`);
+          
+          // Queue activity log entry
+          activityLogs.push({
+            entity,
+            attribute,
+            action: 'added',
+            source: source.name,
+            process: 'cross-check-sources',
+            value: result.value,
+            notes: result.notes || 'Cross-check import'
+          });
         } else {
           // Fetcher returned false (duplicate found or unsupported)
           stats.duplicatesSkipped++;
@@ -103,6 +116,17 @@ export async function crossCheckAllSources(): Promise<CrossCheckStats> {
         stats.errors.push(errMsg);
         console.error(`✗ ${errMsg}`);
       }
+    }
+  }
+
+  // Batch log all added facts (non-blocking, with error handling)
+  if (activityLogs.length > 0) {
+    try {
+      await db.insert(factsActivityLog).values(activityLogs);
+      console.log(`\n✓ Logged ${activityLogs.length} added facts to activity log`);
+    } catch (error: any) {
+      console.error(`⚠ Warning: Failed to log activity (non-critical): ${error.message}`);
+      // Script continues even if logging fails
     }
   }
 
@@ -121,17 +145,17 @@ async function fetchFromWikipedia(
   entity: string,
   attribute: string,
   settings: any
-): Promise<boolean> {
+): Promise<{ value: string; notes: string } | null> {
   // Wikipedia data comes from verified_facts table
   // This function is a placeholder as Wikipedia data is already imported
-  return false;
+  return null;
 }
 
 async function fetchFromWorldBank(
   entity: string,
   attribute: string,
   settings: any
-): Promise<boolean> {
+): Promise<{ value: string; notes: string } | null> {
   // Map our attributes to World Bank indicators
   const attributeToIndicator: Record<string, string> = {
     'population': 'population',
@@ -145,7 +169,7 @@ async function fetchFromWorldBank(
 
   const indicator = attributeToIndicator[attribute];
   if (!indicator) {
-    return false; // Attribute not supported by World Bank
+    return null; // Attribute not supported by World Bank
   }
 
   try {
@@ -153,7 +177,7 @@ async function fetchFromWorldBank(
     const dataPoints = indicatorMap.get(indicator);
     
     if (!dataPoints || dataPoints.length === 0) {
-      return false;
+      return null;
     }
 
     const latestData = dataPoints.sort((a, b) => b.year - a.year)[0];
@@ -174,7 +198,7 @@ async function fetchFromWorldBank(
       .limit(1);
 
     if (existing.length > 0) {
-      return false; // Already exists
+      return null; // Already exists
     }
 
     // Calculate scores
@@ -197,11 +221,14 @@ async function fetchFromWorldBank(
       settings.consensus_weight
     );
 
+    const value = latestData.value.toString();
+    const notes = `World Bank API, year ${latestData.year}, cross-check`;
+
     // Insert new record
     await db.insert(factsEvaluation).values({
       entity,
       attribute,
-      value: latestData.value.toString(),
+      value,
       value_type: "numeric",
       source_url: sourceUrl,
       source_trust: "data.worldbank.org",
@@ -212,12 +239,12 @@ async function fetchFromWorldBank(
       recency_weight: settings.recency_weight,
       consensus_weight: settings.consensus_weight,
       trust_score: trustScore,
-      evaluation_notes: `World Bank API, year ${latestData.year}, cross-check`,
+      evaluation_notes: notes,
       evaluated_at: evaluatedAt,
       status: "evaluating"
     });
 
-    return true;
+    return { value, notes };
   } catch (error) {
     throw error;
   }
@@ -227,15 +254,15 @@ async function fetchFromWikidata(
   entity: string,
   attribute: string,
   settings: any
-): Promise<boolean> {
+): Promise<{ value: string; notes: string } | null> {
   const qid = COUNTRY_QIDS[entity];
   if (!qid) {
-    return false; // Country not in our mapping
+    return null; // Country not in our mapping
   }
 
   const propertyId = WIKIDATA_PROPERTIES[attribute as keyof typeof WIKIDATA_PROPERTIES];
   if (!propertyId) {
-    return false; // Attribute not supported by Wikidata
+    return null; // Attribute not supported by Wikidata
   }
 
   try {
@@ -278,7 +305,7 @@ async function fetchFromWikidata(
     const bindings = data.results.bindings;
 
     if (bindings.length === 0) {
-      return false; // No data found
+      return null; // No data found
     }
 
     const result = bindings[0];
@@ -310,7 +337,7 @@ async function fetchFromWikidata(
       .limit(1);
 
     if (existing.length > 0) {
-      return false; // Already exists
+      return null; // Already exists
     }
 
     // Calculate scores
@@ -333,11 +360,14 @@ async function fetchFromWikidata(
       settings.consensus_weight
     );
 
+    const valueStr = value.toString();
+    const notes = `Wikidata, ${year}, cross-check`;
+
     // Insert new record
     await db.insert(factsEvaluation).values({
       entity,
       attribute: attributeName,
-      value: value.toString(),
+      value: valueStr,
       value_type: "numeric",
       source_url: sourceUrl,
       source_trust: "www.wikidata.org",
@@ -348,12 +378,12 @@ async function fetchFromWikidata(
       recency_weight: settings.recency_weight,
       consensus_weight: settings.consensus_weight,
       trust_score: trustScore,
-      evaluation_notes: `Wikidata, ${year}, cross-check`,
+      evaluation_notes: notes,
       evaluated_at: evaluatedAt,
       status: "evaluating"
     });
 
-    return true;
+    return { value: valueStr, notes };
   } catch (error) {
     throw error;
   }
