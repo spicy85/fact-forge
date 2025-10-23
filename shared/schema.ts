@@ -20,6 +20,7 @@ export type User = typeof users.$inferSelect;
 export const verifiedFacts = pgTable("verified_facts", {
   id: serial("id").primaryKey(),
   entity: text("entity").notNull(),
+  entity_type: varchar("entity_type", { length: 50 }).notNull().default("country"),
   attribute: text("attribute").notNull(),
   value: text("value").notNull(),
   value_type: text("value_type").notNull(),
@@ -38,6 +39,7 @@ export type VerifiedFact = typeof verifiedFacts.$inferSelect;
 export const factsEvaluation = pgTable("facts_evaluation", {
   id: serial("id").primaryKey(),
   entity: text("entity").notNull(),
+  entity_type: varchar("entity_type", { length: 50 }).notNull().default("country"),
   attribute: text("attribute").notNull(),
   value: text("value").notNull(),
   value_type: text("value_type").notNull(),
@@ -148,6 +150,7 @@ export type ScoringSettings = typeof scoringSettings.$inferSelect;
 export const requestedFacts = pgTable("requested_facts", {
   id: serial("id").primaryKey(),
   entity: text("entity").notNull(),
+  entity_type: varchar("entity_type", { length: 50 }).notNull().default("country"),
   attribute: text("attribute").notNull(),
   claim_value: text("claim_value"),
   request_count: integer("request_count").notNull().default(1),
@@ -167,6 +170,7 @@ export type RequestedFact = typeof requestedFacts.$inferSelect;
 export const factsActivityLog = pgTable("facts_activity_log", {
   id: serial("id").primaryKey(),
   entity: text("entity").notNull(),
+  entity_type: varchar("entity_type", { length: 50 }).notNull().default("country"),
   attribute: text("attribute").notNull(),
   action: text("action").notNull(), // requested, fulfilled, added, updated, removed
   source: text("source"), // wikipedia, worldbank, wikidata, etc.
