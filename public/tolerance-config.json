@@ -1,4 +1,5 @@
 {
+  "_description": "Percentage tolerance for each attribute type",
   "founded_year": 0.1,
   "population": 10,
   "gdp": 10,
