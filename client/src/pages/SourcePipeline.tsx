@@ -102,6 +102,7 @@ export default function SourcePipeline() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sources"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sources/activity-log"] });
       toast({
         title: "Source promoted",
         description: "Source successfully promoted to trusted list",
@@ -115,6 +116,7 @@ export default function SourcePipeline() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sources"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sources/activity-log"] });
       toast({
         title: "Source rejected",
         description: "Source marked as rejected",

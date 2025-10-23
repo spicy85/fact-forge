@@ -69,6 +69,7 @@ export default function SourcesOverview() {
       queryClient.invalidateQueries({ queryKey: ["/api/sources", "trusted"] });
       queryClient.invalidateQueries({ queryKey: ["/api/sources", "pending_review"] });
       queryClient.invalidateQueries({ queryKey: ["/api/sources", "evaluating"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sources/activity-log"] });
     },
   });
 
