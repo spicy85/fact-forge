@@ -1,7 +1,18 @@
 # Knowledge Agent - AI Fact Checker
 
 ## Overview
-This project is an AI fact-checking application that verifies numeric claims in text against a trusted PostgreSQL database. It identifies numbers, infers their meaning, and displays inline verification badges (Verified, Mismatch, Unknown) with citations. The application aims to provide a reliable, data-driven solution for quickly validating information, reducing misinformation, and enhancing content credibility using a curated database of facts for 48 countries sourced from Wikipedia and the World Bank.
+This project is an AI fact-checking application that verifies numeric claims in text against a trusted PostgreSQL database. It identifies numbers, infers their meaning, and displays inline verification badges (Verified, Mismatch, Unknown) with citations. The application aims to provide a reliable, data-driven solution for quickly validating information, reducing misinformation, and enhancing content credibility using a curated database of facts for 195 countries sourced from Wikipedia, World Bank, and Wikidata.
+
+## Recent Changes (October 23, 2025)
+- **Number Parsing Enhancement:** Added support for trillion notation ('t', 'trillion') in both extraction and parsing
+  - Fixed `extractNumericClaims()` regex to capture 't' and 'trillion' suffixes
+  - Updated `parseHumanNumber()` multipliers to handle compact trillion notation
+  - Now supports: "3t", "2.5 trillion", "29t", etc.
+- **Complete Wikidata Integration:** Extended dataset from 60 to 195 countries
+  - Fixed attribute naming: consolidated to 'gdp', 'area', 'population' (removed 'gdp_usd', 'area_km2')
+  - Inserted 576 Wikidata evaluations covering all countries A-Z
+  - All major countries now have multi-source verification (World Bank + Wikidata)
+  - Ranges display correctly for GDP, population, and area across entire dataset
 
 ## User Preferences
 - Clean, data-focused interface design
@@ -46,7 +57,7 @@ The application is a multi-page React application built with Vite, utilizing an 
 - **Source Management System (`/sources` and `/sources/pipeline`):** UI-driven system for managing data sources, including adding, promoting, and rejecting.
 - **Source Activity Logging (`/sources/activity-log`):** Automatic logging of source status changes.
 - **Facts Activity Logging (`/facts/activity-log`):** Comprehensive audit trail for fact lifecycle events (requested, fulfilled, added) with fire-and-forget logging and batch inserts.
-- **Core Logic (`lib/factChecker.ts`):** Handles entity detection, claim extraction, attribute inference, multi-source claim verification with trust-weighted consensus, and requested facts tracking.
+- **Core Logic (`lib/factChecker.ts`):** Handles entity detection, claim extraction with support for k/m/b/t notation, attribute inference, multi-source claim verification with trust-weighted consensus, and requested facts tracking.
 - **Attribute Mapping:** Keyword-to-attribute mappings in `public/attribute-mapping.json`.
 - **Entity Alias Mapping (`public/entity-mapping.json`):** Maps country aliases to canonical names.
 - **Temporal Tracking System:** Maintains critical distinction between two types of dates:
