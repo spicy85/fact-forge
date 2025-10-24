@@ -3,13 +3,19 @@
 ## Overview
 This project is an AI fact-checking application that verifies numeric claims in text against a trusted PostgreSQL database. It identifies numbers, infers their meaning, and displays inline verification badges (Verified, Mismatch, Unknown) with citations. The application aims to provide a reliable, data-driven solution for quickly validating information, reducing misinformation, and enhancing content credibility using a curated database of facts for 195 countries sourced from Wikipedia, World Bank, and Wikidata.
 
-## Recent Changes (October 23, 2025)
+## Recent Changes (October 24, 2025)
+- **Time-Series Data Support:** Implemented historical fact verification for claims from different years
+  - Created `fetch-historical-wikidata.ts` script to query historical population and GDP data (1975-2025)
+  - Modified promotion deduplication from `(entity, attribute, source_trust)` to `(entity, attribute, source_trust, as_of_date)`
+  - Updated `getMultiSourceEvaluations()` to return ALL time-series data instead of only latest values
+  - Fetched 13 historical data points for USA: 11 population records (1980-2024) + 2 GDP records (2021-2022)
+  - Current state: 930 verified facts (up from 917) enabling historical claim verification
+  - Verified working: "USA population was 226 million in 1980" ✅, "USA had 331M people in 2020" ✅
 - **Data Flow Refactoring:** Corrected data pipeline to enforce unidirectional flow from working table to gold standard
   - Fixed `fetch-country-data.ts` and `migrate-csv-to-db.ts` to insert into `facts_evaluation` instead of `verified_facts`
   - All data now enters through `facts_evaluation` first (working table with trust scores)
   - Promotion system moves high-trust facts (≥85 score) to `verified_facts` (gold standard)
   - Eliminated backwards data flow: deprecated `fetch-wikipedia-evaluations.ts` and `populate-evaluation-table.ts`
-  - Current state: 917 facts in evaluation → 822 facts in verified_facts (195 countries, 6 attributes)
   - Correct architecture: Data enters → facts_evaluation (scored) → promotion → verified_facts (UI queries this)
 - **Attribute-Specific Tolerance System:** Implemented configurable tolerance percentages per attribute to prevent false verifications
   - Created `public/tolerance-config.json` with attribute-specific tolerances (founded_year: 0.1%, population/gdp: 10%, area: 2%, etc.)
@@ -62,7 +68,7 @@ The application is a multi-page React application built with Vite, utilizing an 
 
 **Technical Implementations:**
 - **Data Layer:** PostgreSQL database accessed via Drizzle ORM. Key tables include:
-    - `verified_facts`: Gold standard production table (UI queries this) with `entity_type` column (default: "country") for future non-country entity support
+    - `verified_facts`: Gold standard production table (UI queries this) with `entity_type` column (default: "country") and `as_of_date` for time-series data. Deduplication by (entity, attribute, source_trust, as_of_date) allows multiple historical records per source.
     - `facts_evaluation`: Working table for all sources, scoring, and pending/rejected evaluations with `entity_type` classification
     - `sources`: Source reliability metrics and workflow tracking
     - `scoring_settings`: Global scoring configuration including `promotion_threshold` (default: 85)
@@ -77,6 +83,7 @@ The application is a multi-page React application built with Vite, utilizing an 
 - **Score Recalculation System:** Dynamic score synchronization via `POST /api/facts-evaluation/recalculate`.
 - **Cross-Check Sources System (`/admin`):** Automated tool for identifying and fetching missing data from external sources, with deduplication.
 - **Fulfill Requested Facts System (`/admin`):** Processes user-requested facts, fetches data from external sources, and updates the database.
+- **Time-Series Data Pipeline (`scripts/fetch-historical-wikidata.ts`):** Automated fetcher for historical population and GDP data from Wikidata spanning 1975-2025, enabling verification of claims from different years.
 - **Source Management System (`/sources` and `/sources/pipeline`):** UI-driven system for managing data sources, including adding, promoting, and rejecting.
 - **Source Activity Logging (`/sources/activity-log`):** Automatic logging of source status changes.
 - **Facts Activity Logging (`/facts/activity-log`):** Comprehensive audit trail for fact lifecycle events (requested, fulfilled, added, promoted) with fire-and-forget logging and batch inserts.
