@@ -4,6 +4,14 @@
 This project is an AI fact-checking application that verifies numeric claims in text against a trusted PostgreSQL database. It identifies numbers, infers their meaning, and displays inline verification badges (Verified, Mismatch, Unknown) with citations. The application aims to provide a reliable, data-driven solution for quickly validating information, reducing misinformation, and enhancing content credibility using a curated database of facts for 195 countries sourced from Wikipedia, World Bank, and Wikidata.
 
 ## Recent Changes (October 24, 2025)
+- **Year-Specific Range Filtering:** Implemented temporal context extraction for showing ranges specific to mentioned years
+  - Added `year?: number` field to NumericClaim interface to store extracted year from temporal context
+  - Created `extractYearFromContext()` function to detect 4-digit years (1900-2100) in ±50 char context around claims
+  - Updated `extractNumericClaims()` to automatically populate year field by searching for temporal keywords ("in", "during", "since", etc.)
+  - Refactored `verifyClaimMultiSource()` to filter credibleEvaluations by as_of_date when year is present (±1 year tolerance)
+  - Recalculates min/max/consensus from year-specific data using same algorithm as server (simple average per storage.ts line 220)
+  - Uses immutable data flow: original sourceData preserved, separate comparisonData view created for year-scoped verification
+  - Verified working: "US population was 220m in 1980" → shows 226M (1980 data only), "US population is 340m" → shows 226M-340M (all-time range)
 - **Time-Series Data Support:** Implemented historical fact verification for claims from different years
   - Created `fetch-historical-wikidata.ts` script to query historical population and GDP data (1975-2025)
   - Modified promotion deduplication from `(entity, attribute, source_trust)` to `(entity, attribute, source_trust, as_of_date)`
