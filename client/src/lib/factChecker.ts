@@ -554,8 +554,8 @@ export function processTextMultiSource(
       recordedValue = formattedMin;
     }
 
-    // Extract individual sources from credibleEvaluations
-    const sources = verification.multiSource?.credibleEvaluations.map((evaluation) => {
+    // Extract individual sources from credibleEvaluations and deduplicate by domain
+    const allSources = verification.multiSource?.credibleEvaluations.map((evaluation) => {
       // Extract domain from source_url
       let domain = evaluation.source_trust;
       try {
@@ -574,6 +574,17 @@ export function processTextMultiSource(
         asOfDate: evaluation.as_of_date ?? undefined
       };
     });
+
+    // Deduplicate sources by domain (keeps most recent entry for each unique domain)
+    const sources = allSources ? Array.from(
+      allSources.reduce((map, source) => {
+        const existing = map.get(source.domain);
+        if (!existing || source.evaluatedAt > existing.evaluatedAt) {
+          map.set(source.domain, source);
+        }
+        return map;
+      }, new Map<string, typeof allSources[0]>()).values()
+    ) : undefined;
 
     // Find most recent evaluation date and as_of_date
     let mostRecentDate: string | undefined;
