@@ -4,6 +4,14 @@
 This project is an AI fact-checking application that verifies numeric claims in text against a trusted PostgreSQL database. It identifies numbers, infers their meaning, and displays inline verification badges (Verified, Mismatch, Unknown) with citations. The application aims to provide a reliable, data-driven solution for quickly validating information, reducing misinformation, and enhancing content credibility using a curated database of facts for 195 countries sourced from Wikipedia, World Bank, and Wikidata.
 
 ## Recent Changes (October 24, 2025)
+- **Schema Cleanup - source_trust Rename:** Renamed `source_trust` column to `source_name` across entire codebase for clarity
+  - Column stores source identifier/domain (e.g., "Wikipedia", "www.wikidata.org"), not numeric trust score
+  - Updated both `verified_facts` and `facts_evaluation` tables via ALTER TABLE SQL migration
+  - Refactored all backend references: storage.ts deduplication keys, WHERE clauses, activity logging
+  - Updated frontend interfaces: FactRecord and CredibleEvaluation in factChecker.ts
+  - Batch updated 15+ fetcher scripts: fetch-wikidata.ts, fetch-worldbank-data.ts, cross-check-sources.ts, etc.
+  - Database migration executed successfully, application verified working with GET /api/facts returning 200
+  - Note: `source_trust_score` column (numeric 0-100) remains unchanged and still stores actual trust scores
 - **Year-Specific Range Filtering:** Implemented temporal context extraction for showing ranges specific to mentioned years
   - Added `year?: number` field to NumericClaim interface to store extracted year from temporal context
   - Created `extractYearFromContext()` function to detect 4-digit years (1900-2100) in ±50 char context around claims
@@ -16,7 +24,7 @@ This project is an AI fact-checking application that verifies numeric claims in 
   - Verified working: "US population was 220m in 1980" → shows 226M (1980 data only), "US population is 340m" → shows 340M (most recent data)
 - **Time-Series Data Support:** Implemented historical fact verification for claims from different years
   - Created `fetch-historical-wikidata.ts` script to query historical population and GDP data (1975-2025)
-  - Modified promotion deduplication from `(entity, attribute, source_trust)` to `(entity, attribute, source_trust, as_of_date)`
+  - Modified promotion deduplication from `(entity, attribute, source_name)` to `(entity, attribute, source_name, as_of_date)`
   - Updated `getMultiSourceEvaluations()` to return ALL time-series data instead of only latest values
   - Fetched 13 historical data points for USA: 11 population records (1980-2024) + 2 GDP records (2021-2022)
   - Current state: 930 verified facts (up from 917) enabling historical claim verification
@@ -36,7 +44,7 @@ This project is an AI fact-checking application that verifies numeric claims in 
   - Fixes critical bug: year 1000 no longer incorrectly matches year 789 (now uses 0.1% tolerance for years)
 - **Fact Promotion System:** Implemented automated promotion from facts_evaluation to verified_facts gold standard
   - Added `promotion_threshold` to scoring_settings schema (default: 85, configurable via admin UI)
-  - Created `promoteFactsToVerified()` storage method with deduplication by (entity, attribute, source_trust)
+  - Created `promoteFactsToVerified()` storage method with deduplication by (entity, attribute, source_name)
   - Temporal metadata flow: as_of_date → as_of_date, evaluated_at → last_verified_at
   - Updated `getMultiSourceEvaluations()` to query verified_facts (gold standard) instead of facts_evaluation
   - Integrated promotion logging with facts_activity_log using fire-and-forget pattern
@@ -78,7 +86,7 @@ The application is a multi-page React application built with Vite, utilizing an 
 
 **Technical Implementations:**
 - **Data Layer:** PostgreSQL database accessed via Drizzle ORM. Key tables include:
-    - `verified_facts`: Gold standard production table (UI queries this) with `entity_type` column (default: "country") and `as_of_date` for time-series data. Deduplication by (entity, attribute, source_trust, as_of_date) allows multiple historical records per source.
+    - `verified_facts`: Gold standard production table (UI queries this) with `entity_type` column (default: "country") and `as_of_date` for time-series data. Deduplication by (entity, attribute, source_name, as_of_date) allows multiple historical records per source.
     - `facts_evaluation`: Working table for all sources, scoring, and pending/rejected evaluations with `entity_type` classification
     - `sources`: Source reliability metrics and workflow tracking
     - `scoring_settings`: Global scoring configuration including `promotion_threshold` (default: 85)
@@ -87,7 +95,7 @@ The application is a multi-page React application built with Vite, utilizing an 
     - `facts_activity_log`: Comprehensive lifecycle tracking with `entity_type` for all fact events (including promotions)
 - **Backend:** Express server handling API requests for facts, evaluations, sources, and scoring settings.
 - **Multi-Source Verification API (`/api/multi-source-evaluations`):** Endpoint for aggregating credible evaluations from verified_facts gold standard and determining consensus.
-- **Fact Promotion System (`POST /api/admin/promote-facts`):** Automated promotion of high-trust evaluations (≥ threshold) from facts_evaluation to verified_facts with deduplication by (entity, attribute, source_trust), temporal metadata flow, and activity logging.
+- **Fact Promotion System (`POST /api/admin/promote-facts`):** Automated promotion of high-trust evaluations (≥ threshold) from facts_evaluation to verified_facts with deduplication by (entity, attribute, source_name), temporal metadata flow, and activity logging.
 - **Evaluation Scoring (`server/evaluation-scoring.ts`):** Centralized logic for calculating scores based on source trust, recency, and consensus.
 - **Admin Configuration System (`/admin`):** Interface for managing scoring methodology (weights, recency, credible threshold, promotion threshold).
 - **Score Recalculation System:** Dynamic score synchronization via `POST /api/facts-evaluation/recalculate`.
