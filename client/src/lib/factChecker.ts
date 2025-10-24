@@ -401,6 +401,40 @@ export function verifyClaimMultiSource(
     return { status: "unknown" };
   }
 
+  // Filter by year if claim has temporal context
+  let yearFilteredData = sourceData;
+  if (claim.year && sourceData.credibleEvaluations.length > 0) {
+    const yearFilteredEvaluations = sourceData.credibleEvaluations.filter(evaluation => {
+      if (!evaluation.as_of_date) return false;
+      
+      // Extract year from as_of_date (format: YYYY-MM-DD)
+      const evalYear = parseInt(evaluation.as_of_date.split('-')[0]);
+      
+      // Match within ±1 year tolerance to handle data from similar time periods
+      return Math.abs(evalYear - claim.year!) <= 1;
+    });
+
+    // If we have year-specific data, recalculate consensus/min/max
+    if (yearFilteredEvaluations.length > 0) {
+      const values = yearFilteredEvaluations.map(e => parseHumanNumber(e.value)).filter(v => v !== null) as number[];
+      
+      if (values.length > 0) {
+        // Recalculate min/max/consensus from year-specific data
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        const consensus = values.reduce((sum, val) => sum + val, 0) / values.length;
+        
+        yearFilteredData = {
+          consensus,
+          min,
+          max,
+          sourceCount: yearFilteredEvaluations.length,
+          credibleEvaluations: yearFilteredEvaluations
+        };
+      }
+    }
+  }
+
   // Skip rounding precision check for year-based attributes (founded_year)
   // as rounding to nearest thousand would make 1000 match 789, which is incorrect
   const isYearAttribute = attribute === 'founded_year';
@@ -416,11 +450,11 @@ export function verifyClaimMultiSource(
     };
 
     const precision = getRoundingPrecision(claimedNum);
-    const roundedConsensus = Math.round(sourceData.consensus / precision) * precision;
+    const roundedConsensus = Math.round(yearFilteredData.consensus / precision) * precision;
 
     // Check if matches consensus at the appropriate precision level
     if (claimedNum === roundedConsensus) {
-      return { status: "verified", multiSource: sourceData, percentageDiff: 0 };
+      return { status: "verified", multiSource: yearFilteredData, percentageDiff: 0 };
     }
   }
 
@@ -430,20 +464,20 @@ export function verifyClaimMultiSource(
   // Base tolerance on the larger of range size or consensus value to ensure:
   // 1. Symmetry for mixed-sign ranges (e.g., negative inflation)
   // 2. Non-zero tolerance for single-point data (e.g., founding years where min === max)
-  const rangeSize = Math.abs(sourceData.max - sourceData.min);
-  const toleranceBase = Math.max(rangeSize, Math.abs(sourceData.consensus));
+  const rangeSize = Math.abs(yearFilteredData.max - yearFilteredData.min);
+  const toleranceBase = Math.max(rangeSize, Math.abs(yearFilteredData.consensus));
   const toleranceAmount = toleranceBase * (tolerancePercent / 100);
-  const minWithTolerance = sourceData.min - toleranceAmount;
-  const maxWithTolerance = sourceData.max + toleranceAmount;
+  const minWithTolerance = yearFilteredData.min - toleranceAmount;
+  const maxWithTolerance = yearFilteredData.max + toleranceAmount;
   
   if (claimedNum >= minWithTolerance && claimedNum <= maxWithTolerance) {
-    const percentDiff = calculatePercentageDifference(claimedNum, sourceData.consensus);
-    return { status: "verified", multiSource: sourceData, percentageDiff: percentDiff };
+    const percentDiff = calculatePercentageDifference(claimedNum, yearFilteredData.consensus);
+    return { status: "verified", multiSource: yearFilteredData, percentageDiff: percentDiff };
   }
 
   // Outside the range
-  const percentDiff = calculatePercentageDifference(claimedNum, sourceData.consensus);
-  return { status: "mismatch", multiSource: sourceData, percentageDiff: percentDiff };
+  const percentDiff = calculatePercentageDifference(claimedNum, yearFilteredData.consensus);
+  return { status: "mismatch", multiSource: yearFilteredData, percentageDiff: percentDiff };
 }
 
 export function processText(
