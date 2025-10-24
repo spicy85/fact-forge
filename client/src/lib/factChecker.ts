@@ -115,6 +115,7 @@ export interface NumericClaim {
   endIndex: number;
   contextBefore: string;
   contextAfter: string;
+  year?: number; // Optional year extracted from temporal context
 }
 
 /**
@@ -207,6 +208,53 @@ export function isTemporalYear(claim: NumericClaim): boolean {
   return temporalKeywords.some(keyword => context.includes(keyword));
 }
 
+/**
+ * Extract year from temporal context near a claim
+ * Returns the year if found, otherwise undefined
+ */
+export function extractYearFromContext(claim: NumericClaim, text: string): number | undefined {
+  // Look in wider context (±50 chars) for year numbers
+  const contextStart = Math.max(0, claim.startIndex - 50);
+  const contextEnd = Math.min(text.length, claim.endIndex + 50);
+  const wideContext = text.slice(contextStart, contextEnd);
+  
+  // Find 4-digit years in the wider context
+  const yearRegex = /\b(19\d{2}|20\d{2})\b/g;
+  let match;
+  const years: number[] = [];
+  
+  while ((match = yearRegex.exec(wideContext)) !== null) {
+    years.push(parseInt(match[1]));
+  }
+  
+  // Return the year if exactly one is found in context
+  if (years.length === 1) {
+    return years[0];
+  }
+  
+  // If multiple years, find the closest one to the claim
+  if (years.length > 1) {
+    // Prefer years that appear after temporal keywords
+    const contextLower = wideContext.toLowerCase();
+    const temporalKeywords = ['in', 'during', 'since', 'by', 'from', 'until', 'as of'];
+    
+    for (const keyword of temporalKeywords) {
+      const keywordMatch = contextLower.match(new RegExp(`\\b${keyword}\\s+(\\d{4})\\b`));
+      if (keywordMatch) {
+        const year = parseInt(keywordMatch[1]);
+        if (year >= 1900 && year <= 2100) {
+          return year;
+        }
+      }
+    }
+    
+    // Fallback: return first year found
+    return years[0];
+  }
+  
+  return undefined;
+}
+
 export function extractNumericClaims(text: string): NumericClaim[] {
   const claims: NumericClaim[] = [];
   
@@ -221,13 +269,18 @@ export function extractNumericClaims(text: string): NumericClaim[] {
     const contextStart = Math.max(0, startIndex - 20);
     const contextEnd = Math.min(text.length, endIndex + 20);
 
-    claims.push({
+    const claim: NumericClaim = {
       value: match[0].trim(),
       startIndex,
       endIndex,
       contextBefore: text.slice(contextStart, startIndex).toLowerCase(),
       contextAfter: text.slice(endIndex, contextEnd).toLowerCase(),
-    });
+    };
+    
+    // Extract year from wider context
+    claim.year = extractYearFromContext(claim, text);
+    
+    claims.push(claim);
   }
 
   return claims;
