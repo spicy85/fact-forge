@@ -4,6 +4,10 @@
 This project is an AI fact-checking application that verifies numeric claims in text against a trusted PostgreSQL database. It identifies numbers, infers their meaning, and displays inline verification badges (Verified, Mismatch, Unknown) with citations. The application aims to provide a reliable, data-driven solution for quickly validating information, reducing misinformation, and enhancing content credibility using a curated database of facts for 195 countries sourced from Wikipedia, World Bank, and Wikidata.
 
 ## Recent Changes (October 24, 2025)
+- **NULL as_of_date Fix:** Fixed founding year records with 3-digit years
+  - Updated Denmark (800) and Sweden (900) records in facts_evaluation to populate as_of_date (0800-01-01, 0900-01-01)
+  - Modified fetch-wikipedia-evaluations.ts regex from `/\d{4}/` to `/\b\d{3,4}\b/` to capture ancient founding dates
+  - Remaining 48 NULL as_of_dates are area records (acceptable as area is static attribute)
 - **Attribute Classification System:** Implemented extensible attribute type system to control filtering behavior
   - Added `attribute_class` column to verified_facts and facts_evaluation tables (varchar, default: 'time_series')
   - Three classification types: `historical_constant` (founded_year, independence_date), `time_series` (population, gdp, inflation), `static` (area, capital_city)
