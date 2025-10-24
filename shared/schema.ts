@@ -25,7 +25,7 @@ export const verifiedFacts = pgTable("verified_facts", {
   value: text("value").notNull(),
   value_type: text("value_type").notNull(),
   source_url: text("source_url").notNull(),
-  source_trust: text("source_trust").notNull(),
+  source_name: text("source_name").notNull(),
   as_of_date: date("as_of_date"),
   last_verified_at: text("last_verified_at").notNull(),
 });
@@ -45,7 +45,7 @@ export const factsEvaluation = pgTable("facts_evaluation", {
   value: text("value").notNull(),
   value_type: text("value_type").notNull(),
   source_url: text("source_url").notNull(),
-  source_trust: text("source_trust").notNull(),
+  source_name: text("source_name").notNull(),
   as_of_date: date("as_of_date"),
   // Evaluation criteria scores (0-100)
   source_trust_score: integer("source_trust_score"),
