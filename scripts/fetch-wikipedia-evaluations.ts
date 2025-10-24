@@ -50,7 +50,8 @@ async function main() {
     
     if (fact.attribute === 'founded_year' && fact.value) {
       // For founded_year, the value itself is the year, so use it as as_of_date
-      const yearMatch = fact.value.match(/\d{4}/);
+      // Match 3-4 digit years to handle ancient founding dates (e.g., Denmark 800, Sweden 900)
+      const yearMatch = fact.value.match(/\b\d{3,4}\b/);
       if (yearMatch) {
         as_of_date = `${yearMatch[0]}-01-01`;
       }
