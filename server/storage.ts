@@ -178,6 +178,7 @@ export class MemStorage implements IStorage {
 
   async getMultiSourceEvaluations(entity: string, attribute: string): Promise<MultiSourceResult | null> {
     // Get all verified facts for this entity-attribute from verified_facts table
+    // IMPORTANT: Return ALL time-series data points for historical claim verification
     const verifiedFactsList = await db
       .select()
       .from(verifiedFacts)
@@ -193,20 +194,12 @@ export class MemStorage implements IStorage {
       return null;
     }
     
-    // Group by source_trust and take the most recent entry from each source
-    const latestBySource = new Map<string, typeof verifiedFactsList[0]>();
-    for (const fact of verifiedFactsList) {
-      const sourceTrust = fact.source_trust;
-      if (!latestBySource.has(sourceTrust)) {
-        latestBySource.set(sourceTrust, fact);
-      }
-    }
-    
-    // Use the latest facts from each source for consensus calculation
-    const latestFacts = Array.from(latestBySource.values());
+    // Use ALL facts for consensus calculation to support time-series data
+    // This allows verification of historical claims like "USA had 226M people in 1980"
+    const allFacts = verifiedFactsList;
     
     const numericValues: number[] = [];
-    for (const fact of latestFacts) {
+    for (const fact of allFacts) {
       const numValue = parseFloat(fact.value.replace(/,/g, ''));
       if (!isNaN(numValue)) {
         numericValues.push(numValue);
@@ -217,14 +210,14 @@ export class MemStorage implements IStorage {
       return null;
     }
     
-    // For verified facts, calculate simple average consensus (all sources equally weighted)
+    // For verified facts, calculate simple average consensus (all time-series points included)
     const consensus = numericValues.reduce((sum, v) => sum + v, 0) / numericValues.length;
     
     const min = Math.min(...numericValues);
     const max = Math.max(...numericValues);
     
     // Convert verified facts to evaluation format for compatibility
-    const credibleEvaluations: FactsEvaluation[] = latestFacts.map(fact => ({
+    const credibleEvaluations: FactsEvaluation[] = allFacts.map(fact => ({
       id: 0, // placeholder
       entity: fact.entity,
       entity_type: fact.entity_type,
@@ -250,7 +243,7 @@ export class MemStorage implements IStorage {
       consensus,
       min,
       max,
-      sourceCount: latestFacts.length,
+      sourceCount: allFacts.length,
       credibleEvaluations
     };
   }
