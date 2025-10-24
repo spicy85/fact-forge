@@ -18,7 +18,7 @@ export interface FactRecord {
   value: string;
   value_type: string;
   source_url: string;
-  source_trust: string;
+  source_name: string;
   last_verified_at: string;
 }
 
@@ -28,7 +28,7 @@ export interface CredibleEvaluation {
   attribute: string;
   value: string;
   source_url: string;
-  source_trust: string;
+  source_name: string;
   as_of_date: string | null;
   trust_score: number | null;
   evaluated_at: string;
