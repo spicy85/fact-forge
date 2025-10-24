@@ -8,10 +8,12 @@ This project is an AI fact-checking application that verifies numeric claims in 
   - Added `year?: number` field to NumericClaim interface to store extracted year from temporal context
   - Created `extractYearFromContext()` function to detect 4-digit years (1900-2100) in ±50 char context around claims
   - Updated `extractNumericClaims()` to automatically populate year field by searching for temporal keywords ("in", "during", "since", etc.)
-  - Refactored `verifyClaimMultiSource()` to filter credibleEvaluations by as_of_date when year is present (±1 year tolerance)
-  - Recalculates min/max/consensus from year-specific data using same algorithm as server (simple average per storage.ts line 220)
+  - Refactored `verifyClaimMultiSource()` to filter credibleEvaluations by as_of_date:
+    - When year is specified → filter to that year (±1 year tolerance)
+    - When no year specified → default to most recent data (assumes current/latest is desired)
+  - Recalculates min/max/consensus from filtered data using same algorithm as server (simple average per storage.ts line 220)
   - Uses immutable data flow: original sourceData preserved, separate comparisonData view created for year-scoped verification
-  - Verified working: "US population was 220m in 1980" → shows 226M (1980 data only), "US population is 340m" → shows 226M-340M (all-time range)
+  - Verified working: "US population was 220m in 1980" → shows 226M (1980 data only), "US population is 340m" → shows 340M (most recent data)
 - **Time-Series Data Support:** Implemented historical fact verification for claims from different years
   - Created `fetch-historical-wikidata.ts` script to query historical population and GDP data (1975-2025)
   - Modified promotion deduplication from `(entity, attribute, source_trust)` to `(entity, attribute, source_trust, as_of_date)`

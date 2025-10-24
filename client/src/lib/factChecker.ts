@@ -401,27 +401,51 @@ export function verifyClaimMultiSource(
     return { status: "unknown" };
   }
 
-  // Filter by year if claim has temporal context
+  // Filter by year - either specified year or most recent if not specified
   // Keep original data intact and create year-scoped view for comparison only
   let comparisonData = sourceData;
   
-  if (claim.year && sourceData.credibleEvaluations.length > 0) {
-    const yearFilteredEvaluations = sourceData.credibleEvaluations.filter(evaluation => {
-      if (!evaluation.as_of_date) return false;
+  if (sourceData.credibleEvaluations.length > 0) {
+    let yearFilteredEvaluations;
+    
+    if (claim.year) {
+      // User specified a year (e.g., "in 1980") - filter to that year
+      yearFilteredEvaluations = sourceData.credibleEvaluations.filter(evaluation => {
+        if (!evaluation.as_of_date) return false;
+        
+        // Extract year from as_of_date (format: YYYY-MM-DD)
+        const evalYear = parseInt(evaluation.as_of_date.split('-')[0]);
+        
+        // Match within ±1 year tolerance to handle data from similar time periods
+        return Math.abs(evalYear - claim.year!) <= 1;
+      });
+    } else {
+      // No year specified - default to most recent data
+      // Find the most recent as_of_date
+      const mostRecentDate = sourceData.credibleEvaluations
+        .filter(e => e.as_of_date)
+        .map(e => e.as_of_date!)
+        .sort()
+        .reverse()[0];
       
-      // Extract year from as_of_date (format: YYYY-MM-DD)
-      const evalYear = parseInt(evaluation.as_of_date.split('-')[0]);
-      
-      // Match within ±1 year tolerance to handle data from similar time periods
-      return Math.abs(evalYear - claim.year!) <= 1;
-    });
+      if (mostRecentDate) {
+        const mostRecentYear = parseInt(mostRecentDate.split('-')[0]);
+        
+        // Filter to evaluations from the most recent year (±1 year tolerance)
+        yearFilteredEvaluations = sourceData.credibleEvaluations.filter(evaluation => {
+          if (!evaluation.as_of_date) return false;
+          const evalYear = parseInt(evaluation.as_of_date.split('-')[0]);
+          return Math.abs(evalYear - mostRecentYear) <= 1;
+        });
+      }
+    }
 
-    // If we have year-specific data, create filtered view for comparison
-    if (yearFilteredEvaluations.length > 0) {
+    // If we have filtered data, create filtered view for comparison
+    if (yearFilteredEvaluations && yearFilteredEvaluations.length > 0) {
       const values = yearFilteredEvaluations.map(e => parseHumanNumber(e.value)).filter(v => v !== null) as number[];
       
       if (values.length > 0) {
-        // Recalculate min/max/consensus from year-specific data using same algorithm as server
+        // Recalculate min/max/consensus from filtered data using same algorithm as server
         // (simple average per storage.ts line 220)
         const min = Math.min(...values);
         const max = Math.max(...values);
