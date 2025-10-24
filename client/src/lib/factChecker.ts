@@ -9,7 +9,7 @@ import toleranceConfig from "../../../public/tolerance-config.json";
  */
 export function getToleranceForAttribute(attribute: string | null): number {
   if (!attribute) return toleranceConfig.default;
-  return (toleranceConfig as Record<string, number>)[attribute] ?? toleranceConfig.default;
+  return (toleranceConfig as any)[attribute] ?? toleranceConfig.default;
 }
 
 export interface FactRecord {
