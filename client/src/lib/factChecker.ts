@@ -15,6 +15,7 @@ export function getToleranceForAttribute(attribute: string | null): number {
 export interface FactRecord {
   entity: string;
   attribute: string;
+  attribute_class: string;
   value: string;
   value_type: string;
   source_url: string;
@@ -26,6 +27,7 @@ export interface CredibleEvaluation {
   id: number;
   entity: string;
   attribute: string;
+  attribute_class: string;
   value: string;
   source_url: string;
   source_name: string;
@@ -401,11 +403,16 @@ export function verifyClaimMultiSource(
     return { status: "unknown" };
   }
 
-  // Filter by year - either specified year or most recent if not specified
-  // Keep original data intact and create year-scoped view for comparison only
+  // Determine attribute class for filtering behavior
+  const attributeClass = sourceData.credibleEvaluations.length > 0 
+    ? sourceData.credibleEvaluations[0].attribute_class 
+    : 'time_series';
+  
+  // Filter by year for time_series attributes only
+  // For historical_constant and static attributes, show ALL sources to reveal discrepancies
   let comparisonData = sourceData;
   
-  if (sourceData.credibleEvaluations.length > 0) {
+  if (sourceData.credibleEvaluations.length > 0 && attributeClass === 'time_series') {
     let yearFilteredEvaluations;
     
     if (claim.year) {

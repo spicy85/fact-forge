@@ -235,9 +235,18 @@ async function main() {
           continue;
         }
 
+        // Determine attribute class
+        const getAttributeClass = (attr: string): string => {
+          if (attr === 'founded_year' || attr === 'independence_date') return 'historical_constant';
+          if (attr === 'area' || attr === 'capital_city' || attr === 'official_language' || attr === 'life_expectancy') return 'static';
+          return 'time_series'; // population, gdp, gdp_per_capita, inflation
+        };
+        const attributeClass = getAttributeClass(result.attribute);
+
         await db.insert(factsEvaluation).values({
           entity: result.entity,
           attribute: result.attribute,
+          attribute_class: attributeClass,
           value: result.value,
           value_type: "numeric",
           source_url: result.referenceUrl,

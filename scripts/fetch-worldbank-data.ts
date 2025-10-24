@@ -49,6 +49,14 @@ async function main() {
       const attribute = attributeMap[indicatorName];
       if (!attribute) continue;
 
+      // Determine attribute class
+      const getAttributeClass = (attr: string): string => {
+        if (attr === 'founded_year' || attr === 'independence_date') return 'historical_constant';
+        if (attr === 'area' || attr === 'capital_city' || attr === 'official_language' || attr === 'life_expectancy') return 'static';
+        return 'time_series'; // population, gdp, gdp_per_capita, inflation
+      };
+      const attributeClass = getAttributeClass(attribute);
+
       // Calculate scores
       const sourceTrustScore = await calculateSourceTrustScore(sourceUrl);
       const recencyScore = calculateRecencyScore(
@@ -73,6 +81,7 @@ async function main() {
         await db.insert(factsEvaluation).values({
           entity: country,
           attribute: attribute,
+          attribute_class: attributeClass,
           value: latestData.value.toString(),
           value_type: "numeric",
           source_url: sourceUrl,
