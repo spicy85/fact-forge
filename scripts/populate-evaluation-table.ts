@@ -26,7 +26,7 @@ async function populateEvaluationTable() {
         value: fact.value,
         value_type: fact.value_type,
         source_url: fact.source_url,
-        source_trust: fact.source_trust,
+        source_name: fact.source_name,
         consensus_score: consensusScore,
         evaluation_notes: `Automated evaluation: Checking ${fact.attribute} for ${fact.entity}`,
         evaluated_at: evaluatedAt,

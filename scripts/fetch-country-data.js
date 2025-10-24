@@ -189,7 +189,7 @@ async function fetchWorldBankData(countries) {
  */
 function generateCSV(countries) {
   const rows = [
-    'entity,attribute,value,value_type,as_of_date,source_url,source_trust,last_verified_at'
+    'entity,attribute,value,value_type,as_of_date,source_url,source_name,last_verified_at'
   ];
 
   const today = new Date().toISOString().split('T')[0];

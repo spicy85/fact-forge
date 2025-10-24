@@ -65,7 +65,7 @@ export async function crossCheckAllSources(): Promise<CrossCheckStats> {
     
     // Check which sources already have this data
     const existing = await db
-      .select({ source_trust: factsEvaluation.source_trust })
+      .select({ source_name: factsEvaluation.source_name })
       .from(factsEvaluation)
       .where(
         and(
@@ -74,7 +74,7 @@ export async function crossCheckAllSources(): Promise<CrossCheckStats> {
         )
       );
 
-    const existingSources = new Set(existing.map(e => e.source_trust));
+    const existingSources = new Set(existing.map(e => e.source_name));
     
     // Try to fetch from missing sources
     const sources = [
@@ -193,7 +193,7 @@ async function fetchFromWorldBank(
         and(
           eq(factsEvaluation.entity, entity),
           eq(factsEvaluation.attribute, attribute),
-          eq(factsEvaluation.source_trust, "data.worldbank.org")
+          eq(factsEvaluation.source_name, "data.worldbank.org")
         )
       )
       .limit(1);
@@ -232,7 +232,7 @@ async function fetchFromWorldBank(
       value,
       value_type: "numeric",
       source_url: sourceUrl,
-      source_trust: "data.worldbank.org",
+      source_name: "data.worldbank.org",
       as_of_date,
       source_trust_score: sourceTrustScore,
       recency_score: recencyScore,
@@ -343,7 +343,7 @@ async function fetchFromWikidata(
         and(
           eq(factsEvaluation.entity, entity),
           eq(factsEvaluation.attribute, attributeName),
-          eq(factsEvaluation.source_trust, "www.wikidata.org")
+          eq(factsEvaluation.source_name, "www.wikidata.org")
         )
       )
       .limit(1);
@@ -382,7 +382,7 @@ async function fetchFromWikidata(
       value: valueStr,
       value_type: "numeric",
       source_url: sourceUrl,
-      source_trust: "www.wikidata.org",
+      source_name: "www.wikidata.org",
       as_of_date,
       source_trust_score: sourceTrustScore,
       recency_score: recencyScore,

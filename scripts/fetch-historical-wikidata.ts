@@ -209,7 +209,7 @@ async function main() {
         value: dataPoint.value,
         value_type: "numeric",
         source_url: dataPoint.referenceUrl,
-        source_trust: "www.wikidata.org",
+        source_name: "www.wikidata.org",
         as_of_date: dataPoint.as_of_date,
         source_trust_score: sourceTrustScore,
         recency_score: recencyScore,

@@ -76,7 +76,7 @@ async function main() {
           value: latestData.value.toString(),
           value_type: "numeric",
           source_url: sourceUrl,
-          source_trust: "data.worldbank.org",
+          source_name: "data.worldbank.org",
           as_of_date: latestData.as_of_date,
           source_trust_score: sourceTrustScore,
           recency_score: recencyScore,

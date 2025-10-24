@@ -9,9 +9,9 @@ async function fixWorldBankSourceTrust() {
   const updateResult = await db
     .update(factsEvaluation)
     .set({
-      source_trust: "data.worldbank.org"
+      source_name: "data.worldbank.org"
     })
-    .where(eq(factsEvaluation.source_trust, "api.worldbank.org"))
+    .where(eq(factsEvaluation.source_name, "api.worldbank.org"))
     .returning({ id: factsEvaluation.id });
 
   console.log(`✓ Updated ${updateResult.length} facts to use data.worldbank.org in source_trust`);
@@ -20,7 +20,7 @@ async function fixWorldBankSourceTrust() {
   const remainingApiRefs = await db
     .select()
     .from(factsEvaluation)
-    .where(eq(factsEvaluation.source_trust, "api.worldbank.org"));
+    .where(eq(factsEvaluation.source_name, "api.worldbank.org"));
 
   if (remainingApiRefs.length === 0) {
     console.log(`✓ All facts now correctly reference data.worldbank.org`);
@@ -37,6 +37,6 @@ fixWorldBankSourceTrust()
     process.exit(0);
   })
   .catch((error) => {
-    console.error("Error fixing World Bank source_trust:", error);
+    console.error("Error fixing World Bank source_name:", error);
     process.exit(1);
   });

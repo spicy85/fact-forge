@@ -241,7 +241,7 @@ async function main() {
           value: result.value,
           value_type: "numeric",
           source_url: result.referenceUrl,
-          source_trust: "www.wikidata.org",
+          source_name: "www.wikidata.org",
           as_of_date: result.as_of_date,
           source_trust_score: sourceTrustScore,
           recency_score: recencyScore,

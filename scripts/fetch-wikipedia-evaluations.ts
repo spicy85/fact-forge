@@ -106,7 +106,7 @@ async function main() {
         value: fact.value,
         value_type: fact.value_type,
         source_url: fact.source_url || sourceUrl,
-        source_trust: "Wikipedia",
+        source_name: "Wikipedia",
         as_of_date: as_of_date,
         source_trust_score: sourceTrustScore,
         recency_score: recencyScore,

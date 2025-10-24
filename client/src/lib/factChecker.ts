@@ -671,13 +671,13 @@ export function processTextMultiSource(
     // Extract individual sources from credibleEvaluations and deduplicate by domain
     const allSources = verification.multiSource?.credibleEvaluations.map((evaluation) => {
       // Extract domain from source_url
-      let domain = evaluation.source_trust;
+      let domain = evaluation.source_name;
       try {
         const url = new URL(evaluation.source_url);
         domain = url.hostname.replace(/^www\./, '');
       } catch {
-        // If URL parsing fails, use source_trust as domain
-        domain = evaluation.source_trust;
+        // If URL parsing fails, use source_name as domain
+        domain = evaluation.source_name;
       }
 
       return {

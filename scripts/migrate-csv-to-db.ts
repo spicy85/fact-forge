@@ -78,7 +78,7 @@ async function migrateCsvToDb() {
         value: value.trim(),
         value_type: valueType.trim() as 'integer' | 'decimal' | 'text',
         source_url: source_url,
-        source_trust: sourceTrust.trim() as 'high' | 'medium' | 'low',
+        source_name: sourceTrust.trim() as 'high' | 'medium' | 'low',
         as_of_date: as_of_date,
         evaluated_at: evaluatedAt,
         source_trust_score: sourceTrustScore,

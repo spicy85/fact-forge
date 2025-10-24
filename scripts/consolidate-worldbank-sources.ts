@@ -11,9 +11,9 @@ async function consolidateWorldBankSources() {
     .update(factsEvaluation)
     .set({
       source_url: sql`REPLACE(source_url, 'https://api.worldbank.org/', 'https://data.worldbank.org/')`,
-      source_trust: "data.worldbank.org"
+      source_name: "data.worldbank.org"
     })
-    .where(sql`source_url LIKE 'https://api.worldbank.org/%' OR source_trust = 'api.worldbank.org'`)
+    .where(sql`source_url LIKE 'https://api.worldbank.org/%' OR source_name = 'api.worldbank.org'`)
     .returning({ id: factsEvaluation.id });
 
   console.log(`Updated ${updateResult.length} facts from api.worldbank.org to data.worldbank.org`);

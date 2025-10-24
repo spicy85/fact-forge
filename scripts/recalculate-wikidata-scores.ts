@@ -18,7 +18,7 @@ async function recalculateWikidataScores() {
   const wikidataEvals = await db
     .select()
     .from(factsEvaluation)
-    .where(eq(factsEvaluation.source_trust, "www.wikidata.org"));
+    .where(eq(factsEvaluation.source_name, "www.wikidata.org"));
 
   console.log(`Found ${wikidataEvals.length} Wikidata evaluations`);
 

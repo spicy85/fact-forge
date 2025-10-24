@@ -320,7 +320,7 @@ export async function fulfillRequestedFacts() {
         value: fetchResult.value,
         value_type: "numeric",
         source_url: fetchResult.sourceUrl,
-        source_trust: fetchResult.sourceTrust,
+        source_name: fetchResult.sourceTrust,
         as_of_date: fetchResult.as_of_date,
         source_trust_score: sourceTrustScore,
         recency_score: recencyScore,
