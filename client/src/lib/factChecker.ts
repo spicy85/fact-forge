@@ -402,7 +402,9 @@ export function verifyClaimMultiSource(
   }
 
   // Filter by year if claim has temporal context
-  let yearFilteredData = sourceData;
+  // Keep original data intact and create year-scoped view for comparison only
+  let comparisonData = sourceData;
+  
   if (claim.year && sourceData.credibleEvaluations.length > 0) {
     const yearFilteredEvaluations = sourceData.credibleEvaluations.filter(evaluation => {
       if (!evaluation.as_of_date) return false;
@@ -414,17 +416,18 @@ export function verifyClaimMultiSource(
       return Math.abs(evalYear - claim.year!) <= 1;
     });
 
-    // If we have year-specific data, recalculate consensus/min/max
+    // If we have year-specific data, create filtered view for comparison
     if (yearFilteredEvaluations.length > 0) {
       const values = yearFilteredEvaluations.map(e => parseHumanNumber(e.value)).filter(v => v !== null) as number[];
       
       if (values.length > 0) {
-        // Recalculate min/max/consensus from year-specific data
+        // Recalculate min/max/consensus from year-specific data using same algorithm as server
+        // (simple average per storage.ts line 220)
         const min = Math.min(...values);
         const max = Math.max(...values);
         const consensus = values.reduce((sum, val) => sum + val, 0) / values.length;
         
-        yearFilteredData = {
+        comparisonData = {
           consensus,
           min,
           max,
@@ -450,11 +453,11 @@ export function verifyClaimMultiSource(
     };
 
     const precision = getRoundingPrecision(claimedNum);
-    const roundedConsensus = Math.round(yearFilteredData.consensus / precision) * precision;
+    const roundedConsensus = Math.round(comparisonData.consensus / precision) * precision;
 
     // Check if matches consensus at the appropriate precision level
     if (claimedNum === roundedConsensus) {
-      return { status: "verified", multiSource: yearFilteredData, percentageDiff: 0 };
+      return { status: "verified", multiSource: comparisonData, percentageDiff: 0 };
     }
   }
 
@@ -464,20 +467,20 @@ export function verifyClaimMultiSource(
   // Base tolerance on the larger of range size or consensus value to ensure:
   // 1. Symmetry for mixed-sign ranges (e.g., negative inflation)
   // 2. Non-zero tolerance for single-point data (e.g., founding years where min === max)
-  const rangeSize = Math.abs(yearFilteredData.max - yearFilteredData.min);
-  const toleranceBase = Math.max(rangeSize, Math.abs(yearFilteredData.consensus));
+  const rangeSize = Math.abs(comparisonData.max - comparisonData.min);
+  const toleranceBase = Math.max(rangeSize, Math.abs(comparisonData.consensus));
   const toleranceAmount = toleranceBase * (tolerancePercent / 100);
-  const minWithTolerance = yearFilteredData.min - toleranceAmount;
-  const maxWithTolerance = yearFilteredData.max + toleranceAmount;
+  const minWithTolerance = comparisonData.min - toleranceAmount;
+  const maxWithTolerance = comparisonData.max + toleranceAmount;
   
   if (claimedNum >= minWithTolerance && claimedNum <= maxWithTolerance) {
-    const percentDiff = calculatePercentageDifference(claimedNum, yearFilteredData.consensus);
-    return { status: "verified", multiSource: yearFilteredData, percentageDiff: percentDiff };
+    const percentDiff = calculatePercentageDifference(claimedNum, comparisonData.consensus);
+    return { status: "verified", multiSource: comparisonData, percentageDiff: percentDiff };
   }
 
   // Outside the range
-  const percentDiff = calculatePercentageDifference(claimedNum, yearFilteredData.consensus);
-  return { status: "mismatch", multiSource: yearFilteredData, percentageDiff: percentDiff };
+  const percentDiff = calculatePercentageDifference(claimedNum, comparisonData.consensus);
+  return { status: "mismatch", multiSource: comparisonData, percentageDiff: percentDiff };
 }
 
 export function processText(
