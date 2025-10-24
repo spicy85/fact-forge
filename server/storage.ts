@@ -194,6 +194,12 @@ export class MemStorage implements IStorage {
       return null;
     }
     
+    // Fetch all sources to get numeric trust ratings
+    const allSources = await db.select().from(sources);
+    const sourceTrustMap = new Map(
+      allSources.map(source => [source.domain, source.public_trust])
+    );
+    
     // Use ALL facts for consensus calculation to support time-series data
     // This allows verification of historical claims like "USA had 226M people in 1980"
     const allFacts = verifiedFactsList;
@@ -233,7 +239,7 @@ export class MemStorage implements IStorage {
       source_trust_weight: null,
       recency_weight: null,
       consensus_weight: null,
-      trust_score: null,
+      trust_score: sourceTrustMap.get(fact.source_trust) ?? null,
       evaluation_notes: null,
       evaluated_at: fact.last_verified_at,
       status: 'verified',
