@@ -231,7 +231,7 @@ export class MemStorage implements IStorage {
       value: fact.value,
       value_type: fact.value_type,
       source_url: fact.source_url,
-      source_trust: fact.source_trust,
+      source_name: fact.source_name,
       as_of_date: fact.as_of_date,
       source_trust_score: null,
       recency_score: null,
@@ -239,7 +239,7 @@ export class MemStorage implements IStorage {
       source_trust_weight: null,
       recency_weight: null,
       consensus_weight: null,
-      trust_score: sourceTrustMap.get(fact.source_trust) ?? null,
+      trust_score: sourceTrustMap.get(fact.source_name) ?? null,
       evaluation_notes: null,
       evaluated_at: fact.last_verified_at,
       status: 'verified',
@@ -491,11 +491,11 @@ export class MemStorage implements IStorage {
       return { promotedCount: 0, skippedCount: 0 };
     }
 
-    // Deduplicate: Keep most recent fact per (entity, attribute, source_trust, as_of_date)
+    // Deduplicate: Keep most recent fact per (entity, attribute, source_name, as_of_date)
     // Including as_of_date allows for time-series data (e.g., population in 2020, 2021, 2022)
     const deduplicatedMap = new Map<string, typeof candidateFacts[0]>();
     for (const fact of candidateFacts) {
-      const key = `${fact.entity}|||${fact.attribute}|||${fact.source_trust}|||${fact.as_of_date || ''}`;
+      const key = `${fact.entity}|||${fact.attribute}|||${fact.source_name}|||${fact.as_of_date || ''}`;
       if (!deduplicatedMap.has(key)) {
         deduplicatedMap.set(key, fact);
       }
@@ -506,7 +506,7 @@ export class MemStorage implements IStorage {
     // Check which facts already exist in verified_facts to avoid duplicates
     const existingFacts = await db.select().from(verifiedFacts);
     const existingKeys = new Set(
-      existingFacts.map(f => `${f.entity}|||${f.attribute}|||${f.source_trust}|||${f.as_of_date || ''}`)
+      existingFacts.map(f => `${f.entity}|||${f.attribute}|||${f.source_name}|||${f.as_of_date || ''}`)
     );
 
     let promotedCount = 0;
@@ -514,7 +514,7 @@ export class MemStorage implements IStorage {
     const logsToInsert: InsertFactsActivityLog[] = [];
 
     for (const fact of factsToPromote) {
-      const key = `${fact.entity}|||${fact.attribute}|||${fact.source_trust}|||${fact.as_of_date || ''}`;
+      const key = `${fact.entity}|||${fact.attribute}|||${fact.source_name}|||${fact.as_of_date || ''}`;
       
       if (existingKeys.has(key)) {
         // Update existing fact with newer data
@@ -529,7 +529,7 @@ export class MemStorage implements IStorage {
             and(
               eq(verifiedFacts.entity, fact.entity),
               eq(verifiedFacts.attribute, fact.attribute),
-              eq(verifiedFacts.source_trust, fact.source_trust),
+              eq(verifiedFacts.source_name, fact.source_name),
               fact.as_of_date ? eq(verifiedFacts.as_of_date, fact.as_of_date) : sql`${verifiedFacts.as_of_date} IS NULL`
             )
           );
@@ -539,7 +539,7 @@ export class MemStorage implements IStorage {
           entity_type: fact.entity_type,
           attribute: fact.attribute,
           action: 'updated',
-          source: fact.source_trust,
+          source: fact.source_name,
           process: 'promotion',
           value: fact.value,
           notes: `Updated from evaluation (trust_score: ${fact.trust_score})`,
@@ -555,7 +555,7 @@ export class MemStorage implements IStorage {
           value: fact.value,
           value_type: fact.value_type,
           source_url: fact.source_url,
-          source_trust: fact.source_trust,
+          source_name: fact.source_name,
           as_of_date: fact.as_of_date,
           last_verified_at: fact.evaluated_at,
         });
@@ -565,7 +565,7 @@ export class MemStorage implements IStorage {
           entity_type: fact.entity_type,
           attribute: fact.attribute,
           action: 'promoted',
-          source: fact.source_trust,
+          source: fact.source_name,
           process: 'promotion',
           value: fact.value,
           notes: `Promoted from evaluation (trust_score: ${fact.trust_score})`,
