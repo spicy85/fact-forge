@@ -4,6 +4,14 @@
 This project is an AI fact-checking application that verifies numeric claims in text against a trusted PostgreSQL database. It identifies numbers, infers their meaning, and displays inline verification badges (Verified, Mismatch, Unknown) with citations. The application aims to provide a reliable, data-driven solution for quickly validating information, reducing misinformation, and enhancing content credibility using a curated database of facts for 195 countries sourced from Wikipedia, World Bank, and Wikidata.
 
 ## Recent Changes (October 24, 2025)
+- **Attribute Classification System:** Implemented extensible attribute type system to control filtering behavior
+  - Added `attribute_class` column to verified_facts and facts_evaluation tables (varchar, default: 'time_series')
+  - Three classification types: `historical_constant` (founded_year, independence_date), `time_series` (population, gdp, inflation), `static` (area, capital_city)
+  - Updated verifyClaimMultiSource() to check attribute_class and skip year-filtering for historical_constant attributes
+  - Backfilled 243 historical_constant and 97 static records via SQL UPDATE statements
+  - Updated key fetcher scripts (fetch-worldbank-data.ts, fetch-wikidata.ts, fetch-historical-wikidata.ts) to set attribute_class on insert
+  - **Fixes bug**: "US founded in 1776" now shows BOTH Wikipedia (1776) and Wikidata (1784) sources, displaying range "1776 - 1784" to reveal historical discrepancies
+  - Historical constants show all sources regardless of year; time-series data filters to most recent year when no year specified
 - **Schema Cleanup - source_trust Rename:** Renamed `source_trust` column to `source_name` across entire codebase for clarity
   - Column stores source identifier/domain (e.g., "Wikipedia", "www.wikidata.org"), not numeric trust score
   - Updated both `verified_facts` and `facts_evaluation` tables via ALTER TABLE SQL migration
