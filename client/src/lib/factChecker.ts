@@ -415,7 +415,11 @@ export function processText(
     return { verifiedClaims: [], results: [], detectedEntity: null };
   }
 
-  const claims = extractNumericClaims(text);
+  const allClaims = extractNumericClaims(text);
+  
+  // Filter out temporal years (e.g., "in 1980") - they're context, not claims
+  const claims = allClaims.filter(claim => !isTemporalYear(claim));
+  
   const verifiedClaims: VerifiedClaim[] = [];
   const results: VerificationResult[] = [];
 
@@ -483,7 +487,11 @@ export function processTextMultiSource(
     return { verifiedClaims: [], results: [], detectedEntity: null };
   }
 
-  const claims = extractNumericClaims(text);
+  const allClaims = extractNumericClaims(text);
+  
+  // Filter out temporal years (e.g., "in 1980") - they're context, not claims
+  const claims = allClaims.filter(claim => !isTemporalYear(claim));
+  
   const verifiedClaims: VerifiedClaim[] = [];
   const results: VerificationResult[] = [];
 
