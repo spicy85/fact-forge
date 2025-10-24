@@ -185,6 +185,28 @@ export function detectEntity(
   return null;
 }
 
+/**
+ * Determines if a numeric claim is likely a year in temporal context
+ * Years should not be verified as standalone claims
+ */
+export function isTemporalYear(claim: NumericClaim): boolean {
+  const num = parseFloat(claim.value.replace(/,/g, ''));
+  
+  // Must be a 4-digit integer in year range
+  if (!Number.isInteger(num) || num < 1900 || num > 2100) {
+    return false;
+  }
+  
+  // Check for temporal keywords in context
+  const context = (claim.contextBefore + " " + claim.contextAfter).toLowerCase();
+  const temporalKeywords = [
+    'in ', ' in', 'during', 'since', 'by ', 'from', 'until', 'as of',
+    'year', 'founded', 'established', 'independence'
+  ];
+  
+  return temporalKeywords.some(keyword => context.includes(keyword));
+}
+
 export function extractNumericClaims(text: string): NumericClaim[] {
   const claims: NumericClaim[] = [];
   
