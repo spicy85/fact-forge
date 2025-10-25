@@ -35,7 +35,7 @@ export interface IStorage {
   rejectSource(domain: string, notes?: string): Promise<Source | undefined>;
   getScoringSettings(): Promise<ScoringSettings | undefined>;
   upsertScoringSettings(settings: UpdateScoringSettings): Promise<ScoringSettings>;
-  createOrIncrementRequestedFact(entity: string, attribute: string, claimValue?: string): Promise<RequestedFact>;
+  createOrIncrementRequestedFact(entity: string, attribute: string, claimValue?: string, claimYear?: number): Promise<RequestedFact>;
   logSourceActivity(log: InsertSourceActivityLog): Promise<SourceActivityLog>;
   getAllSourceActivityLogs(): Promise<SourceActivityLog[]>;
   logFactsActivity(log: InsertFactsActivityLog): Promise<FactsActivityLog>;
