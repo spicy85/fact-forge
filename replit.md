@@ -28,6 +28,7 @@ The application is a multi-page React application built with Vite, utilizing an 
 - **Admin Configuration System:** Manages scoring methodology (weights, recency, credible threshold, promotion threshold).
 - **Cross-Check Sources & Fulfill Requested Facts Systems:** Tools for identifying and fetching missing data, and processing user-requested facts.
 - **Time-Series Data Pipeline:** Automated fetching of historical population and GDP data from Wikidata (1960-2025).
+- **Pull New Facts System:** Admin tool (`/api/admin/pull-new-facts`) to fetch specific data on demand from World Bank and Wikidata APIs. Accepts arrays of entities, attributes, and years, queries external APIs, checks for duplicates using (entity, attribute, source_name, as_of_date), and inserts new evaluations into `facts_evaluation` table. Returns detailed stats (requested, found, duplicates, inserted). UI in AdminScoring page with form for selecting countries, attributes (checkboxes), and year ranges.
 - **Source Management System:** UI-driven system for managing data sources (add, promote, reject) with activity logging.
 - **Facts Activity Logging:** Comprehensive audit trail for fact lifecycle events.
 - **Core Logic (`lib/factChecker.ts`):** Handles entity detection, numeric claim extraction (supports k/m/b/t notation), attribute inference, multi-source claim verification with trust-weighted consensus, and requested facts tracking. Includes temporal context extraction for year-specific filtering.
