@@ -33,6 +33,7 @@ The application is a multi-page React application built with Vite, utilizing an 
 - **Core Logic (`lib/factChecker.ts`):** Handles entity detection, numeric claim extraction (supports k/m/b/t notation), attribute inference, multi-source claim verification with trust-weighted consensus, and requested facts tracking. Includes temporal context extraction for year-specific filtering.
 - **Configuration Files:** `public/attribute-mapping.json` (keyword to attribute), `public/tolerance-config.json` (attribute-specific tolerances, e.g., founded_year: 0.1%, population/gdp: 10%), `public/entity-mapping.json` (country aliases).
 - **Temporal Tracking:** Distinguishes between `evaluated_at` (when source was checked) and `as_of_date` (when data is valid), ensuring `as_of_date` is only stored when provided by the source. An `attribute_class` column (`historical_constant`, `time_series`, `static`) controls filtering behavior, allowing historical constants to show all sources regardless of year.
+- **Year-Based Filtering:** For time_series attributes, the system extracts year from temporal context (e.g., "in 2000") and filters evaluations to ±1 year tolerance. Critical implementation: backend `getMultiSourceEvaluations()` must include `attribute_class` field in credibleEvaluations mapping to enable frontend filtering logic in `verifyClaimMultiSource()`.
 
 ## External Dependencies
 - **PostgreSQL (Neon):** Primary database.
