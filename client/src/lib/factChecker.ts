@@ -623,13 +623,16 @@ export function processTextMultiSource(
     // Log unsupported entity-attribute combinations for future data expansion
     // Only logs when BOTH entity AND attribute are recognized but no data exists (status === "unknown")
     if (verification.status === "unknown" && entity && attribute) {
+      const claimYear = extractYearFromContext(claim, text);
+      
       fetch('/api/requested-facts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           entity,
           attribute,
-          claimValue: claim.value
+          claimValue: claim.value,
+          claimYear
         })
       }).catch(() => {
         // Silently ignore errors - logging is best-effort

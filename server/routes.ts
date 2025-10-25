@@ -59,6 +59,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     entity: z.string().min(1),
     attribute: z.string().min(1),
     claimValue: z.string().optional(),
+    claimYear: z.number().int().optional(),
   });
 
   app.post("/api/requested-facts", async (req, res) => {
@@ -68,7 +69,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const requestedFact = await storage.createOrIncrementRequestedFact(
         validatedData.entity,
         validatedData.attribute,
-        validatedData.claimValue
+        validatedData.claimValue,
+        validatedData.claimYear
       );
       
       // Fire-and-forget activity logging (non-blocking)
