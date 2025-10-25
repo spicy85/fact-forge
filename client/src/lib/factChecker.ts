@@ -447,6 +447,12 @@ export function verifyClaimMultiSource(
       }
     }
 
+    // If user specified a year but we have no data for that year, return unknown
+    // This enables tracking demand for specific historical years we're missing
+    if (claim.year && yearFilteredEvaluations && yearFilteredEvaluations.length === 0) {
+      return { status: "unknown" };
+    }
+    
     // If we have filtered data, create filtered view for comparison
     if (yearFilteredEvaluations && yearFilteredEvaluations.length > 0) {
       const values = yearFilteredEvaluations.map(e => parseHumanNumber(e.value)).filter(v => v !== null) as number[];
