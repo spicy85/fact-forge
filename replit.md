@@ -26,7 +26,7 @@ The application is a multi-page React application built with Vite, utilizing an 
 - **Fact Promotion System:** Automates promotion of high-trust evaluations from `facts_evaluation` to `verified_facts` based on a configurable `promotion_threshold`.
 - **Evaluation Scoring:** Centralized logic for calculating scores based on source trust, recency, and consensus.
 - **Admin Configuration System:** Manages scoring methodology (weights, recency, credible threshold, promotion threshold).
-- **Cross-Check Sources & Fulfill Requested Facts Systems:** Tools for identifying and fetching missing data, and processing user-requested facts.
+- **Cross-Check Sources & Fulfill Requested Facts Systems:** Tools for identifying and fetching missing data, and processing user-requested facts. The fulfill system now uses `claim_year` from `requested_facts` to fetch year-specific data from World Bank and Wikidata APIs, ensuring accurate historical data retrieval (e.g., "France population 2003" fetches actual 2003 data, not latest).
 - **Time-Series Data Pipeline:** Automated fetching of historical population and GDP data from Wikidata (1960-2025).
 - **Pull New Facts System:** Admin tool (`/api/admin/pull-new-facts`) to fetch specific data on demand from World Bank and Wikidata APIs. Accepts arrays of entities, attributes, and years, queries external APIs, checks for duplicates using (entity, attribute, source_name, as_of_date), and inserts new evaluations into `facts_evaluation` table. Returns detailed stats (requested, found, duplicates, inserted). UI in AdminScoring page with form for selecting countries, attributes (checkboxes), and year ranges.
 - **Source Management System:** UI-driven system for managing data sources (add, promote, reject) with activity logging.
