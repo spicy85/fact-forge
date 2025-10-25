@@ -125,8 +125,8 @@ async function fetchHistoricalData(countryName: string, qid: string, startYear: 
 }
 
 async function main() {
-  const targetCountry = "United States";
-  const startYear = 1975;
+  const targetCountry = process.argv[2] || "United States";
+  const startYear = 1960;
   const currentYear = new Date().getFullYear();
 
   console.log("=== Fetching Historical Wikidata Data ===");
