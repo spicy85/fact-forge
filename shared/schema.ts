@@ -159,6 +159,7 @@ export const requestedFacts = pgTable("requested_facts", {
   entity_type: varchar("entity_type", { length: 50 }).notNull().default("country"),
   attribute: text("attribute").notNull(),
   claim_value: text("claim_value"),
+  claim_year: integer("claim_year"),
   request_count: integer("request_count").notNull().default(1),
   first_requested_at: text("first_requested_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   last_requested_at: text("last_requested_at").notNull().default(sql`CURRENT_TIMESTAMP`),
