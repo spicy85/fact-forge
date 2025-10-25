@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Settings, Save, RotateCcw, ExternalLink, ArrowLeft, RefreshCw, Database } from "lucide-react";
@@ -297,450 +298,291 @@ export default function AdminScoring() {
       </div>
 
       <div className="grid gap-6">
-        {/* Scoring Weights Card */}
+        {/* Configuration Card with Tabs */}
         <Card>
           <CardHeader>
-            <CardTitle>Trust Score Weights</CardTitle>
+            <CardTitle>Scoring Configuration</CardTitle>
             <CardDescription>
-              Configure the relative importance of each scoring criterion. 
-              Total weight: {totalWeight} (proportional weighting)
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <Label htmlFor="source-trust-weight">Source Trust Weight</Label>
-                  <span className="text-sm font-medium" data-testid="text-source-trust-weight">
-                    {formData.source_trust_weight} ({Math.round((formData.source_trust_weight / totalWeight) * 100)}%)
-                  </span>
-                </div>
-                <Slider
-                  id="source-trust-weight"
-                  min={0}
-                  max={10}
-                  step={1}
-                  value={[formData.source_trust_weight]}
-                  onValueChange={([value]) => setFormData({ ...formData, source_trust_weight: value })}
-                  data-testid="slider-source-trust-weight"
-                />
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <Label htmlFor="recency-weight">Recency Weight</Label>
-                  <span className="text-sm font-medium" data-testid="text-recency-weight">
-                    {formData.recency_weight} ({Math.round((formData.recency_weight / totalWeight) * 100)}%)
-                  </span>
-                </div>
-                <Slider
-                  id="recency-weight"
-                  min={0}
-                  max={10}
-                  step={1}
-                  value={[formData.recency_weight]}
-                  onValueChange={([value]) => setFormData({ ...formData, recency_weight: value })}
-                  data-testid="slider-recency-weight"
-                />
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <Label htmlFor="consensus-weight">Consensus Weight</Label>
-                  <span className="text-sm font-medium" data-testid="text-consensus-weight">
-                    {formData.consensus_weight} ({Math.round((formData.consensus_weight / totalWeight) * 100)}%)
-                  </span>
-                </div>
-                <Slider
-                  id="consensus-weight"
-                  min={0}
-                  max={10}
-                  step={1}
-                  value={[formData.consensus_weight]}
-                  onValueChange={([value]) => setFormData({ ...formData, consensus_weight: value })}
-                  data-testid="slider-consensus-weight"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Recency Scoring Tiers Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recency Scoring Tiers</CardTitle>
-            <CardDescription>
-              Configure how recency affects scoring based on days since evaluation
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="tier1-days">Tier 1: Days Threshold</Label>
-                <Input
-                  id="tier1-days"
-                  type="number"
-                  min={1}
-                  value={formData.recency_tier1_days}
-                  onChange={(e) => setFormData({ ...formData, recency_tier1_days: parseInt(e.target.value) || 7 })}
-                  data-testid="input-tier1-days"
-                />
-                <p className="text-sm text-muted-foreground mt-1">
-                  ≤ {formData.recency_tier1_days} days old
-                </p>
-              </div>
-              <div>
-                <Label htmlFor="tier1-score">Tier 1: Score</Label>
-                <Input
-                  id="tier1-score"
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={formData.recency_tier1_score}
-                  onChange={(e) => setFormData({ ...formData, recency_tier1_score: parseInt(e.target.value) || 100 })}
-                  data-testid="input-tier1-score"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="tier2-days">Tier 2: Days Threshold</Label>
-                <Input
-                  id="tier2-days"
-                  type="number"
-                  min={1}
-                  value={formData.recency_tier2_days}
-                  onChange={(e) => setFormData({ ...formData, recency_tier2_days: parseInt(e.target.value) || 30 })}
-                  data-testid="input-tier2-days"
-                />
-                <p className="text-sm text-muted-foreground mt-1">
-                  ≤ {formData.recency_tier2_days} days old
-                </p>
-              </div>
-              <div>
-                <Label htmlFor="tier2-score">Tier 2: Score</Label>
-                <Input
-                  id="tier2-score"
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={formData.recency_tier2_score}
-                  onChange={(e) => setFormData({ ...formData, recency_tier2_score: parseInt(e.target.value) || 50 })}
-                  data-testid="input-tier2-score"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Tier 3: Days Threshold</Label>
-                <p className="text-sm text-muted-foreground mt-1">
-                  &gt; {formData.recency_tier2_days} days old
-                </p>
-              </div>
-              <div>
-                <Label htmlFor="tier3-score">Tier 3: Score</Label>
-                <Input
-                  id="tier3-score"
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={formData.recency_tier3_score}
-                  onChange={(e) => setFormData({ ...formData, recency_tier3_score: parseInt(e.target.value) || 10 })}
-                  data-testid="input-tier3-score"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Multi-Source Verification Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Multi-Source Verification</CardTitle>
-            <CardDescription>
-              Configure the minimum trust score threshold for sources to be considered credible in multi-source verification
+              Configure trust score calculation, recency tiers, and promotion thresholds
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <Label htmlFor="credible-threshold">Credible Threshold (0-100)</Label>
-                  <span className="text-sm font-medium" data-testid="text-credible-threshold">
-                    {formData.credible_threshold}
-                  </span>
-                </div>
-                <Slider
-                  id="credible-threshold"
-                  min={0}
-                  max={100}
-                  step={5}
-                  value={[formData.credible_threshold]}
-                  onValueChange={([value]) => setFormData({ ...formData, credible_threshold: value })}
-                  data-testid="slider-credible-threshold"
-                />
-                <p className="text-sm text-muted-foreground mt-2">
-                  Only sources with a trust score of {formData.credible_threshold} or higher will be used to calculate consensus and range in multi-source verification.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            <Tabs defaultValue="trust-calculation" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="trust-calculation">Trust Calculation</TabsTrigger>
+                <TabsTrigger value="recency-scoring">Recency Scoring</TabsTrigger>
+                <TabsTrigger value="fact-promotion">Fact Promotion</TabsTrigger>
+              </TabsList>
 
-        {/* Fact Promotion Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Fact Promotion</CardTitle>
-            <CardDescription>
-              Configure the threshold for promoting facts from evaluation to verified gold standard
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <Label htmlFor="promotion-threshold">Promotion Threshold (0-100)</Label>
-                  <span className="text-sm font-medium" data-testid="text-promotion-threshold">
-                    {formData.promotion_threshold}
-                  </span>
-                </div>
-                <Slider
-                  id="promotion-threshold"
-                  min={0}
-                  max={100}
-                  step={5}
-                  value={[formData.promotion_threshold]}
-                  onValueChange={([value]) => setFormData({ ...formData, promotion_threshold: value })}
-                  data-testid="slider-promotion-threshold"
-                />
-                <p className="text-sm text-muted-foreground mt-2">
-                  Facts with a trust score of {formData.promotion_threshold} or higher will be promoted to the verified_facts table when you run the promotion process.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Data Management Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Data Management</CardTitle>
-            <CardDescription>
-              Perform data operations across all integrated sources
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-2">
-              <Button
-                onClick={() => crossCheckMutation.mutate()}
-                disabled={crossCheckMutation.isPending}
-                data-testid="button-cross-check"
-                className="w-full"
-              >
-                <Database className="h-4 w-4 mr-2" />
-                {crossCheckMutation.isPending ? "Cross-Checking..." : "Cross-Check All Sources"}
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                Identifies all entity-attribute pairs present in at least one source and fetches missing data from Wikipedia, World Bank, and Wikidata.
-              </p>
-            </div>
-
-            <div className="grid gap-2">
-              <Button
-                variant="outline"
-                onClick={() => fulfillRequestedFactsMutation.mutate()}
-                disabled={fulfillRequestedFactsMutation.isPending}
-                data-testid="button-fulfill-requested-facts"
-                className="w-full"
-              >
-                <Database className="h-4 w-4 mr-2" />
-                {fulfillRequestedFactsMutation.isPending ? "Fulfilling..." : "Fulfill Requested Facts"}
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                Processes user-requested facts and attempts to fetch data from existing sources (Wikidata, World Bank).
-              </p>
-            </div>
-
-            <div className="border rounded-lg p-4 space-y-3">
-              <h4 className="font-semibold text-sm">Pull New Facts</h4>
-              <div className="space-y-3">
+              <TabsContent value="trust-calculation" className="space-y-6 mt-6">
                 <div>
-                  <Label htmlFor="pull-entities" className="text-sm">Countries (comma-separated)</Label>
-                  <Input
-                    id="pull-entities"
-                    value={pullEntities}
-                    onChange={(e) => setPullEntities(e.target.value)}
-                    placeholder="Canada,Mexico,United States"
-                    data-testid="input-pull-entities"
-                    className="mt-1"
-                  />
+                  <h3 className="text-sm font-medium mb-4">
+                    Score Weights (Total: {totalWeight})
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <Label htmlFor="source-trust-weight">Source Trust Weight</Label>
+                        <span className="text-sm font-medium" data-testid="text-source-trust-weight">
+                          {formData.source_trust_weight} ({Math.round((formData.source_trust_weight / totalWeight) * 100)}%)
+                        </span>
+                      </div>
+                      <Slider
+                        id="source-trust-weight"
+                        min={0}
+                        max={10}
+                        step={1}
+                        value={[formData.source_trust_weight]}
+                        onValueChange={([value]) => setFormData({ ...formData, source_trust_weight: value })}
+                        data-testid="slider-source-trust-weight"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <Label htmlFor="recency-weight">Recency Weight</Label>
+                        <span className="text-sm font-medium" data-testid="text-recency-weight">
+                          {formData.recency_weight} ({Math.round((formData.recency_weight / totalWeight) * 100)}%)
+                        </span>
+                      </div>
+                      <Slider
+                        id="recency-weight"
+                        min={0}
+                        max={10}
+                        step={1}
+                        value={[formData.recency_weight]}
+                        onValueChange={([value]) => setFormData({ ...formData, recency_weight: value })}
+                        data-testid="slider-recency-weight"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <Label htmlFor="consensus-weight">Consensus Weight</Label>
+                        <span className="text-sm font-medium" data-testid="text-consensus-weight">
+                          {formData.consensus_weight} ({Math.round((formData.consensus_weight / totalWeight) * 100)}%)
+                        </span>
+                      </div>
+                      <Slider
+                        id="consensus-weight"
+                        min={0}
+                        max={10}
+                        step={1}
+                        value={[formData.consensus_weight]}
+                        onValueChange={([value]) => setFormData({ ...formData, consensus_weight: value })}
+                        data-testid="slider-consensus-weight"
+                      />
+                    </div>
+                  </div>
                 </div>
+
                 <div>
-                  <Label className="text-sm">Attributes</Label>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    {['population', 'gdp', 'gdp_per_capita', 'inflation'].map((attr) => (
-                      <label key={attr} className="flex items-center space-x-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={pullAttributes.includes(attr)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setPullAttributes([...pullAttributes, attr]);
-                            } else {
-                              setPullAttributes(pullAttributes.filter(a => a !== attr));
-                            }
-                          }}
-                          data-testid={`checkbox-pull-${attr}`}
-                        />
-                        <span>{attr.replace(/_/g, ' ')}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
+                  <h3 className="text-sm font-medium mb-4">Multi-Source Verification</h3>
                   <div>
-                    <Label htmlFor="pull-year-start" className="text-sm">Year Start</Label>
-                    <Input
-                      id="pull-year-start"
-                      type="number"
-                      value={pullYearStart}
-                      onChange={(e) => setPullYearStart(e.target.value)}
-                      data-testid="input-pull-year-start"
-                      className="mt-1"
+                    <div className="flex justify-between items-center mb-2">
+                      <Label htmlFor="credible-threshold">Credible Threshold (0-100)</Label>
+                      <span className="text-sm font-medium" data-testid="text-credible-threshold">
+                        {formData.credible_threshold}
+                      </span>
+                    </div>
+                    <Slider
+                      id="credible-threshold"
+                      min={0}
+                      max={100}
+                      step={5}
+                      value={[formData.credible_threshold]}
+                      onValueChange={([value]) => setFormData({ ...formData, credible_threshold: value })}
+                      data-testid="slider-credible-threshold"
                     />
-                  </div>
-                  <div>
-                    <Label htmlFor="pull-year-end" className="text-sm">Year End</Label>
-                    <Input
-                      id="pull-year-end"
-                      type="number"
-                      value={pullYearEnd}
-                      onChange={(e) => setPullYearEnd(e.target.value)}
-                      data-testid="input-pull-year-end"
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => pullNewFactsMutation.mutate()}
-                disabled={pullNewFactsMutation.isPending || pullAttributes.length === 0}
-                data-testid="button-pull-new-facts"
-                className="w-full mt-2"
-              >
-                <Database className="h-4 w-4 mr-2" />
-                {pullNewFactsMutation.isPending ? "Pulling..." : "Pull New Facts"}
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                Fetches specific data from World Bank and Wikidata APIs for the selected countries, attributes, and years.
-              </p>
-            </div>
-
-            <div className="grid gap-2">
-              <Button
-                variant="outline"
-                onClick={() => recalculateMutation.mutate()}
-                disabled={recalculateMutation.isPending}
-                data-testid="button-recalculate"
-                className="w-full"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                {recalculateMutation.isPending ? "Recalculating..." : "Recalculate All Scores"}
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                Recalculates trust scores for all evaluations using current scoring settings.
-              </p>
-            </div>
-
-            <div className="grid gap-2">
-              <Button
-                variant="default"
-                onClick={() => promoteFactsMutation.mutate()}
-                disabled={promoteFactsMutation.isPending}
-                data-testid="button-promote-facts"
-                className="w-full"
-              >
-                <Database className="h-4 w-4 mr-2" />
-                {promoteFactsMutation.isPending ? "Promoting..." : "Promote Facts to Verified"}
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                Promotes facts from evaluation table to verified gold standard (trust score ≥ {formData.promotion_threshold}).
-              </p>
-            </div>
-
-            {crossCheckResults && (
-              <div className="border rounded-lg p-4 bg-muted/50 space-y-2">
-                <h4 className="font-semibold text-sm">Cross-Check Results</h4>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Total Pairs Checked:</span>
-                    <span className="ml-2 font-medium" data-testid="text-total-pairs">
-                      {crossCheckResults.totalPairs}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Wikipedia Added:</span>
-                    <span className="ml-2 font-medium" data-testid="text-wikipedia-added">
-                      {crossCheckResults.wikipediaAdded}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">World Bank Added:</span>
-                    <span className="ml-2 font-medium" data-testid="text-worldbank-added">
-                      {crossCheckResults.worldBankAdded}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Wikidata Added:</span>
-                    <span className="ml-2 font-medium" data-testid="text-wikidata-added">
-                      {crossCheckResults.wikidataAdded}
-                    </span>
-                  </div>
-                </div>
-                {crossCheckResults.errors.length > 0 && (
-                  <div className="mt-2">
-                    <p className="text-sm text-destructive font-medium">
-                      Errors: {crossCheckResults.errors.length}
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Only sources with a trust score of {formData.credible_threshold} or higher will be used to calculate consensus and range in multi-source verification.
                     </p>
                   </div>
-                )}
-              </div>
-            )}
+                </div>
+              </TabsContent>
 
-            {fulfillResults && (
-              <div className="border rounded-lg p-4 bg-muted/50 space-y-2">
-                <h4 className="font-semibold text-sm">Fulfill Results</h4>
-                <div className="grid grid-cols-2 gap-2 text-sm">
+              <TabsContent value="recency-scoring" className="space-y-4 mt-6">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <span className="text-muted-foreground">Total Requests:</span>
-                    <span className="ml-2 font-medium" data-testid="text-total-requests">
-                      {fulfillResults.totalRequests}
-                    </span>
+                    <Label htmlFor="tier1-days">Tier 1: Days Threshold</Label>
+                    <Input
+                      id="tier1-days"
+                      type="number"
+                      min={1}
+                      value={formData.recency_tier1_days}
+                      onChange={(e) => setFormData({ ...formData, recency_tier1_days: parseInt(e.target.value) || 7 })}
+                      data-testid="input-tier1-days"
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      ≤ {formData.recency_tier1_days} days old
+                    </p>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Fulfilled:</span>
-                    <span className="ml-2 font-medium" data-testid="text-fulfilled">
-                      {fulfillResults.fulfilledCount}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Not Found:</span>
-                    <span className="ml-2 font-medium" data-testid="text-not-found">
-                      {fulfillResults.notFoundCount}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Already Existed:</span>
-                    <span className="ml-2 font-medium" data-testid="text-already-exists">
-                      {fulfillResults.alreadyExistsCount}
-                    </span>
+                    <Label htmlFor="tier1-score">Tier 1: Score</Label>
+                    <Input
+                      id="tier1-score"
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={formData.recency_tier1_score}
+                      onChange={(e) => setFormData({ ...formData, recency_tier1_score: parseInt(e.target.value) || 100 })}
+                      data-testid="input-tier1-score"
+                    />
                   </div>
                 </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="tier2-days">Tier 2: Days Threshold</Label>
+                    <Input
+                      id="tier2-days"
+                      type="number"
+                      min={1}
+                      value={formData.recency_tier2_days}
+                      onChange={(e) => setFormData({ ...formData, recency_tier2_days: parseInt(e.target.value) || 30 })}
+                      data-testid="input-tier2-days"
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      ≤ {formData.recency_tier2_days} days old
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="tier2-score">Tier 2: Score</Label>
+                    <Input
+                      id="tier2-score"
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={formData.recency_tier2_score}
+                      onChange={(e) => setFormData({ ...formData, recency_tier2_score: parseInt(e.target.value) || 50 })}
+                      data-testid="input-tier2-score"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Tier 3: Days Threshold</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      &gt; {formData.recency_tier2_days} days old
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="tier3-score">Tier 3: Score</Label>
+                    <Input
+                      id="tier3-score"
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={formData.recency_tier3_score}
+                      onChange={(e) => setFormData({ ...formData, recency_tier3_score: parseInt(e.target.value) || 10 })}
+                      data-testid="input-tier3-score"
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="fact-promotion" className="space-y-4 mt-6">
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <Label htmlFor="promotion-threshold">Promotion Threshold (0-100)</Label>
+                    <span className="text-sm font-medium" data-testid="text-promotion-threshold">
+                      {formData.promotion_threshold}
+                    </span>
+                  </div>
+                  <Slider
+                    id="promotion-threshold"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={[formData.promotion_threshold]}
+                    onValueChange={([value]) => setFormData({ ...formData, promotion_threshold: value })}
+                    data-testid="slider-promotion-threshold"
+                  />
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Facts with a trust score of {formData.promotion_threshold} or higher will be promoted to the verified_facts table when you run the promotion process.
+                  </p>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        {/* Pull New Facts Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Pull New Facts</CardTitle>
+            <CardDescription>
+              Fetch specific data from World Bank and Wikidata APIs
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="pull-entities">Countries (comma-separated)</Label>
+              <Input
+                id="pull-entities"
+                value={pullEntities}
+                onChange={(e) => setPullEntities(e.target.value)}
+                placeholder="Canada,Mexico,United States"
+                data-testid="input-pull-entities"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Attributes</Label>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {['population', 'gdp', 'gdp_per_capita', 'inflation'].map((attr) => (
+                  <label key={attr} className="flex items-center space-x-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={pullAttributes.includes(attr)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setPullAttributes([...pullAttributes, attr]);
+                        } else {
+                          setPullAttributes(pullAttributes.filter(a => a !== attr));
+                        }
+                      }}
+                      data-testid={`checkbox-pull-${attr}`}
+                    />
+                    <span>{attr.replace(/_/g, ' ')}</span>
+                  </label>
+                ))}
               </div>
-            )}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="pull-year-start">Year Start</Label>
+                <Input
+                  id="pull-year-start"
+                  type="number"
+                  value={pullYearStart}
+                  onChange={(e) => setPullYearStart(e.target.value)}
+                  data-testid="input-pull-year-start"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="pull-year-end">Year End</Label>
+                <Input
+                  id="pull-year-end"
+                  type="number"
+                  value={pullYearEnd}
+                  onChange={(e) => setPullYearEnd(e.target.value)}
+                  data-testid="input-pull-year-end"
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <Button
+              onClick={() => pullNewFactsMutation.mutate()}
+              disabled={pullNewFactsMutation.isPending || pullAttributes.length === 0}
+              data-testid="button-pull-new-facts"
+              className="w-full"
+            >
+              <Database className="h-4 w-4 mr-2" />
+              {pullNewFactsMutation.isPending ? "Pulling..." : "Pull New Facts"}
+            </Button>
 
             {pullNewFactsResults && (
               <div className="border rounded-lg p-4 bg-muted/50 space-y-2">
@@ -785,26 +627,167 @@ export default function AdminScoring() {
                 )}
               </div>
             )}
+          </CardContent>
+        </Card>
 
-            {promotionResults && (
-              <div className="border rounded-lg p-4 bg-muted/50 space-y-2">
-                <h4 className="font-semibold text-sm">Promotion Results</h4>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Facts Promoted:</span>
-                    <span className="ml-2 font-medium" data-testid="text-promoted-count">
-                      {promotionResults.promotedCount}
-                    </span>
+        {/* Data Operations Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Data Operations</CardTitle>
+            <CardDescription>
+              Perform batch operations across all integrated sources
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Button
+                  onClick={() => crossCheckMutation.mutate()}
+                  disabled={crossCheckMutation.isPending}
+                  data-testid="button-cross-check"
+                  className="w-full"
+                >
+                  <Database className="h-4 w-4 mr-2" />
+                  {crossCheckMutation.isPending ? "Cross-Checking..." : "Cross-Check All Sources"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Identifies all entity-attribute pairs present in at least one source and fetches missing data from Wikipedia, World Bank, and Wikidata.
+                </p>
+                {crossCheckResults && (
+                  <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
+                    <h4 className="font-semibold text-xs">Cross-Check Results</h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-muted-foreground">Total Pairs:</span>
+                        <span className="ml-2 font-medium" data-testid="text-total-pairs">
+                          {crossCheckResults.totalPairs}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Wikipedia:</span>
+                        <span className="ml-2 font-medium" data-testid="text-wikipedia-added">
+                          {crossCheckResults.wikipediaAdded}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">World Bank:</span>
+                        <span className="ml-2 font-medium" data-testid="text-worldbank-added">
+                          {crossCheckResults.worldBankAdded}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Wikidata:</span>
+                        <span className="ml-2 font-medium" data-testid="text-wikidata-added">
+                          {crossCheckResults.wikidataAdded}
+                        </span>
+                      </div>
+                    </div>
+                    {crossCheckResults.errors.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-xs text-destructive font-medium">
+                          Errors: {crossCheckResults.errors.length}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <span className="text-muted-foreground">Skipped:</span>
-                    <span className="ml-2 font-medium" data-testid="text-skipped-count">
-                      {promotionResults.skippedCount}
-                    </span>
-                  </div>
-                </div>
+                )}
               </div>
-            )}
+
+              <div className="space-y-2">
+                <Button
+                  onClick={() => fulfillRequestedFactsMutation.mutate()}
+                  disabled={fulfillRequestedFactsMutation.isPending}
+                  data-testid="button-fulfill-requested-facts"
+                  className="w-full"
+                >
+                  <Database className="h-4 w-4 mr-2" />
+                  {fulfillRequestedFactsMutation.isPending ? "Fulfilling..." : "Fulfill Requested Facts"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Processes user-requested facts and attempts to fetch data from existing sources (Wikidata, World Bank).
+                </p>
+                {fulfillResults && (
+                  <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
+                    <h4 className="font-semibold text-xs">Fulfill Results</h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-muted-foreground">Total:</span>
+                        <span className="ml-2 font-medium" data-testid="text-total-requests">
+                          {fulfillResults.totalRequests}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Fulfilled:</span>
+                        <span className="ml-2 font-medium" data-testid="text-fulfilled">
+                          {fulfillResults.fulfilledCount}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Not Found:</span>
+                        <span className="ml-2 font-medium" data-testid="text-not-found">
+                          {fulfillResults.notFoundCount}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Existed:</span>
+                        <span className="ml-2 font-medium" data-testid="text-already-exists">
+                          {fulfillResults.alreadyExistsCount}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Button
+                  onClick={() => recalculateMutation.mutate()}
+                  disabled={recalculateMutation.isPending}
+                  data-testid="button-recalculate"
+                  className="w-full"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  {recalculateMutation.isPending ? "Recalculating..." : "Recalculate All Scores"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Recalculates trust scores for all evaluations using current scoring settings.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Button
+                  onClick={() => promoteFactsMutation.mutate()}
+                  disabled={promoteFactsMutation.isPending}
+                  data-testid="button-promote-facts"
+                  className="w-full"
+                >
+                  <Database className="h-4 w-4 mr-2" />
+                  {promoteFactsMutation.isPending ? "Promoting..." : "Promote Facts to Verified"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Promotes facts from evaluation table to verified gold standard (trust score ≥ {formData.promotion_threshold}).
+                </p>
+                {promotionResults && (
+                  <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
+                    <h4 className="font-semibold text-xs">Promotion Results</h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-muted-foreground">Promoted:</span>
+                        <span className="ml-2 font-medium" data-testid="text-promoted-count">
+                          {promotionResults.promotedCount}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Skipped:</span>
+                        <span className="ml-2 font-medium" data-testid="text-skipped-count">
+                          {promotionResults.skippedCount}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </CardContent>
         </Card>
 
