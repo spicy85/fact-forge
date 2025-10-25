@@ -394,16 +394,20 @@ export class MemStorage implements IStorage {
     }
   }
 
-  async createOrIncrementRequestedFact(entity: string, attribute: string, claimValue?: string): Promise<RequestedFact> {
+  async createOrIncrementRequestedFact(entity: string, attribute: string, claimValue?: string, claimYear?: number): Promise<RequestedFact> {
+    // Build WHERE conditions - include claim_year in deduplication key
+    const whereConditions = [
+      eq(requestedFacts.entity, entity),
+      eq(requestedFacts.attribute, attribute),
+      claimYear !== undefined 
+        ? eq(requestedFacts.claim_year, claimYear)
+        : sql`${requestedFacts.claim_year} IS NULL`
+    ];
+
     const [existing] = await db
       .select()
       .from(requestedFacts)
-      .where(
-        and(
-          eq(requestedFacts.entity, entity),
-          eq(requestedFacts.attribute, attribute)
-        )
-      )
+      .where(and(...whereConditions))
       .limit(1);
 
     if (existing) {
@@ -424,6 +428,7 @@ export class MemStorage implements IStorage {
           entity,
           attribute,
           claim_value: claimValue,
+          claim_year: claimYear,
           request_count: 1
         })
         .returning();
