@@ -27,6 +27,14 @@ interface FulfillRequestedFactsStats {
   totalRequests: number;
 }
 
+interface PullNewFactsStats {
+  requested: number;
+  found: number;
+  duplicates: number;
+  inserted: number;
+  errors: string[];
+}
+
 export default function AdminScoring() {
   const { toast } = useToast();
 
@@ -50,6 +58,13 @@ export default function AdminScoring() {
   const [crossCheckResults, setCrossCheckResults] = useState<CrossCheckStats | null>(null);
   const [fulfillResults, setFulfillResults] = useState<FulfillRequestedFactsStats | null>(null);
   const [promotionResults, setPromotionResults] = useState<{ promotedCount: number; skippedCount: number; } | null>(null);
+  const [pullNewFactsResults, setPullNewFactsResults] = useState<PullNewFactsStats | null>(null);
+  
+  // Pull new facts form state
+  const [pullEntities, setPullEntities] = useState<string>("Canada,Mexico");
+  const [pullAttributes, setPullAttributes] = useState<string[]>(["population"]);
+  const [pullYearStart, setPullYearStart] = useState<string>("2023");
+  const [pullYearEnd, setPullYearEnd] = useState<string>("2024");
 
   useEffect(() => {
     if (settings) {
@@ -175,6 +190,41 @@ export default function AdminScoring() {
       toast({
         title: "Error",
         description: "Failed to promote facts.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const pullNewFactsMutation = useMutation({
+    mutationFn: async () => {
+      const entities = pullEntities.split(',').map(e => e.trim()).filter(e => e.length > 0);
+      const yearStart = parseInt(pullYearStart);
+      const yearEnd = parseInt(pullYearEnd);
+      const years: number[] = [];
+      for (let year = yearStart; year <= yearEnd; year++) {
+        years.push(year);
+      }
+      
+      const response = await apiRequest("POST", "/api/admin/pull-new-facts", {
+        entities,
+        attributes: pullAttributes,
+        years
+      });
+      return await response.json();
+    },
+    onSuccess: (data: any) => {
+      setPullNewFactsResults(data.stats);
+      queryClient.invalidateQueries({ queryKey: ["/api/facts-evaluation"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/facts-activity-log"] });
+      toast({
+        title: "Pull complete",
+        description: `Found ${data.stats.found} facts, inserted ${data.stats.inserted} new records.`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to pull new facts.",
         variant: "destructive",
       });
     },
@@ -513,6 +563,82 @@ export default function AdminScoring() {
               </p>
             </div>
 
+            <div className="border rounded-lg p-4 space-y-3">
+              <h4 className="font-semibold text-sm">Pull New Facts</h4>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="pull-entities" className="text-sm">Countries (comma-separated)</Label>
+                  <Input
+                    id="pull-entities"
+                    value={pullEntities}
+                    onChange={(e) => setPullEntities(e.target.value)}
+                    placeholder="Canada,Mexico,United States"
+                    data-testid="input-pull-entities"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm">Attributes</Label>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {['population', 'gdp', 'gdp_per_capita', 'inflation'].map((attr) => (
+                      <label key={attr} className="flex items-center space-x-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={pullAttributes.includes(attr)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setPullAttributes([...pullAttributes, attr]);
+                            } else {
+                              setPullAttributes(pullAttributes.filter(a => a !== attr));
+                            }
+                          }}
+                          data-testid={`checkbox-pull-${attr}`}
+                        />
+                        <span>{attr.replace(/_/g, ' ')}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="pull-year-start" className="text-sm">Year Start</Label>
+                    <Input
+                      id="pull-year-start"
+                      type="number"
+                      value={pullYearStart}
+                      onChange={(e) => setPullYearStart(e.target.value)}
+                      data-testid="input-pull-year-start"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="pull-year-end" className="text-sm">Year End</Label>
+                    <Input
+                      id="pull-year-end"
+                      type="number"
+                      value={pullYearEnd}
+                      onChange={(e) => setPullYearEnd(e.target.value)}
+                      data-testid="input-pull-year-end"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => pullNewFactsMutation.mutate()}
+                disabled={pullNewFactsMutation.isPending || pullAttributes.length === 0}
+                data-testid="button-pull-new-facts"
+                className="w-full mt-2"
+              >
+                <Database className="h-4 w-4 mr-2" />
+                {pullNewFactsMutation.isPending ? "Pulling..." : "Pull New Facts"}
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                Fetches specific data from World Bank and Wikidata APIs for the selected countries, attributes, and years.
+              </p>
+            </div>
+
             <div className="grid gap-2">
               <Button
                 variant="outline"
@@ -613,6 +739,50 @@ export default function AdminScoring() {
                     </span>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {pullNewFactsResults && (
+              <div className="border rounded-lg p-4 bg-muted/50 space-y-2">
+                <h4 className="font-semibold text-sm">Pull New Facts Results</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Requested:</span>
+                    <span className="ml-2 font-medium" data-testid="text-pull-requested">
+                      {pullNewFactsResults.requested}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Found:</span>
+                    <span className="ml-2 font-medium" data-testid="text-pull-found">
+                      {pullNewFactsResults.found}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Duplicates:</span>
+                    <span className="ml-2 font-medium" data-testid="text-pull-duplicates">
+                      {pullNewFactsResults.duplicates}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Inserted:</span>
+                    <span className="ml-2 font-medium" data-testid="text-pull-inserted">
+                      {pullNewFactsResults.inserted}
+                    </span>
+                  </div>
+                </div>
+                {pullNewFactsResults.errors.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-sm text-destructive font-medium">
+                      Errors: {pullNewFactsResults.errors.length}
+                    </p>
+                    <ul className="text-xs text-destructive mt-1 space-y-1">
+                      {pullNewFactsResults.errors.slice(0, 3).map((error, i) => (
+                        <li key={i}>• {error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
 

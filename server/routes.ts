@@ -139,6 +139,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Pull new facts from external APIs
+  const pullNewFactsSchema = z.object({
+    entities: z.array(z.string()).min(1),
+    attributes: z.array(z.string()).min(1),
+    years: z.array(z.number()).min(1)
+  });
+
+  app.post("/api/admin/pull-new-facts", async (req, res) => {
+    try {
+      const validatedData = pullNewFactsSchema.parse(req.body);
+      const { pullNewFacts } = await import("../scripts/pull-new-facts");
+      const stats = await pullNewFacts(
+        validatedData.entities,
+        validatedData.attributes,
+        validatedData.years
+      );
+      res.json({
+        success: true,
+        stats
+      });
+    } catch (error) {
+      console.error("Error pulling new facts:", error);
+      res.status(500).json({ error: "Failed to pull new facts" });
+    }
+  });
+
   // Promote facts to verified
   app.post("/api/admin/promote-facts", async (req, res) => {
     try {
