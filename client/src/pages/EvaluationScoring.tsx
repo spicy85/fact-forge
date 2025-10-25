@@ -381,28 +381,6 @@ export default function EvaluationScoring() {
               </div>
             </CardContent>
           </Card>
-
-          <Card data-testid="card-recency-distribution">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Recency Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Recent (≤7 days):</span>
-                  <span className="font-mono" data-testid="text-recent-count">{stats.recentCount}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Medium (≤30 days):</span>
-                  <span className="font-mono" data-testid="text-medium-recency-count">{stats.mediumRecencyCount}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Older (&gt;30 days):</span>
-                  <span className="font-mono" data-testid="text-older-count">{stats.olderCount}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Formulas Explanation */}
