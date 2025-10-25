@@ -481,7 +481,7 @@ export class MemStorage implements IStorage {
   async promoteFactsToVerified(): Promise<{ promotedCount: number; skippedCount: number; }> {
     // Get promotion threshold from settings
     const settings = await this.getScoringSettings();
-    const promotionThreshold = settings?.promotion_threshold ?? 85;
+    const promotionThreshold = settings?.promotion_threshold ?? 80;
 
     // Get all facts from evaluation that meet or exceed the threshold
     const candidateFacts = await db

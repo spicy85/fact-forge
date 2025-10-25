@@ -53,7 +53,7 @@ export default function AdminScoring() {
     recency_tier2_score: 50,
     recency_tier3_score: 10,
     credible_threshold: 80,
-    promotion_threshold: 85,
+    promotion_threshold: 80,
   });
 
   const [crossCheckResults, setCrossCheckResults] = useState<CrossCheckStats | null>(null);
@@ -236,18 +236,21 @@ export default function AdminScoring() {
   };
 
   const handleReset = () => {
-    setFormData({
-      source_trust_weight: 1,
-      recency_weight: 1,
-      consensus_weight: 1,
-      recency_tier1_days: 7,
-      recency_tier1_score: 100,
-      recency_tier2_days: 30,
-      recency_tier2_score: 50,
-      recency_tier3_score: 10,
-      credible_threshold: 80,
-      promotion_threshold: 85,
-    });
+    // Reload from current database settings instead of hardcoded values
+    if (settings) {
+      setFormData({
+        source_trust_weight: settings.source_trust_weight,
+        recency_weight: settings.recency_weight,
+        consensus_weight: settings.consensus_weight,
+        recency_tier1_days: settings.recency_tier1_days,
+        recency_tier1_score: settings.recency_tier1_score,
+        recency_tier2_days: settings.recency_tier2_days,
+        recency_tier2_score: settings.recency_tier2_score,
+        recency_tier3_score: settings.recency_tier3_score,
+        credible_threshold: settings.credible_threshold,
+        promotion_threshold: settings.promotion_threshold,
+      });
+    }
   };
 
   if (isLoading) {
