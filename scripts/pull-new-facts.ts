@@ -124,7 +124,8 @@ async function fetchFromWikidataForYear(
       as_of_date = pointInTimeValue.split('T')[0]; // Extract YYYY-MM-DD
     }
 
-    const evaluatedAt = `${targetYear}-12-31`;
+    const now = new Date();
+    const evaluatedAt = now.toISOString().split('T')[0]; // YYYY-MM-DD format for today
     
     return {
       entity,
@@ -173,7 +174,8 @@ async function fetchFromWorldBankForYear(
       return null;
     }
 
-    const evaluatedAt = `${yearData.year}-12-31`;
+    const now = new Date();
+    const evaluatedAt = now.toISOString().split('T')[0]; // YYYY-MM-DD format for today
     const as_of_date = yearData.as_of_date; // Use actual date from World Bank API
 
     return {
