@@ -228,6 +228,7 @@ export class MemStorage implements IStorage {
       entity: fact.entity,
       entity_type: fact.entity_type,
       attribute: fact.attribute,
+      attribute_class: fact.attribute_class,
       value: fact.value,
       value_type: fact.value_type,
       source_url: fact.source_url,
