@@ -54,7 +54,7 @@ async function executeSparqlQuery(sparql: string): Promise<any> {
   return await response.json();
 }
 
-async function fetchFromWikidata(entity: string, attribute: string): Promise<FetchResult | null> {
+async function fetchFromWikidata(entity: string, attribute: string, requestedYear?: number | null): Promise<FetchResult | null> {
   const qid = COUNTRY_QIDS[entity];
   if (!qid) {
     console.log(`  ⊘ No Wikidata Q-ID for ${entity}`);
@@ -67,26 +67,53 @@ async function fetchFromWikidata(entity: string, attribute: string): Promise<Fet
 
   if (attribute === 'population') {
     propertyId = 'P1082';
-    query = `
-      SELECT ?value ?pointInTime WHERE {
-        wd:${qid} p:P1082 ?statement.
-        ?statement ps:P1082 ?value.
-        ?statement pq:P585 ?pointInTime.
-      }
-      ORDER BY DESC(?pointInTime)
-      LIMIT 1
-    `;
+    // If year requested, filter to that year; otherwise get latest
+    if (requestedYear) {
+      query = `
+        SELECT ?value ?pointInTime WHERE {
+          wd:${qid} p:P1082 ?statement.
+          ?statement ps:P1082 ?value.
+          ?statement pq:P585 ?pointInTime.
+          FILTER(YEAR(?pointInTime) = ${requestedYear})
+        }
+        ORDER BY DESC(?pointInTime)
+        LIMIT 1
+      `;
+    } else {
+      query = `
+        SELECT ?value ?pointInTime WHERE {
+          wd:${qid} p:P1082 ?statement.
+          ?statement ps:P1082 ?value.
+          ?statement pq:P585 ?pointInTime.
+        }
+        ORDER BY DESC(?pointInTime)
+        LIMIT 1
+      `;
+    }
   } else if (attribute === 'gdp_usd') {
     propertyId = 'P2131';
-    query = `
-      SELECT ?value ?pointInTime WHERE {
-        wd:${qid} p:P2131 ?statement.
-        ?statement ps:P2131 ?value.
-        OPTIONAL { ?statement pq:P585 ?pointInTime. }
-      }
-      ORDER BY DESC(?pointInTime)
-      LIMIT 1
-    `;
+    if (requestedYear) {
+      query = `
+        SELECT ?value ?pointInTime WHERE {
+          wd:${qid} p:P2131 ?statement.
+          ?statement ps:P2131 ?value.
+          OPTIONAL { ?statement pq:P585 ?pointInTime. }
+          FILTER(YEAR(?pointInTime) = ${requestedYear})
+        }
+        ORDER BY DESC(?pointInTime)
+        LIMIT 1
+      `;
+    } else {
+      query = `
+        SELECT ?value ?pointInTime WHERE {
+          wd:${qid} p:P2131 ?statement.
+          ?statement ps:P2131 ?value.
+          OPTIONAL { ?statement pq:P585 ?pointInTime. }
+        }
+        ORDER BY DESC(?pointInTime)
+        LIMIT 1
+      `;
+    }
   } else if (attribute === 'area_km2') {
     propertyId = 'P2046';
     query = `
@@ -158,7 +185,7 @@ async function fetchFromWikidata(entity: string, attribute: string): Promise<Fet
   }
 }
 
-async function fetchFromWorldBank(entity: string, attribute: string): Promise<FetchResult | null> {
+async function fetchFromWorldBank(entity: string, attribute: string, requestedYear?: number | null): Promise<FetchResult | null> {
   try {
     const indicatorMap = await fetchAllIndicatorsForCountry(entity);
     
@@ -182,19 +209,30 @@ async function fetchFromWorldBank(entity: string, attribute: string): Promise<Fe
       return null;
     }
 
-    const latestData = dataPoints.sort((a, b) => b.year - a.year)[0];
-    const evaluatedAt = `${latestData.year}-12-31`;
-    const as_of_date = latestData.as_of_date; // Use actual date from World Bank API
+    // Filter by requested year if provided, otherwise get latest
+    let targetData;
+    if (requestedYear) {
+      targetData = dataPoints.find(dp => dp.year === requestedYear);
+      if (!targetData) {
+        console.log(`  ⊘ No World Bank data for ${entity} - ${attribute} in year ${requestedYear}`);
+        return null;
+      }
+    } else {
+      targetData = dataPoints.sort((a, b) => b.year - a.year)[0];
+    }
+
+    const evaluatedAt = `${targetData.year}-12-31`;
+    const as_of_date = targetData.as_of_date; // Use actual date from World Bank API
 
     return {
       entity,
       attribute,
-      value: latestData.value.toString(),
+      value: targetData.value.toString(),
       evaluatedAt,
       as_of_date,
       sourceUrl: 'https://data.worldbank.org/',
       sourceTrust: 'data.worldbank.org',
-      notes: `World Bank API, year ${latestData.year}`
+      notes: `World Bank API, year ${targetData.year}`
     };
   } catch (error: any) {
     console.log(`  ✗ World Bank error for ${entity} - ${attribute}: ${error.message}`);
@@ -233,7 +271,8 @@ export async function fulfillRequestedFacts() {
   const activityLogs: InsertFactsActivityLog[] = [];
 
   for (const request of requests) {
-    console.log(`\nProcessing: ${request.entity} - ${request.attribute} (${request.request_count} requests)`);
+    const yearInfo = request.claim_year ? ` for year ${request.claim_year}` : '';
+    console.log(`\nProcessing: ${request.entity} - ${request.attribute}${yearInfo} (${request.request_count} requests)`);
     
     // Determine which sources support this attribute
     const supportedSources = ATTRIBUTE_SOURCE_MAP[request.attribute] || [];
@@ -248,12 +287,12 @@ export async function fulfillRequestedFacts() {
 
     let fetchResult: FetchResult | null = null;
 
-    // Try each source in order
+    // Try each source in order, passing the requested year
     for (const source of supportedSources) {
       if (source === 'wikidata') {
-        fetchResult = await fetchFromWikidata(request.entity, request.attribute);
+        fetchResult = await fetchFromWikidata(request.entity, request.attribute, request.claim_year);
       } else if (source === 'worldbank') {
-        fetchResult = await fetchFromWorldBank(request.entity, request.attribute);
+        fetchResult = await fetchFromWorldBank(request.entity, request.attribute, request.claim_year);
       }
 
       if (fetchResult) {
