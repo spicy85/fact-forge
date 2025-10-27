@@ -223,6 +223,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Recalculate ownership for all sources via WHOIS
+  app.post("/api/admin/recalculate-ownership", async (req, res) => {
+    try {
+      const result = await storage.recalculateOwnership();
+      res.json({
+        success: true,
+        ...result
+      });
+    } catch (error) {
+      console.error("Error recalculating ownership:", error);
+      res.status(500).json({ error: "Failed to recalculate ownership" });
+    }
+  });
+
   // Sources API endpoint
   app.get("/api/sources", async (req, res) => {
     try {

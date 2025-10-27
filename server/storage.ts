@@ -5,6 +5,7 @@ import { verifiedFacts, factsEvaluation, sources, scoringSettings, requestedFact
 import { eq, and, sql, desc } from "drizzle-orm";
 import { calculateSourceTrustScore, calculateRecencyScore, calculateTrustScore } from "./evaluation-scoring";
 import * as https from "https";
+import { whoisDomain } from "whoiser";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -54,6 +55,7 @@ export interface IStorage {
   deleteTldScore(tld: string): Promise<void>;
   recalculateUrlRepute(): Promise<{ updated: number; sources: { domain: string; oldScore: number; newScore: number; tld: string; }[]; }>;
   recalculateCertificates(): Promise<{ updated: number; sources: { domain: string; oldScore: number; newScore: number; status: string; }[]; }>;
+  recalculateOwnership(): Promise<{ updated: number; sources: { domain: string; oldScore: number; newScore: number; status: string; registrar?: string; organization?: string; domainAge?: number; }[]; }>;
 }
 
 // Utility function to extract best matching TLD from domain
@@ -134,6 +136,158 @@ async function checkCertificateValidity(domain: string): Promise<{ score: number
 
     req.end();
   });
+}
+
+// Utility function to extract root domain from a full domain
+// e.g., "data.worldbank.org" -> "worldbank.org"
+//       "en.wikipedia.org" -> "wikipedia.org"
+//       "www.imf.org" -> "imf.org"
+function extractRootDomain(fullDomain: string): string {
+  const parts = fullDomain.split('.');
+  if (parts.length <= 2) {
+    return fullDomain; // already a root domain
+  }
+  // Return last two parts (domain + TLD)
+  // This is a simplified approach that works for most .org, .com domains
+  // For multi-segment TLDs like .co.uk, we'd need a more sophisticated approach
+  return parts.slice(-2).join('.');
+}
+
+// Utility function to check domain ownership via WHOIS
+// Returns score (0-100) based on organization trust, registrar reputation, and domain age
+async function checkDomainOwnership(domain: string): Promise<{ score: number; status: string; registrar?: string; organization?: string; domainAge?: number; }> {
+  try {
+    // Extract root domain for WHOIS lookup (WHOIS only works on registered domains, not subdomains)
+    const rootDomain = extractRootDomain(domain);
+    console.log(`[WHOIS] Starting lookup for domain: ${domain} (root: ${rootDomain})`);
+    
+    // Perform WHOIS lookup on root domain
+    const whoisData = await whoisDomain(rootDomain, { timeout: 10000 });
+    console.log(`[WHOIS] Received data for ${rootDomain}:`, Object.keys(whoisData || {}));
+    
+    // whoiser returns an object with WHOIS server keys
+    // Find the most detailed record (usually the registrar's WHOIS server)
+    let bestRecord: any = null;
+    for (const serverKey in whoisData) {
+      const record = whoisData[serverKey];
+      if (record && typeof record === 'object') {
+        // Prefer records with more fields
+        if (!bestRecord || Object.keys(record).length > Object.keys(bestRecord).length) {
+          bestRecord = record;
+        }
+      }
+    }
+    
+    if (!bestRecord) {
+      console.log(`[WHOIS] No valid record found for ${rootDomain}`);
+      return { score: 0, status: 'no_whois_data' };
+    }
+    
+    console.log(`[WHOIS] Best record for ${rootDomain} has ${Object.keys(bestRecord).length} fields`);
+    
+    // Extract key fields (field names vary by registrar)
+    const registrar = bestRecord['Registrar'] || bestRecord['registrar'] || 
+                     bestRecord['Registrar Name'] || bestRecord['registrar name'] || '';
+    
+    const organization = bestRecord['Registrant Organization'] || bestRecord['registrant organization'] ||
+                        bestRecord['Organization'] || bestRecord['organization'] ||
+                        bestRecord['Registrant Name'] || bestRecord['registrant name'] || '';
+    
+    const createdDate = bestRecord['Creation Date'] || bestRecord['creation date'] ||
+                       bestRecord['Created Date'] || bestRecord['created date'] ||
+                       bestRecord['Domain Registration Date'] || '';
+    
+    // Calculate domain age in years
+    let domainAge = 0;
+    if (createdDate) {
+      const created = new Date(createdDate);
+      if (!isNaN(created.getTime())) {
+        domainAge = (Date.now() - created.getTime()) / (1000 * 60 * 60 * 24 * 365);
+      }
+    }
+    
+    // Trusted organizations (score 100)
+    const trustedOrgs = [
+      'world bank',
+      'international bank for reconstruction and development',
+      'wikimedia foundation',
+      'united nations',
+      'international monetary fund',
+      'imf',
+      'wikidata',
+      'wikipedia'
+    ];
+    
+    const orgLower = organization.toLowerCase();
+    console.log(`[WHOIS] ${rootDomain} - Registrar: "${registrar}", Org: "${organization}", Age: ${domainAge.toFixed(1)} years`);
+    
+    if (trustedOrgs.some(trusted => orgLower.includes(trusted))) {
+      console.log(`[WHOIS] ${rootDomain} matched trusted org! Score: 100`);
+      return { 
+        score: 100, 
+        status: 'trusted_organization',
+        registrar,
+        organization,
+        domainAge
+      };
+    }
+    
+    // Reputable registrars (for tier 2 scoring)
+    const reputableRegistrars = [
+      'markmonitor',
+      'csc corporate domains',
+      'godaddy',
+      'namecheap',
+      'network solutions',
+      'enom',
+      'gandi',
+      'tucows'
+    ];
+    
+    const registrarLower = registrar.toLowerCase();
+    const hasReputableRegistrar = reputableRegistrars.some(rep => registrarLower.includes(rep));
+    
+    // Tier 2: Reputable registrar + domain age > 5 years (score 75)
+    if (hasReputableRegistrar && domainAge > 5) {
+      console.log(`[WHOIS] ${rootDomain} has reputable registrar + aged. Score: 75`);
+      return {
+        score: 75,
+        status: 'reputable_registrar_aged',
+        registrar,
+        organization,
+        domainAge
+      };
+    }
+    
+    // Tier 3: Valid WHOIS data with registrar info (score 50)
+    if (registrar) {
+      console.log(`[WHOIS] ${rootDomain} has valid WHOIS. Score: 50`);
+      return {
+        score: 50,
+        status: 'valid_whois',
+        registrar,
+        organization,
+        domainAge
+      };
+    }
+    
+    // Tier 4: Privacy-protected or minimal data (score 0)
+    console.log(`[WHOIS] ${rootDomain} privacy-protected or minimal data. Score: 0`);
+    return {
+      score: 0,
+      status: 'privacy_protected',
+      registrar,
+      organization,
+      domainAge
+    };
+    
+  } catch (error: any) {
+    console.error(`[WHOIS] Error looking up domain:`, error.message);
+    return { 
+      score: 0, 
+      status: 'whois_error'
+    };
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -918,6 +1072,49 @@ export class MemStorage implements IStorage {
           oldScore,
           newScore,
           status: certResult.status,
+        });
+        updatedCount++;
+      }
+    }
+    
+    return { updated: updatedCount, sources: updateResults };
+  }
+
+  async recalculateOwnership(): Promise<{ updated: number; sources: { domain: string; oldScore: number; newScore: number; status: string; registrar?: string; organization?: string; domainAge?: number; }[]; }> {
+    const allMetrics = await this.getAllSourceIdentityMetrics();
+    const updateResults: { domain: string; oldScore: number; newScore: number; status: string; registrar?: string; organization?: string; domainAge?: number; }[] = [];
+    let updatedCount = 0;
+    
+    for (const metric of allMetrics) {
+      const oldScore = metric.ownership;
+      
+      // Check domain ownership via WHOIS
+      const ownershipResult = await checkDomainOwnership(metric.domain);
+      const newScore = ownershipResult.score;
+      
+      if (oldScore !== newScore) {
+        // Update ownership and recalculate identity_score
+        const urlRepute = metric.url_repute;
+        const certificate = metric.certificate;
+        const identityScore = Math.round((urlRepute + certificate + newScore) / 3);
+        
+        await db
+          .update(sourceIdentityMetrics)
+          .set({
+            ownership: newScore,
+            identity_score: identityScore,
+            updated_at: new Date().toISOString(),
+          })
+          .where(eq(sourceIdentityMetrics.domain, metric.domain));
+        
+        updateResults.push({
+          domain: metric.domain,
+          oldScore,
+          newScore,
+          status: ownershipResult.status,
+          registrar: ownershipResult.registrar,
+          organization: ownershipResult.organization,
+          domainAge: ownershipResult.domainAge,
         });
         updatedCount++;
       }

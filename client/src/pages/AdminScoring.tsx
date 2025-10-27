@@ -65,6 +65,19 @@ interface RecalculateCertificatesStats {
   }[];
 }
 
+interface RecalculateOwnershipStats {
+  updated: number;
+  sources: {
+    domain: string;
+    oldScore: number;
+    newScore: number;
+    status: string;
+    registrar?: string;
+    organization?: string;
+    domainAge?: number;
+  }[];
+}
+
 interface TldScore {
   tld: string;
   score: number;
@@ -101,6 +114,7 @@ export default function AdminScoring() {
   const [syncFactsCountResults, setSyncFactsCountResults] = useState<SyncFactsCountStats | null>(null);
   const [recalculateUrlReputeResults, setRecalculateUrlReputeResults] = useState<RecalculateUrlReputeStats | null>(null);
   const [recalculateCertificatesResults, setRecalculateCertificatesResults] = useState<RecalculateCertificatesStats | null>(null);
+  const [recalculateOwnershipResults, setRecalculateOwnershipResults] = useState<RecalculateOwnershipStats | null>(null);
   
   // Pull new facts form state
   const [pullEntities, setPullEntities] = useState<string>("Canada,Mexico");
@@ -338,6 +352,28 @@ export default function AdminScoring() {
       toast({
         title: "Error",
         description: "Failed to recalculate certificates.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const recalculateOwnershipMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/recalculate-ownership");
+      return await response.json();
+    },
+    onSuccess: (data: any) => {
+      setRecalculateOwnershipResults(data);
+      queryClient.invalidateQueries({ queryKey: ["/api/source-identity-metrics"] });
+      toast({
+        title: "Recalculation complete",
+        description: `Updated ownership for ${data.updated} source(s).`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to recalculate ownership.",
         variant: "destructive",
       });
     },
@@ -1216,6 +1252,64 @@ export default function AdminScoring() {
                               <span className="ml-1 text-muted-foreground">{source.oldScore}</span>
                               <span className="mx-1">→</span>
                               <span className="font-medium">{source.newScore}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Button
+                  onClick={() => recalculateOwnershipMutation.mutate()}
+                  disabled={recalculateOwnershipMutation.isPending}
+                  data-testid="button-recalculate-ownership"
+                  className="w-full"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  {recalculateOwnershipMutation.isPending ? "Checking..." : "Recalculate Ownership"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Performs WHOIS lookups for all sources and updates ownership scores based on registrar trust and domain age.
+                </p>
+                {recalculateOwnershipResults && (
+                  <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
+                    <h4 className="font-semibold text-xs">Ownership Check Results</h4>
+                    <div className="text-xs space-y-1">
+                      <div>
+                        <span className="text-muted-foreground">Sources Updated:</span>
+                        <span className="ml-2 font-medium" data-testid="text-ownership-updated-count">
+                          {recalculateOwnershipResults.updated}
+                        </span>
+                      </div>
+                      {recalculateOwnershipResults.sources.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {recalculateOwnershipResults.sources.map((source) => (
+                            <div key={source.domain} className="text-xs space-y-0.5">
+                              <div>
+                                <span className="font-mono">{source.domain}</span>
+                                <span className="ml-1 text-muted-foreground">({source.status})</span>:
+                                <span className="ml-1 text-muted-foreground">{source.oldScore}</span>
+                                <span className="mx-1">→</span>
+                                <span className="font-medium">{source.newScore}</span>
+                              </div>
+                              {source.registrar && (
+                                <div className="text-muted-foreground pl-4">
+                                  Registrar: {source.registrar}
+                                </div>
+                              )}
+                              {source.organization && (
+                                <div className="text-muted-foreground pl-4">
+                                  Organization: {source.organization}
+                                </div>
+                              )}
+                              {source.domainAge !== undefined && (
+                                <div className="text-muted-foreground pl-4">
+                                  Domain Age: {source.domainAge.toFixed(1)} years
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
