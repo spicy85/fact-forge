@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertSourceSchema, updateSourceSchema, updateScoringSettingsSchema } from "@shared/schema";
+import { insertSourceSchema, updateSourceSchema, updateScoringSettingsSchema, insertSourceIdentityMetricsSchema, updateSourceIdentityMetricsSchema } from "@shared/schema";
 import express from "express";
 import path from "path";
 import { z } from "zod";
@@ -304,6 +304,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching activity logs:", error);
       res.status(500).json({ error: "Failed to fetch activity logs" });
+    }
+  });
+
+  // Source Identity Metrics API endpoints
+  app.get("/api/source-identity-metrics", async (req, res) => {
+    try {
+      const metrics = await storage.getAllSourceIdentityMetrics();
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error fetching identity metrics:", error);
+      res.status(500).json({ error: "Failed to fetch identity metrics" });
+    }
+  });
+
+  app.get("/api/source-identity-metrics/:domain", async (req, res) => {
+    try {
+      const { domain } = req.params;
+      const metric = await storage.getSourceIdentityMetric(domain);
+      
+      if (!metric) {
+        return res.status(404).json({ error: "Identity metrics not found" });
+      }
+      
+      res.json(metric);
+    } catch (error) {
+      console.error("Error fetching identity metric:", error);
+      res.status(500).json({ error: "Failed to fetch identity metric" });
+    }
+  });
+
+  app.post("/api/source-identity-metrics", async (req, res) => {
+    try {
+      const validatedData = insertSourceIdentityMetricsSchema.parse(req.body);
+      const newMetric = await storage.insertSourceIdentityMetrics(validatedData);
+      res.status(201).json(newMetric);
+    } catch (error) {
+      console.error("Error creating identity metrics:", error);
+      res.status(400).json({ error: "Failed to create identity metrics" });
+    }
+  });
+
+  app.patch("/api/source-identity-metrics/:domain", async (req, res) => {
+    try {
+      const { domain } = req.params;
+      const validatedData = updateSourceIdentityMetricsSchema.parse(req.body);
+      
+      const updatedMetric = await storage.updateSourceIdentityMetrics(domain, validatedData);
+      
+      if (!updatedMetric) {
+        return res.status(404).json({ error: "Identity metrics not found" });
+      }
+      
+      res.json(updatedMetric);
+    } catch (error) {
+      console.error("Error updating identity metrics:", error);
+      res.status(400).json({ error: "Failed to update identity metrics" });
     }
   });
 

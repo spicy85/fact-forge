@@ -1,7 +1,7 @@
-import { type User, type InsertUser, type VerifiedFact, type InsertVerifiedFact, type FactsEvaluation, type InsertFactsEvaluation, type Source, type InsertSource, type UpdateSource, type ScoringSettings, type InsertScoringSettings, type UpdateScoringSettings, type RequestedFact, type InsertRequestedFact, type SourceActivityLog, type InsertSourceActivityLog, type FactsActivityLog, type InsertFactsActivityLog } from "@shared/schema";
+import { type User, type InsertUser, type VerifiedFact, type InsertVerifiedFact, type FactsEvaluation, type InsertFactsEvaluation, type Source, type InsertSource, type UpdateSource, type ScoringSettings, type InsertScoringSettings, type UpdateScoringSettings, type RequestedFact, type InsertRequestedFact, type SourceActivityLog, type InsertSourceActivityLog, type FactsActivityLog, type InsertFactsActivityLog, type SourceIdentityMetrics, type InsertSourceIdentityMetrics, type UpdateSourceIdentityMetrics } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { verifiedFacts, factsEvaluation, sources, scoringSettings, requestedFacts, sourceActivityLog, factsActivityLog } from "@shared/schema";
+import { verifiedFacts, factsEvaluation, sources, scoringSettings, requestedFacts, sourceActivityLog, factsActivityLog, sourceIdentityMetrics } from "@shared/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { calculateSourceTrustScore, calculateRecencyScore, calculateTrustScore } from "./evaluation-scoring";
 
@@ -43,6 +43,10 @@ export interface IStorage {
   getAllFactsActivityLogs(limit?: number, offset?: number): Promise<FactsActivityLog[]>;
   promoteFactsToVerified(): Promise<{ promotedCount: number; skippedCount: number; }>;
   syncFactsCount(): Promise<{ synced: number; sources: { domain: string; oldCount: number; newCount: number; }[]; }>;
+  getAllSourceIdentityMetrics(): Promise<SourceIdentityMetrics[]>;
+  getSourceIdentityMetric(domain: string): Promise<SourceIdentityMetrics | undefined>;
+  insertSourceIdentityMetrics(metrics: InsertSourceIdentityMetrics): Promise<SourceIdentityMetrics>;
+  updateSourceIdentityMetrics(domain: string, updates: UpdateSourceIdentityMetrics): Promise<SourceIdentityMetrics | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -644,6 +648,67 @@ export class MemStorage implements IStorage {
     }
     
     return { synced: syncedCount, sources: syncResults };
+  }
+
+  async getAllSourceIdentityMetrics(): Promise<SourceIdentityMetrics[]> {
+    return db.select().from(sourceIdentityMetrics);
+  }
+
+  async getSourceIdentityMetric(domain: string): Promise<SourceIdentityMetrics | undefined> {
+    const [metric] = await db
+      .select()
+      .from(sourceIdentityMetrics)
+      .where(eq(sourceIdentityMetrics.domain, domain));
+    return metric;
+  }
+
+  async insertSourceIdentityMetrics(metrics: InsertSourceIdentityMetrics): Promise<SourceIdentityMetrics> {
+    const urlSecurity = metrics.url_security ?? 0;
+    const certificate = metrics.certificate ?? 0;
+    const ownership = metrics.ownership ?? 0;
+    
+    const identityScore = Math.round((urlSecurity + certificate + ownership) / 3);
+    
+    const [inserted] = await db
+      .insert(sourceIdentityMetrics)
+      .values({
+        ...metrics,
+        url_security: urlSecurity,
+        certificate: certificate,
+        ownership: ownership,
+        identity_score: identityScore,
+      })
+      .returning();
+    
+    return inserted;
+  }
+
+  async updateSourceIdentityMetrics(domain: string, updates: UpdateSourceIdentityMetrics): Promise<SourceIdentityMetrics | undefined> {
+    let identityScore: number | undefined;
+    
+    if (updates.url_security !== undefined || updates.certificate !== undefined || updates.ownership !== undefined) {
+      const existing = await this.getSourceIdentityMetric(domain);
+      if (existing) {
+        const urlSecurity = updates.url_security ?? existing.url_security;
+        const certificate = updates.certificate ?? existing.certificate;
+        const ownership = updates.ownership ?? existing.ownership;
+        identityScore = Math.round((urlSecurity + certificate + ownership) / 3);
+      }
+    }
+    
+    const updateData = {
+      ...updates,
+      ...(identityScore !== undefined && { identity_score: identityScore }),
+      updated_at: new Date().toISOString(),
+    };
+    
+    const [updated] = await db
+      .update(sourceIdentityMetrics)
+      .set(updateData)
+      .where(eq(sourceIdentityMetrics.domain, domain))
+      .returning();
+    
+    return updated;
   }
 }
 

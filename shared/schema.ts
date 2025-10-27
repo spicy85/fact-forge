@@ -202,3 +202,25 @@ export const insertFactsActivityLogSchema = createInsertSchema(factsActivityLog)
 
 export type InsertFactsActivityLog = z.infer<typeof insertFactsActivityLogSchema>;
 export type FactsActivityLog = typeof factsActivityLog.$inferSelect;
+
+export const sourceIdentityMetrics = pgTable("source_identity_metrics", {
+  domain: text("domain").primaryKey(),
+  status: text("status").notNull().default("pending_review"),
+  identity_score: integer("identity_score").notNull().default(0),
+  url_security: integer("url_security").notNull().default(0),
+  certificate: integer("certificate").notNull().default(0),
+  ownership: integer("ownership").notNull().default(0),
+  updated_at: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const insertSourceIdentityMetricsSchema = createInsertSchema(sourceIdentityMetrics).omit({
+  updated_at: true,
+});
+
+export const updateSourceIdentityMetricsSchema = createInsertSchema(sourceIdentityMetrics).omit({
+  updated_at: true,
+}).partial();
+
+export type InsertSourceIdentityMetrics = z.infer<typeof insertSourceIdentityMetricsSchema>;
+export type UpdateSourceIdentityMetrics = z.infer<typeof updateSourceIdentityMetricsSchema>;
+export type SourceIdentityMetrics = typeof sourceIdentityMetrics.$inferSelect;
