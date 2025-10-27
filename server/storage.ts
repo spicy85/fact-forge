@@ -51,6 +51,30 @@ export interface IStorage {
   getTldScore(tld: string): Promise<TldScore | undefined>;
   upsertTldScore(tldScore: InsertTldScore): Promise<TldScore>;
   deleteTldScore(tld: string): Promise<void>;
+  recalculateUrlRepute(): Promise<{ updated: number; sources: { domain: string; oldScore: number; newScore: number; tld: string; }[]; }>;
+}
+
+// Utility function to extract best matching TLD from domain
+// Supports multi-segment TLDs like .co.uk, .gov.au, etc.
+// Returns the original-case TLD string for proper database lookup
+async function extractBestMatchingTld(domain: string, allTldScores: TldScore[]): Promise<string> {
+  const normalizedDomain = domain.toLowerCase();
+  let bestMatch = '';
+  let bestMatchOriginal = '';
+  
+  // Find the longest matching TLD
+  for (const tldScore of allTldScores) {
+    const normalizedTld = tldScore.tld.toLowerCase();
+    if (normalizedDomain.endsWith(normalizedTld)) {
+      // Prefer longer TLDs (e.g., .co.uk over .uk)
+      if (normalizedTld.length > bestMatch.length) {
+        bestMatch = normalizedTld;
+        bestMatchOriginal = tldScore.tld; // Keep original case for DB lookup
+      }
+    }
+  }
+  
+  return bestMatchOriginal;
 }
 
 export class MemStorage implements IStorage {
@@ -58,6 +82,17 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.users = new Map();
+  }
+
+  // Get TLD score for a given domain (returns 0 if TLD not configured)
+  private async getTldScoreForDomain(domain: string): Promise<number> {
+    const allTldScores = await this.getAllTldScores();
+    const matchingTld = await extractBestMatchingTld(domain, allTldScores);
+    
+    if (!matchingTld) return 0;
+    
+    const tldScore = await this.getTldScore(matchingTld);
+    return tldScore?.score ?? 0;
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -667,7 +702,8 @@ export class MemStorage implements IStorage {
   }
 
   async insertSourceIdentityMetrics(metrics: InsertSourceIdentityMetrics): Promise<SourceIdentityMetrics> {
-    const urlRepute = metrics.url_repute ?? 0;
+    // Auto-calculate url_repute from TLD scores if not explicitly provided
+    const urlRepute = metrics.url_repute ?? await this.getTldScoreForDomain(metrics.domain);
     const certificate = metrics.certificate ?? 0;
     const ownership = metrics.ownership ?? 0;
     
@@ -690,6 +726,7 @@ export class MemStorage implements IStorage {
   async updateSourceIdentityMetrics(domain: string, updates: UpdateSourceIdentityMetrics): Promise<SourceIdentityMetrics | undefined> {
     let identityScore: number | undefined;
     
+    // If url_repute, certificate, or ownership is being updated, recalculate identity_score
     if (updates.url_repute !== undefined || updates.certificate !== undefined || updates.ownership !== undefined) {
       const existing = await this.getSourceIdentityMetric(domain);
       if (existing) {
@@ -749,6 +786,45 @@ export class MemStorage implements IStorage {
 
   async deleteTldScore(tld: string): Promise<void> {
     await db.delete(tldScores).where(eq(tldScores.tld, tld));
+  }
+
+  async recalculateUrlRepute(): Promise<{ updated: number; sources: { domain: string; oldScore: number; newScore: number; tld: string; }[]; }> {
+    const allMetrics = await this.getAllSourceIdentityMetrics();
+    const allTldScores = await this.getAllTldScores();
+    const updateResults: { domain: string; oldScore: number; newScore: number; tld: string; }[] = [];
+    let updatedCount = 0;
+    
+    for (const metric of allMetrics) {
+      const oldScore = metric.url_repute;
+      const newScore = await this.getTldScoreForDomain(metric.domain);
+      const matchedTld = await extractBestMatchingTld(metric.domain, allTldScores);
+      
+      if (oldScore !== newScore) {
+        // Update url_repute and recalculate identity_score
+        const certificate = metric.certificate;
+        const ownership = metric.ownership;
+        const identityScore = Math.round((newScore + certificate + ownership) / 3);
+        
+        await db
+          .update(sourceIdentityMetrics)
+          .set({
+            url_repute: newScore,
+            identity_score: identityScore,
+            updated_at: new Date().toISOString(),
+          })
+          .where(eq(sourceIdentityMetrics.domain, metric.domain));
+        
+        updateResults.push({
+          domain: metric.domain,
+          oldScore,
+          newScore,
+          tld: matchedTld || 'unknown',
+        });
+        updatedCount++;
+      }
+    }
+    
+    return { updated: updatedCount, sources: updateResults };
   }
 }
 

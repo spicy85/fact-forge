@@ -195,6 +195,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Recalculate url_repute for all sources based on TLD scores
+  app.post("/api/admin/recalculate-url-repute", async (req, res) => {
+    try {
+      const result = await storage.recalculateUrlRepute();
+      res.json({
+        success: true,
+        ...result
+      });
+    } catch (error) {
+      console.error("Error recalculating url repute:", error);
+      res.status(500).json({ error: "Failed to recalculate url repute" });
+    }
+  });
+
   // Sources API endpoint
   app.get("/api/sources", async (req, res) => {
     try {

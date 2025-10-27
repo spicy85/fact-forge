@@ -45,6 +45,16 @@ interface SyncFactsCountStats {
   }[];
 }
 
+interface RecalculateUrlReputeStats {
+  updated: number;
+  sources: {
+    domain: string;
+    oldScore: number;
+    newScore: number;
+    tld: string;
+  }[];
+}
+
 interface TldScore {
   tld: string;
   score: number;
@@ -79,6 +89,7 @@ export default function AdminScoring() {
   const [promotionResults, setPromotionResults] = useState<{ promotedCount: number; skippedCount: number; } | null>(null);
   const [pullNewFactsResults, setPullNewFactsResults] = useState<PullNewFactsStats | null>(null);
   const [syncFactsCountResults, setSyncFactsCountResults] = useState<SyncFactsCountStats | null>(null);
+  const [recalculateUrlReputeResults, setRecalculateUrlReputeResults] = useState<RecalculateUrlReputeStats | null>(null);
   
   // Pull new facts form state
   const [pullEntities, setPullEntities] = useState<string>("Canada,Mexico");
@@ -272,6 +283,28 @@ export default function AdminScoring() {
       toast({
         title: "Error",
         description: "Failed to sync facts count.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const recalculateUrlReputeMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/recalculate-url-repute");
+      return await response.json();
+    },
+    onSuccess: (data: any) => {
+      setRecalculateUrlReputeResults(data);
+      queryClient.invalidateQueries({ queryKey: ["/api/source-identity-metrics"] });
+      toast({
+        title: "Recalculation complete",
+        description: `Updated url_repute for ${data.updated} source(s).`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to recalculate url repute.",
         variant: "destructive",
       });
     },
@@ -1068,6 +1101,47 @@ export default function AdminScoring() {
                               <span className="ml-1 text-muted-foreground">{source.oldCount}</span>
                               <span className="mx-1">→</span>
                               <span className="font-medium">{source.newCount}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Button
+                  onClick={() => recalculateUrlReputeMutation.mutate()}
+                  disabled={recalculateUrlReputeMutation.isPending}
+                  data-testid="button-recalculate-url-repute"
+                  className="w-full"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  {recalculateUrlReputeMutation.isPending ? "Recalculating..." : "Recalculate URL Reputation"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Updates url_repute scores for all sources based on configured TLD scores.
+                </p>
+                {recalculateUrlReputeResults && (
+                  <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
+                    <h4 className="font-semibold text-xs">Recalculation Results</h4>
+                    <div className="text-xs space-y-1">
+                      <div>
+                        <span className="text-muted-foreground">Sources Updated:</span>
+                        <span className="ml-2 font-medium" data-testid="text-recalculated-count">
+                          {recalculateUrlReputeResults.updated}
+                        </span>
+                      </div>
+                      {recalculateUrlReputeResults.sources.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {recalculateUrlReputeResults.sources.map((source) => (
+                            <div key={source.domain} className="text-xs">
+                              <span className="font-mono">{source.domain}</span>
+                              <span className="ml-1 text-muted-foreground">({source.tld})</span>:
+                              <span className="ml-1 text-muted-foreground">{source.oldScore}</span>
+                              <span className="mx-1">→</span>
+                              <span className="font-medium">{source.newScore}</span>
                             </div>
                           ))}
                         </div>
