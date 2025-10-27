@@ -202,10 +202,13 @@ export class MemStorage implements IStorage {
       return null;
     }
     
-    // Fetch all sources to get numeric trust ratings
+    // Fetch all sources to get numeric trust ratings (average of all 5 criteria)
     const allSources = await db.select().from(sources);
     const sourceTrustMap = new Map(
-      allSources.map(source => [source.domain, source.public_trust])
+      allSources.map(source => [
+        source.domain, 
+        Math.round((source.identity + source.legitimacy + source.data_quality + source.data_accuracy + source.proprietary_score) / 5)
+      ])
     );
     
     // Use ALL facts for consensus calculation to support time-series data

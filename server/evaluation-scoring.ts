@@ -16,7 +16,7 @@ export async function calculateSourceTrustScore(sourceUrl: string): Promise<numb
   }
   
   const overallTrust = Math.round(
-    (source.public_trust + source.data_accuracy + source.proprietary_score) / 3
+    (source.identity + source.legitimacy + source.data_quality + source.data_accuracy + source.proprietary_score) / 5
   );
   
   return overallTrust;

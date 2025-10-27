@@ -29,7 +29,9 @@ import {
 
 interface Source {
   domain: string;
-  public_trust: number;
+  identity: number;
+  legitimacy: number;
+  data_quality: number;
   data_accuracy: number;
   proprietary_score: number;
   status: string;
@@ -42,7 +44,9 @@ interface Source {
 export default function SourcePipeline() {
   const { toast } = useToast();
   const [newSourceDomain, setNewSourceDomain] = useState("");
-  const [newSourceTrust, setNewSourceTrust] = useState(70);
+  const [newSourceIdentity, setNewSourceIdentity] = useState(70);
+  const [newSourceLegitimacy, setNewSourceLegitimacy] = useState(70);
+  const [newSourceDataQuality, setNewSourceDataQuality] = useState(70);
   const [newSourceAccuracy, setNewSourceAccuracy] = useState(70);
   const [newSourceProprietary, setNewSourceProprietary] = useState(60);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -68,7 +72,9 @@ export default function SourcePipeline() {
   const createSourceMutation = useMutation({
     mutationFn: async (sourceData: {
       domain: string;
-      public_trust: number;
+      identity: number;
+      legitimacy: number;
+      data_quality: number;
       data_accuracy: number;
       proprietary_score: number;
       status: string;
@@ -82,7 +88,9 @@ export default function SourcePipeline() {
         description: "New source added to pipeline for evaluation",
       });
       setNewSourceDomain("");
-      setNewSourceTrust(70);
+      setNewSourceIdentity(70);
+      setNewSourceLegitimacy(70);
+      setNewSourceDataQuality(70);
       setNewSourceAccuracy(70);
       setNewSourceProprietary(60);
       setDialogOpen(false);
@@ -135,7 +143,9 @@ export default function SourcePipeline() {
     
     createSourceMutation.mutate({
       domain: newSourceDomain,
-      public_trust: newSourceTrust,
+      identity: newSourceIdentity,
+      legitimacy: newSourceLegitimacy,
+      data_quality: newSourceDataQuality,
       data_accuracy: newSourceAccuracy,
       proprietary_score: newSourceProprietary,
       status: "pending_review",
@@ -199,17 +209,43 @@ export default function SourcePipeline() {
                   </div>
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="trust">Public Trust</Label>
+                      <Label htmlFor="identity">Identity</Label>
                       <Input
-                        id="trust"
+                        id="identity"
                         type="number"
                         min="0"
                         max="100"
-                        value={newSourceTrust}
-                        onChange={(e) => setNewSourceTrust(parseInt(e.target.value) || 0)}
-                        data-testid="input-new-trust"
+                        value={newSourceIdentity}
+                        onChange={(e) => setNewSourceIdentity(parseInt(e.target.value) || 0)}
+                        data-testid="input-new-identity"
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="legitimacy">Legitimacy</Label>
+                      <Input
+                        id="legitimacy"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={newSourceLegitimacy}
+                        onChange={(e) => setNewSourceLegitimacy(parseInt(e.target.value) || 0)}
+                        data-testid="input-new-legitimacy"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="data-quality">Data Quality</Label>
+                      <Input
+                        id="data-quality"
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={newSourceDataQuality}
+                        onChange={(e) => setNewSourceDataQuality(parseInt(e.target.value) || 0)}
+                        data-testid="input-new-data-quality"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="accuracy">Data Accuracy</Label>
                       <Input
@@ -223,7 +259,7 @@ export default function SourcePipeline() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="proprietary">Proprietary Score</Label>
+                      <Label htmlFor="proprietary">Proprietary</Label>
                       <Input
                         id="proprietary"
                         type="number"
@@ -301,7 +337,7 @@ export default function SourcePipeline() {
                 <TableBody>
                   {allSources.map((source) => {
                     const overallTrust = Math.round(
-                      (source.public_trust + source.data_accuracy + source.proprietary_score) / 3
+                      (source.identity + source.legitimacy + source.data_quality + source.data_accuracy + source.proprietary_score) / 5
                     );
                     
                     return (

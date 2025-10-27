@@ -19,7 +19,9 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 
 interface SourceMetrics {
   domain: string;
-  public_trust: number;
+  identity: number;
+  legitimacy: number;
+  data_quality: number;
   data_accuracy: number;
   proprietary_score: number;
   status: string;
@@ -32,7 +34,9 @@ interface SourceMetrics {
 interface SourceStats {
   domain: string;
   factCount: number;
-  publicTrust: number;
+  identity: number;
+  legitimacy: number;
+  dataQuality: number;
   dataAccuracy: number;
   proprietaryScore: number;
   overallTrustLevel: number;
@@ -83,20 +87,22 @@ export default function SourcesOverview() {
   const sources: SourceStats[] = sourceMetrics.map((source) => {
     const editedSource = editingValues[source.domain] || source;
     const overallTrustLevel = Math.round(
-      (editedSource.public_trust + editedSource.data_accuracy + editedSource.proprietary_score) / 3
+      (editedSource.identity + editedSource.legitimacy + editedSource.data_quality + editedSource.data_accuracy + editedSource.proprietary_score) / 5
     );
 
     return {
       domain: source.domain,
       factCount: source.facts_count,
-      publicTrust: editedSource.public_trust,
+      identity: editedSource.identity,
+      legitimacy: editedSource.legitimacy,
+      dataQuality: editedSource.data_quality,
       dataAccuracy: editedSource.data_accuracy,
       proprietaryScore: editedSource.proprietary_score,
       overallTrustLevel,
     };
   }).sort((a, b) => b.factCount - a.factCount);
 
-  const handleValueChange = (domain: string, field: keyof Pick<SourceMetrics, 'public_trust' | 'data_accuracy' | 'proprietary_score'>, value: string) => {
+  const handleValueChange = (domain: string, field: keyof Pick<SourceMetrics, 'identity' | 'legitimacy' | 'data_quality' | 'data_accuracy' | 'proprietary_score'>, value: string) => {
     const numValue = parseInt(value) || 0;
     const clampedValue = Math.min(Math.max(numValue, 0), 100);
     
@@ -172,7 +178,7 @@ export default function SourcesOverview() {
           <CardHeader>
             <CardTitle>Trusted Data Sources</CardTitle>
             <CardDescription>
-              Production-ready sources used for fact verification. Metrics: Public Trust (reputation), Data Accuracy (verification rate), and Proprietary Score (transparency). Overall Trust Level is a weighted average.
+              Production-ready sources used for fact verification. Metrics: Identity (authenticity), Legitimacy (authority), Data Quality (completeness), Data Accuracy (precision), and Proprietary Score (transparency). Overall Trust Level is the average.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -184,10 +190,12 @@ export default function SourcesOverview() {
                 <TableRow>
                   <TableHead data-testid="header-domain">Domain</TableHead>
                   <TableHead data-testid="header-facts">Facts</TableHead>
-                  <TableHead data-testid="header-public-trust">Public Trust</TableHead>
+                  <TableHead data-testid="header-identity">Identity</TableHead>
+                  <TableHead data-testid="header-legitimacy">Legitimacy</TableHead>
+                  <TableHead data-testid="header-data-quality">Data Quality</TableHead>
                   <TableHead data-testid="header-data-accuracy">Data Accuracy</TableHead>
-                  <TableHead data-testid="header-proprietary">Proprietary Score</TableHead>
-                  <TableHead data-testid="header-overall">Overall Trust</TableHead>
+                  <TableHead data-testid="header-proprietary">Proprietary</TableHead>
+                  <TableHead data-testid="header-overall">Overall</TableHead>
                   <TableHead data-testid="header-actions">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -205,10 +213,32 @@ export default function SourcesOverview() {
                         type="number"
                         min="0"
                         max="100"
-                        value={source.publicTrust}
-                        onChange={(e) => handleValueChange(source.domain, 'public_trust', e.target.value)}
+                        value={source.identity}
+                        onChange={(e) => handleValueChange(source.domain, 'identity', e.target.value)}
                         className="w-20"
-                        data-testid={`input-public-trust-${source.domain}`}
+                        data-testid={`input-identity-${source.domain}`}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={source.legitimacy}
+                        onChange={(e) => handleValueChange(source.domain, 'legitimacy', e.target.value)}
+                        className="w-20"
+                        data-testid={`input-legitimacy-${source.domain}`}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={source.dataQuality}
+                        onChange={(e) => handleValueChange(source.domain, 'data_quality', e.target.value)}
+                        className="w-20"
+                        data-testid={`input-data-quality-${source.domain}`}
                       />
                     </TableCell>
                     <TableCell>

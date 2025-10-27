@@ -73,7 +73,9 @@ export type FactsEvaluation = typeof factsEvaluation.$inferSelect;
 
 export const sources = pgTable("sources", {
   domain: text("domain").primaryKey(),
-  public_trust: integer("public_trust").notNull(),
+  identity: integer("identity").notNull(),
+  legitimacy: integer("legitimacy").notNull(),
+  data_quality: integer("data_quality").notNull(),
   data_accuracy: integer("data_accuracy").notNull(),
   proprietary_score: integer("proprietary_score").notNull(),
   status: text("status").notNull().default("pending_review"), // pending_review, evaluating, trusted, rejected
@@ -88,7 +90,9 @@ export const insertSourceSchema = createInsertSchema(sources).omit({
 });
 
 export const updateSourceSchema = createInsertSchema(sources).pick({
-  public_trust: true,
+  identity: true,
+  legitimacy: true,
+  data_quality: true,
   data_accuracy: true,
   proprietary_score: true,
   status: true,
