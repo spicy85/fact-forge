@@ -1,7 +1,7 @@
-import { type User, type InsertUser, type VerifiedFact, type InsertVerifiedFact, type FactsEvaluation, type InsertFactsEvaluation, type Source, type InsertSource, type UpdateSource, type ScoringSettings, type InsertScoringSettings, type UpdateScoringSettings, type RequestedFact, type InsertRequestedFact, type SourceActivityLog, type InsertSourceActivityLog, type FactsActivityLog, type InsertFactsActivityLog, type SourceIdentityMetrics, type InsertSourceIdentityMetrics, type UpdateSourceIdentityMetrics } from "@shared/schema";
+import { type User, type InsertUser, type VerifiedFact, type InsertVerifiedFact, type FactsEvaluation, type InsertFactsEvaluation, type Source, type InsertSource, type UpdateSource, type ScoringSettings, type InsertScoringSettings, type UpdateScoringSettings, type RequestedFact, type InsertRequestedFact, type SourceActivityLog, type InsertSourceActivityLog, type FactsActivityLog, type InsertFactsActivityLog, type SourceIdentityMetrics, type InsertSourceIdentityMetrics, type UpdateSourceIdentityMetrics, type TldScore, type InsertTldScore, type UpdateTldScore } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { verifiedFacts, factsEvaluation, sources, scoringSettings, requestedFacts, sourceActivityLog, factsActivityLog, sourceIdentityMetrics } from "@shared/schema";
+import { verifiedFacts, factsEvaluation, sources, scoringSettings, requestedFacts, sourceActivityLog, factsActivityLog, sourceIdentityMetrics, tldScores } from "@shared/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { calculateSourceTrustScore, calculateRecencyScore, calculateTrustScore } from "./evaluation-scoring";
 
@@ -47,6 +47,10 @@ export interface IStorage {
   getSourceIdentityMetric(domain: string): Promise<SourceIdentityMetrics | undefined>;
   insertSourceIdentityMetrics(metrics: InsertSourceIdentityMetrics): Promise<SourceIdentityMetrics>;
   updateSourceIdentityMetrics(domain: string, updates: UpdateSourceIdentityMetrics): Promise<SourceIdentityMetrics | undefined>;
+  getAllTldScores(): Promise<TldScore[]>;
+  getTldScore(tld: string): Promise<TldScore | undefined>;
+  upsertTldScore(tldScore: InsertTldScore): Promise<TldScore>;
+  deleteTldScore(tld: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -663,17 +667,17 @@ export class MemStorage implements IStorage {
   }
 
   async insertSourceIdentityMetrics(metrics: InsertSourceIdentityMetrics): Promise<SourceIdentityMetrics> {
-    const urlSecurity = metrics.url_security ?? 0;
+    const urlRepute = metrics.url_repute ?? 0;
     const certificate = metrics.certificate ?? 0;
     const ownership = metrics.ownership ?? 0;
     
-    const identityScore = Math.round((urlSecurity + certificate + ownership) / 3);
+    const identityScore = Math.round((urlRepute + certificate + ownership) / 3);
     
     const [inserted] = await db
       .insert(sourceIdentityMetrics)
       .values({
         ...metrics,
-        url_security: urlSecurity,
+        url_repute: urlRepute,
         certificate: certificate,
         ownership: ownership,
         identity_score: identityScore,
@@ -686,13 +690,13 @@ export class MemStorage implements IStorage {
   async updateSourceIdentityMetrics(domain: string, updates: UpdateSourceIdentityMetrics): Promise<SourceIdentityMetrics | undefined> {
     let identityScore: number | undefined;
     
-    if (updates.url_security !== undefined || updates.certificate !== undefined || updates.ownership !== undefined) {
+    if (updates.url_repute !== undefined || updates.certificate !== undefined || updates.ownership !== undefined) {
       const existing = await this.getSourceIdentityMetric(domain);
       if (existing) {
-        const urlSecurity = updates.url_security ?? existing.url_security;
+        const urlRepute = updates.url_repute ?? existing.url_repute;
         const certificate = updates.certificate ?? existing.certificate;
         const ownership = updates.ownership ?? existing.ownership;
-        identityScore = Math.round((urlSecurity + certificate + ownership) / 3);
+        identityScore = Math.round((urlRepute + certificate + ownership) / 3);
       }
     }
     
@@ -709,6 +713,42 @@ export class MemStorage implements IStorage {
       .returning();
     
     return updated;
+  }
+
+  async getAllTldScores(): Promise<TldScore[]> {
+    return db.select().from(tldScores);
+  }
+
+  async getTldScore(tld: string): Promise<TldScore | undefined> {
+    const [score] = await db
+      .select()
+      .from(tldScores)
+      .where(eq(tldScores.tld, tld));
+    return score;
+  }
+
+  async upsertTldScore(tldScore: InsertTldScore): Promise<TldScore> {
+    const [upserted] = await db
+      .insert(tldScores)
+      .values({
+        ...tldScore,
+        updated_at: new Date().toISOString(),
+      })
+      .onConflictDoUpdate({
+        target: tldScores.tld,
+        set: {
+          score: tldScore.score,
+          notes: tldScore.notes,
+          updated_at: new Date().toISOString(),
+        },
+      })
+      .returning();
+    
+    return upserted;
+  }
+
+  async deleteTldScore(tld: string): Promise<void> {
+    await db.delete(tldScores).where(eq(tldScores.tld, tld));
   }
 }
 

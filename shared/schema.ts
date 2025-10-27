@@ -207,7 +207,7 @@ export const sourceIdentityMetrics = pgTable("source_identity_metrics", {
   domain: text("domain").primaryKey(),
   status: text("status").notNull().default("pending_review"),
   identity_score: integer("identity_score").notNull().default(0),
-  url_security: integer("url_security").notNull().default(0),
+  url_repute: integer("url_repute").notNull().default(0),
   certificate: integer("certificate").notNull().default(0),
   ownership: integer("ownership").notNull().default(0),
   updated_at: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -224,3 +224,22 @@ export const updateSourceIdentityMetricsSchema = createInsertSchema(sourceIdenti
 export type InsertSourceIdentityMetrics = z.infer<typeof insertSourceIdentityMetricsSchema>;
 export type UpdateSourceIdentityMetrics = z.infer<typeof updateSourceIdentityMetricsSchema>;
 export type SourceIdentityMetrics = typeof sourceIdentityMetrics.$inferSelect;
+
+export const tldScores = pgTable("tld_scores", {
+  tld: text("tld").primaryKey(),
+  score: integer("score").notNull().default(0),
+  notes: text("notes"),
+  updated_at: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const insertTldScoreSchema = createInsertSchema(tldScores).omit({
+  updated_at: true,
+});
+
+export const updateTldScoreSchema = createInsertSchema(tldScores).omit({
+  updated_at: true,
+}).partial();
+
+export type InsertTldScore = z.infer<typeof insertTldScoreSchema>;
+export type UpdateTldScore = z.infer<typeof updateTldScoreSchema>;
+export type TldScore = typeof tldScores.$inferSelect;

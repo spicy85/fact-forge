@@ -21,7 +21,7 @@ interface SourceIdentityMetrics {
   domain: string;
   status: string;
   identity_score: number;
-  url_security: number;
+  url_repute: number;
   certificate: number;
   ownership: number;
   updated_at: string;
@@ -43,7 +43,7 @@ export default function SourceIdentityMetrics() {
     },
   });
 
-  const handleValueChange = (domain: string, field: keyof Pick<SourceIdentityMetrics, 'url_security' | 'certificate' | 'ownership'>, value: string) => {
+  const handleValueChange = (domain: string, field: keyof Pick<SourceIdentityMetrics, 'url_repute' | 'certificate' | 'ownership'>, value: string) => {
     const numValue = parseInt(value) || 0;
     const clampedValue = Math.min(Math.max(numValue, 0), 100);
     
@@ -97,7 +97,7 @@ export default function SourceIdentityMetrics() {
   const metricsWithCalculatedScore = identityMetrics.map(metric => {
     const editedMetric = editingValues[metric.domain] || metric;
     const calculatedScore = Math.round(
-      (editedMetric.url_security + editedMetric.certificate + editedMetric.ownership) / 3
+      (editedMetric.url_repute + editedMetric.certificate + editedMetric.ownership) / 3
     );
     
     return {
@@ -118,7 +118,7 @@ export default function SourceIdentityMetrics() {
           <div>
             <h1 className="text-2xl font-semibold">Source Identity Metrics</h1>
             <p className="text-sm text-muted-foreground">
-              Manage URL security, certificate, and ownership scores for each source
+              Manage URL reputation, certificate, and ownership scores for each source
             </p>
           </div>
         </div>
@@ -133,7 +133,7 @@ export default function SourceIdentityMetrics() {
               <CardTitle>Identity Score Breakdown</CardTitle>
             </div>
             <CardDescription>
-              Each source's identity score is calculated as the average of URL security, certificate, and ownership scores
+              Each source's identity score is calculated as the average of URL reputation, certificate, and ownership scores
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -157,7 +157,7 @@ export default function SourceIdentityMetrics() {
                       <TableHead>Domain</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-center">Identity Score</TableHead>
-                      <TableHead className="text-center">URL Security</TableHead>
+                      <TableHead className="text-center">URL Repute</TableHead>
                       <TableHead className="text-center">Certificate</TableHead>
                       <TableHead className="text-center">Ownership</TableHead>
                       <TableHead>Last Updated</TableHead>
@@ -184,10 +184,10 @@ export default function SourceIdentityMetrics() {
                             type="number"
                             min="0"
                             max="100"
-                            value={metric.url_security}
-                            onChange={(e) => handleValueChange(metric.domain, 'url_security', e.target.value)}
+                            value={metric.url_repute}
+                            onChange={(e) => handleValueChange(metric.domain, 'url_repute', e.target.value)}
                             className="w-20 text-center"
-                            data-testid={`input-url-security-${metric.domain}`}
+                            data-testid={`input-url-repute-${metric.domain}`}
                           />
                         </TableCell>
                         <TableCell className="text-center">

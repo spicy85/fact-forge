@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertSourceSchema, updateSourceSchema, updateScoringSettingsSchema, insertSourceIdentityMetricsSchema, updateSourceIdentityMetricsSchema } from "@shared/schema";
+import { insertSourceSchema, updateSourceSchema, updateScoringSettingsSchema, insertSourceIdentityMetricsSchema, updateSourceIdentityMetricsSchema, insertTldScoreSchema, updateTldScoreSchema } from "@shared/schema";
 import express from "express";
 import path from "path";
 import { z } from "zod";
@@ -400,6 +400,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating scoring settings:", error);
       res.status(400).json({ error: "Failed to update scoring settings" });
+    }
+  });
+
+  // TLD Scores API endpoints
+  app.get("/api/tld-scores", async (req, res) => {
+    try {
+      const scores = await storage.getAllTldScores();
+      res.json(scores);
+    } catch (error) {
+      console.error("Error fetching TLD scores:", error);
+      res.status(500).json({ error: "Failed to fetch TLD scores" });
+    }
+  });
+
+  app.get("/api/tld-scores/:tld", async (req, res) => {
+    try {
+      const { tld } = req.params;
+      const score = await storage.getTldScore(tld);
+      
+      if (!score) {
+        return res.status(404).json({ error: "TLD score not found" });
+      }
+      
+      res.json(score);
+    } catch (error) {
+      console.error("Error fetching TLD score:", error);
+      res.status(500).json({ error: "Failed to fetch TLD score" });
+    }
+  });
+
+  app.post("/api/tld-scores", async (req, res) => {
+    try {
+      const validatedData = insertTldScoreSchema.parse(req.body);
+      const newScore = await storage.upsertTldScore(validatedData);
+      res.status(201).json(newScore);
+    } catch (error) {
+      console.error("Error creating TLD score:", error);
+      res.status(400).json({ error: "Failed to create TLD score" });
+    }
+  });
+
+  app.put("/api/tld-scores/:tld", async (req, res) => {
+    try {
+      const { tld } = req.params;
+      const validatedData = updateTldScoreSchema.parse(req.body);
+      const updatedScore = await storage.upsertTldScore({ tld, ...validatedData });
+      res.json(updatedScore);
+    } catch (error) {
+      console.error("Error updating TLD score:", error);
+      res.status(400).json({ error: "Failed to update TLD score" });
+    }
+  });
+
+  app.delete("/api/tld-scores/:tld", async (req, res) => {
+    try {
+      const { tld } = req.params;
+      await storage.deleteTldScore(tld);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting TLD score:", error);
+      res.status(400).json({ error: "Failed to delete TLD score" });
     }
   });
 

@@ -45,11 +45,20 @@ interface SyncFactsCountStats {
   }[];
 }
 
+interface TldScore {
+  tld: string;
+  score: number;
+}
+
 export default function AdminScoring() {
   const { toast } = useToast();
 
   const { data: settings, isLoading } = useQuery<ScoringSettings | null>({
     queryKey: ["/api/scoring-settings"],
+  });
+
+  const { data: tldScores = [], isLoading: tldScoresLoading } = useQuery<TldScore[]>({
+    queryKey: ["/api/tld-scores"],
   });
 
   const [formData, setFormData] = useState({
@@ -76,6 +85,11 @@ export default function AdminScoring() {
   const [pullAttributes, setPullAttributes] = useState<string[]>(["population"]);
   const [pullYearStart, setPullYearStart] = useState<string>("2023");
   const [pullYearEnd, setPullYearEnd] = useState<string>("2024");
+
+  // TLD scores form state
+  const [newTld, setNewTld] = useState<string>("");
+  const [newTldScore, setNewTldScore] = useState<number>(0);
+  const [editingTld, setEditingTld] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (settings) {
@@ -263,6 +277,71 @@ export default function AdminScoring() {
     },
   });
 
+  const createTldMutation = useMutation({
+    mutationFn: async (data: { tld: string; score: number }) => {
+      const response = await apiRequest("POST", "/api/tld-scores", data);
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tld-scores"] });
+      setNewTld("");
+      setNewTldScore(0);
+      toast({
+        title: "TLD added",
+        description: "New TLD score has been created successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create TLD score.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateTldMutation = useMutation({
+    mutationFn: async ({ tld, score }: { tld: string; score: number }) => {
+      const response = await apiRequest("PUT", `/api/tld-scores/${tld}`, { score });
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tld-scores"] });
+      setEditingTld({});
+      toast({
+        title: "TLD updated",
+        description: "TLD score has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update TLD score.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteTldMutation = useMutation({
+    mutationFn: async (tld: string) => {
+      await apiRequest("DELETE", `/api/tld-scores/${tld}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tld-scores"] });
+      toast({
+        title: "TLD deleted",
+        description: "TLD score has been deleted successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete TLD score.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSave = () => {
     updateMutation.mutate(formData);
   };
@@ -343,10 +422,11 @@ export default function AdminScoring() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="trust-calculation" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="trust-calculation">Trust Calculation</TabsTrigger>
                 <TabsTrigger value="recency-scoring">Recency Scoring</TabsTrigger>
                 <TabsTrigger value="fact-promotion">Fact Promotion</TabsTrigger>
+                <TabsTrigger value="tld-config">TLD Configuration</TabsTrigger>
               </TabsList>
 
               <TabsContent value="trust-calculation" className="space-y-6 mt-6">
@@ -552,6 +632,112 @@ export default function AdminScoring() {
                     Facts with a trust score of {formData.promotion_threshold} or higher will be promoted to the verified_facts table when you run the promotion process.
                   </p>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="tld-config" className="space-y-4 mt-6">
+                <div className="mb-4 p-4 bg-muted/50 rounded-lg">
+                  <h3 className="text-sm font-medium mb-2">Top-Level Domain (TLD) Reputation Scores</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Configure how different domain extensions contribute to URL reputation scoring. Higher scores indicate more trustworthy domains.
+                  </p>
+                </div>
+
+                {tldScoresLoading ? (
+                  <div className="text-center py-4 text-muted-foreground">Loading TLD scores...</div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Existing TLD Scores</Label>
+                      <div className="border rounded-md">
+                        <div className="grid grid-cols-[1fr_120px_120px] gap-2 p-3 border-b bg-muted/30 font-medium text-sm">
+                          <div>TLD</div>
+                          <div className="text-center">Score (0-100)</div>
+                          <div className="text-center">Actions</div>
+                        </div>
+                        {tldScores.length === 0 ? (
+                          <div className="p-4 text-center text-sm text-muted-foreground">
+                            No TLD scores configured yet
+                          </div>
+                        ) : (
+                          tldScores.map((tldScore) => (
+                            <div key={tldScore.tld} className="grid grid-cols-[1fr_120px_120px] gap-2 p-3 border-b last:border-b-0">
+                              <div className="flex items-center font-mono" data-testid={`text-tld-${tldScore.tld}`}>
+                                {tldScore.tld}
+                              </div>
+                              <div className="flex items-center justify-center">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  value={editingTld[tldScore.tld] !== undefined ? editingTld[tldScore.tld] : tldScore.score}
+                                  onChange={(e) => {
+                                    const value = parseInt(e.target.value) || 0;
+                                    setEditingTld({ ...editingTld, [tldScore.tld]: Math.min(Math.max(value, 0), 100) });
+                                  }}
+                                  className="w-20 text-center"
+                                  data-testid={`input-tld-score-${tldScore.tld}`}
+                                />
+                              </div>
+                              <div className="flex items-center justify-center gap-2">
+                                {editingTld[tldScore.tld] !== undefined && editingTld[tldScore.tld] !== tldScore.score && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => updateTldMutation.mutate({ tld: tldScore.tld, score: editingTld[tldScore.tld] })}
+                                    disabled={updateTldMutation.isPending}
+                                    data-testid={`button-save-tld-${tldScore.tld}`}
+                                  >
+                                    <Save className="h-3 w-3" />
+                                  </Button>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => deleteTldMutation.mutate(tldScore.tld)}
+                                  disabled={deleteTldMutation.isPending}
+                                  data-testid={`button-delete-tld-${tldScore.tld}`}
+                                >
+                                  Delete
+                                </Button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-4 border-t">
+                      <Label>Add New TLD Score</Label>
+                      <div className="grid grid-cols-[1fr_120px_120px] gap-2">
+                        <Input
+                          placeholder="e.g., .gov, .org, .com"
+                          value={newTld}
+                          onChange={(e) => setNewTld(e.target.value)}
+                          data-testid="input-new-tld"
+                        />
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          placeholder="Score"
+                          value={newTldScore}
+                          onChange={(e) => setNewTldScore(parseInt(e.target.value) || 0)}
+                          data-testid="input-new-tld-score"
+                        />
+                        <Button
+                          onClick={() => {
+                            if (newTld.trim()) {
+                              createTldMutation.mutate({ tld: newTld.trim(), score: newTldScore });
+                            }
+                          }}
+                          disabled={!newTld.trim() || createTldMutation.isPending}
+                          data-testid="button-add-tld"
+                        >
+                          Add TLD
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </TabsContent>
             </Tabs>
           </CardContent>
