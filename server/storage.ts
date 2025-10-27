@@ -42,6 +42,7 @@ export interface IStorage {
   logFactsActivityBatch(logs: InsertFactsActivityLog[]): Promise<FactsActivityLog[]>;
   getAllFactsActivityLogs(limit?: number, offset?: number): Promise<FactsActivityLog[]>;
   promoteFactsToVerified(): Promise<{ promotedCount: number; skippedCount: number; }>;
+  syncFactsCount(): Promise<{ synced: number; sources: { domain: string; oldCount: number; newCount: number; }[]; }>;
 }
 
 export class MemStorage implements IStorage {
@@ -74,6 +75,13 @@ export class MemStorage implements IStorage {
 
   async insertVerifiedFact(fact: InsertVerifiedFact): Promise<VerifiedFact> {
     const [insertedFact] = await db.insert(verifiedFacts).values(fact).returning();
+    
+    // Increment facts_count for this source
+    await db
+      .update(sources)
+      .set({ facts_count: sql`${sources.facts_count} + 1` })
+      .where(eq(sources.domain, fact.source_name));
+    
     return insertedFact;
   }
 
@@ -566,6 +574,12 @@ export class MemStorage implements IStorage {
           last_verified_at: fact.evaluated_at,
         });
 
+        // Increment facts_count for this source
+        await db
+          .update(sources)
+          .set({ facts_count: sql`${sources.facts_count} + 1` })
+          .where(eq(sources.domain, fact.source_name));
+
         logsToInsert.push({
           entity: fact.entity,
           entity_type: fact.entity_type,
@@ -587,6 +601,46 @@ export class MemStorage implements IStorage {
     }
 
     return { promotedCount, skippedCount };
+  }
+
+  async syncFactsCount(): Promise<{ synced: number; sources: { domain: string; oldCount: number; newCount: number; }[]; }> {
+    // Get all sources
+    const allSources = await db.select().from(sources);
+    
+    // Get actual fact counts from verified_facts grouped by source_name
+    const factCounts = await db
+      .select({
+        source_name: verifiedFacts.source_name,
+        count: sql<number>`cast(count(*) as integer)`,
+      })
+      .from(verifiedFacts)
+      .groupBy(verifiedFacts.source_name);
+    
+    const countMap = new Map(factCounts.map(fc => [fc.source_name, fc.count]));
+    
+    const syncResults: { domain: string; oldCount: number; newCount: number; }[] = [];
+    let syncedCount = 0;
+    
+    for (const source of allSources) {
+      const actualCount = countMap.get(source.domain) ?? 0;
+      const oldCount = source.facts_count;
+      
+      if (oldCount !== actualCount) {
+        await db
+          .update(sources)
+          .set({ facts_count: actualCount })
+          .where(eq(sources.domain, source.domain));
+        
+        syncResults.push({
+          domain: source.domain,
+          oldCount,
+          newCount: actualCount,
+        });
+        syncedCount++;
+      }
+    }
+    
+    return { synced: syncedCount, sources: syncResults };
   }
 }
 

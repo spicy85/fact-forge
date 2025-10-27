@@ -181,6 +181,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Sync facts_count for all sources
+  app.post("/api/admin/sync-facts-count", async (req, res) => {
+    try {
+      const result = await storage.syncFactsCount();
+      res.json({
+        success: true,
+        ...result
+      });
+    } catch (error) {
+      console.error("Error syncing facts count:", error);
+      res.status(500).json({ error: "Failed to sync facts count" });
+    }
+  });
+
   // Sources API endpoint
   app.get("/api/sources", async (req, res) => {
     try {

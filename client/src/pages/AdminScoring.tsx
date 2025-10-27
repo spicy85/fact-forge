@@ -36,6 +36,15 @@ interface PullNewFactsStats {
   errors: string[];
 }
 
+interface SyncFactsCountStats {
+  synced: number;
+  sources: {
+    domain: string;
+    oldCount: number;
+    newCount: number;
+  }[];
+}
+
 export default function AdminScoring() {
   const { toast } = useToast();
 
@@ -60,6 +69,7 @@ export default function AdminScoring() {
   const [fulfillResults, setFulfillResults] = useState<FulfillRequestedFactsStats | null>(null);
   const [promotionResults, setPromotionResults] = useState<{ promotedCount: number; skippedCount: number; } | null>(null);
   const [pullNewFactsResults, setPullNewFactsResults] = useState<PullNewFactsStats | null>(null);
+  const [syncFactsCountResults, setSyncFactsCountResults] = useState<SyncFactsCountStats | null>(null);
   
   // Pull new facts form state
   const [pullEntities, setPullEntities] = useState<string>("Canada,Mexico");
@@ -226,6 +236,28 @@ export default function AdminScoring() {
       toast({
         title: "Error",
         description: "Failed to pull new facts.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const syncFactsCountMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/sync-facts-count");
+      return await response.json();
+    },
+    onSuccess: (data: any) => {
+      setSyncFactsCountResults(data);
+      queryClient.invalidateQueries({ queryKey: ["/api/sources"] });
+      toast({
+        title: "Sync complete",
+        description: `Updated facts_count for ${data.synced} source(s).`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to sync facts count.",
         variant: "destructive",
       });
     },
@@ -786,6 +818,46 @@ export default function AdminScoring() {
                           {promotionResults.skippedCount}
                         </span>
                       </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Button
+                  onClick={() => syncFactsCountMutation.mutate()}
+                  disabled={syncFactsCountMutation.isPending}
+                  data-testid="button-sync-facts-count"
+                  className="w-full"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  {syncFactsCountMutation.isPending ? "Syncing..." : "Sync Source Facts Count"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Recalculates facts_count for all sources from verified_facts table to fix discrepancies.
+                </p>
+                {syncFactsCountResults && (
+                  <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
+                    <h4 className="font-semibold text-xs">Sync Results</h4>
+                    <div className="text-xs space-y-1">
+                      <div>
+                        <span className="text-muted-foreground">Sources Updated:</span>
+                        <span className="ml-2 font-medium" data-testid="text-synced-count">
+                          {syncFactsCountResults.synced}
+                        </span>
+                      </div>
+                      {syncFactsCountResults.sources.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {syncFactsCountResults.sources.map((source) => (
+                            <div key={source.domain} className="text-xs">
+                              <span className="font-mono">{source.domain}</span>:
+                              <span className="ml-1 text-muted-foreground">{source.oldCount}</span>
+                              <span className="mx-1">→</span>
+                              <span className="font-medium">{source.newCount}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
