@@ -463,7 +463,7 @@ export class MemStorage implements IStorage {
     const sourceTrustMap = new Map(
       allSources.map(source => [
         source.domain, 
-        Math.round((source.identity + source.legitimacy + source.data_quality + source.data_accuracy + source.proprietary_score) / 5)
+        Math.round((source.identity_score + source.legitimacy + source.data_quality + source.data_accuracy + source.proprietary_score) / 5)
       ])
     );
     

@@ -19,7 +19,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 
 interface SourceMetrics {
   domain: string;
-  identity: number;
+  identity_score: number;
   legitimacy: number;
   data_quality: number;
   data_accuracy: number;
@@ -34,7 +34,7 @@ interface SourceMetrics {
 interface SourceStats {
   domain: string;
   factCount: number;
-  identity: number;
+  identityScore: number;
   legitimacy: number;
   dataQuality: number;
   dataAccuracy: number;
@@ -87,13 +87,13 @@ export default function SourcesOverview() {
   const sources: SourceStats[] = sourceMetrics.map((source) => {
     const editedSource = editingValues[source.domain] || source;
     const overallTrustLevel = Math.round(
-      (editedSource.identity + editedSource.legitimacy + editedSource.data_quality + editedSource.data_accuracy + editedSource.proprietary_score) / 5
+      (editedSource.identity_score + editedSource.legitimacy + editedSource.data_quality + editedSource.data_accuracy + editedSource.proprietary_score) / 5
     );
 
     return {
       domain: source.domain,
       factCount: source.facts_count,
-      identity: editedSource.identity,
+      identityScore: editedSource.identity_score,
       legitimacy: editedSource.legitimacy,
       dataQuality: editedSource.data_quality,
       dataAccuracy: editedSource.data_accuracy,
@@ -102,7 +102,7 @@ export default function SourcesOverview() {
     };
   }).sort((a, b) => b.factCount - a.factCount);
 
-  const handleValueChange = (domain: string, field: keyof Pick<SourceMetrics, 'identity' | 'legitimacy' | 'data_quality' | 'data_accuracy' | 'proprietary_score'>, value: string) => {
+  const handleValueChange = (domain: string, field: keyof Pick<SourceMetrics, 'identity_score' | 'legitimacy' | 'data_quality' | 'data_accuracy' | 'proprietary_score'>, value: string) => {
     const numValue = parseInt(value) || 0;
     const clampedValue = Math.min(Math.max(numValue, 0), 100);
     
@@ -213,8 +213,8 @@ export default function SourcesOverview() {
                         type="number"
                         min="0"
                         max="100"
-                        value={source.identity}
-                        onChange={(e) => handleValueChange(source.domain, 'identity', e.target.value)}
+                        value={source.identityScore}
+                        onChange={(e) => handleValueChange(source.domain, 'identity_score', e.target.value)}
                         className="w-20"
                         data-testid={`input-identity-${source.domain}`}
                       />
