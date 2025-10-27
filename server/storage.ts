@@ -4,6 +4,7 @@ import { db } from "./db";
 import { verifiedFacts, factsEvaluation, sources, scoringSettings, requestedFacts, sourceActivityLog, factsActivityLog, sourceIdentityMetrics, tldScores } from "@shared/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { calculateSourceTrustScore, calculateRecencyScore, calculateTrustScore } from "./evaluation-scoring";
+import * as https from "https";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -52,6 +53,7 @@ export interface IStorage {
   upsertTldScore(tldScore: InsertTldScore): Promise<TldScore>;
   deleteTldScore(tld: string): Promise<void>;
   recalculateUrlRepute(): Promise<{ updated: number; sources: { domain: string; oldScore: number; newScore: number; tld: string; }[]; }>;
+  recalculateCertificates(): Promise<{ updated: number; sources: { domain: string; oldScore: number; newScore: number; status: string; }[]; }>;
 }
 
 // Utility function to extract best matching TLD from domain
@@ -75,6 +77,63 @@ async function extractBestMatchingTld(domain: string, allTldScores: TldScore[]):
   }
   
   return bestMatchOriginal;
+}
+
+// Utility function to check SSL/TLS certificate validity for a domain
+// Returns 100 for valid certificate, 0 for invalid/missing/error
+async function checkCertificateValidity(domain: string): Promise<{ score: number; status: string; }> {
+  return new Promise((resolve) => {
+    const options = {
+      hostname: domain,
+      port: 443,
+      path: '/',
+      method: 'GET',
+      timeout: 5000, // 5 second timeout
+    };
+
+    const req = https.request(options, (res) => {
+      // If we get here, the connection succeeded and certificate is valid
+      const cert = (res.socket as any).getPeerCertificate();
+      
+      if (!cert || Object.keys(cert).length === 0) {
+        resolve({ score: 0, status: 'no_certificate' });
+        return;
+      }
+
+      // Check if certificate is valid (not expired)
+      const now = new Date();
+      const validFrom = new Date(cert.valid_from);
+      const validTo = new Date(cert.valid_to);
+
+      if (now < validFrom || now > validTo) {
+        resolve({ score: 0, status: 'expired' });
+        return;
+      }
+
+      resolve({ score: 100, status: 'valid' });
+    });
+
+    req.on('error', (err: any) => {
+      // Certificate errors, connection errors, etc.
+      if (err.code === 'CERT_HAS_EXPIRED') {
+        resolve({ score: 0, status: 'expired' });
+      } else if (err.code === 'DEPTH_ZERO_SELF_SIGNED_CERT' || err.code === 'SELF_SIGNED_CERT_IN_CHAIN') {
+        resolve({ score: 0, status: 'self_signed' });
+      } else if (err.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE' || err.code === 'CERT_UNTRUSTED') {
+        resolve({ score: 0, status: 'untrusted' });
+      } else {
+        // Other errors (timeout, connection refused, etc.)
+        resolve({ score: 0, status: 'unreachable' });
+      }
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({ score: 0, status: 'timeout' });
+    });
+
+    req.end();
+  });
 }
 
 export class MemStorage implements IStorage {
@@ -819,6 +878,46 @@ export class MemStorage implements IStorage {
           oldScore,
           newScore,
           tld: matchedTld || 'unknown',
+        });
+        updatedCount++;
+      }
+    }
+    
+    return { updated: updatedCount, sources: updateResults };
+  }
+
+  async recalculateCertificates(): Promise<{ updated: number; sources: { domain: string; oldScore: number; newScore: number; status: string; }[]; }> {
+    const allMetrics = await this.getAllSourceIdentityMetrics();
+    const updateResults: { domain: string; oldScore: number; newScore: number; status: string; }[] = [];
+    let updatedCount = 0;
+    
+    for (const metric of allMetrics) {
+      const oldScore = metric.certificate;
+      
+      // Check certificate validity for this domain
+      const certResult = await checkCertificateValidity(metric.domain);
+      const newScore = certResult.score;
+      
+      if (oldScore !== newScore) {
+        // Update certificate and recalculate identity_score
+        const urlRepute = metric.url_repute;
+        const ownership = metric.ownership;
+        const identityScore = Math.round((urlRepute + newScore + ownership) / 3);
+        
+        await db
+          .update(sourceIdentityMetrics)
+          .set({
+            certificate: newScore,
+            identity_score: identityScore,
+            updated_at: new Date().toISOString(),
+          })
+          .where(eq(sourceIdentityMetrics.domain, metric.domain));
+        
+        updateResults.push({
+          domain: metric.domain,
+          oldScore,
+          newScore,
+          status: certResult.status,
         });
         updatedCount++;
       }

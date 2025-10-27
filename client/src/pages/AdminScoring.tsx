@@ -55,6 +55,16 @@ interface RecalculateUrlReputeStats {
   }[];
 }
 
+interface RecalculateCertificatesStats {
+  updated: number;
+  sources: {
+    domain: string;
+    oldScore: number;
+    newScore: number;
+    status: string;
+  }[];
+}
+
 interface TldScore {
   tld: string;
   score: number;
@@ -90,6 +100,7 @@ export default function AdminScoring() {
   const [pullNewFactsResults, setPullNewFactsResults] = useState<PullNewFactsStats | null>(null);
   const [syncFactsCountResults, setSyncFactsCountResults] = useState<SyncFactsCountStats | null>(null);
   const [recalculateUrlReputeResults, setRecalculateUrlReputeResults] = useState<RecalculateUrlReputeStats | null>(null);
+  const [recalculateCertificatesResults, setRecalculateCertificatesResults] = useState<RecalculateCertificatesStats | null>(null);
   
   // Pull new facts form state
   const [pullEntities, setPullEntities] = useState<string>("Canada,Mexico");
@@ -305,6 +316,28 @@ export default function AdminScoring() {
       toast({
         title: "Error",
         description: "Failed to recalculate url repute.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const recalculateCertificatesMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/recalculate-certificates");
+      return await response.json();
+    },
+    onSuccess: (data: any) => {
+      setRecalculateCertificatesResults(data);
+      queryClient.invalidateQueries({ queryKey: ["/api/source-identity-metrics"] });
+      toast({
+        title: "Recalculation complete",
+        description: `Updated certificates for ${data.updated} source(s).`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to recalculate certificates.",
         variant: "destructive",
       });
     },
@@ -1139,6 +1172,47 @@ export default function AdminScoring() {
                             <div key={source.domain} className="text-xs">
                               <span className="font-mono">{source.domain}</span>
                               <span className="ml-1 text-muted-foreground">({source.tld})</span>:
+                              <span className="ml-1 text-muted-foreground">{source.oldScore}</span>
+                              <span className="mx-1">→</span>
+                              <span className="font-medium">{source.newScore}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Button
+                  onClick={() => recalculateCertificatesMutation.mutate()}
+                  disabled={recalculateCertificatesMutation.isPending}
+                  data-testid="button-recalculate-certificates"
+                  className="w-full"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  {recalculateCertificatesMutation.isPending ? "Checking..." : "Recalculate Certificates"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Checks SSL/TLS certificate validity for all sources and updates certificate scores.
+                </p>
+                {recalculateCertificatesResults && (
+                  <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
+                    <h4 className="font-semibold text-xs">Certificate Check Results</h4>
+                    <div className="text-xs space-y-1">
+                      <div>
+                        <span className="text-muted-foreground">Sources Updated:</span>
+                        <span className="ml-2 font-medium" data-testid="text-certificates-updated-count">
+                          {recalculateCertificatesResults.updated}
+                        </span>
+                      </div>
+                      {recalculateCertificatesResults.sources.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {recalculateCertificatesResults.sources.map((source) => (
+                            <div key={source.domain} className="text-xs">
+                              <span className="font-mono">{source.domain}</span>
+                              <span className="ml-1 text-muted-foreground">({source.status})</span>:
                               <span className="ml-1 text-muted-foreground">{source.oldScore}</span>
                               <span className="mx-1">→</span>
                               <span className="font-medium">{source.newScore}</span>

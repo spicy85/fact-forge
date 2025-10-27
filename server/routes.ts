@@ -209,6 +209,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Recalculate certificates for all sources
+  app.post("/api/admin/recalculate-certificates", async (req, res) => {
+    try {
+      const result = await storage.recalculateCertificates();
+      res.json({
+        success: true,
+        ...result
+      });
+    } catch (error) {
+      console.error("Error recalculating certificates:", error);
+      res.status(500).json({ error: "Failed to recalculate certificates" });
+    }
+  });
+
   // Sources API endpoint
   app.get("/api/sources", async (req, res) => {
     try {
