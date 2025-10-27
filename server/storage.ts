@@ -962,6 +962,14 @@ export class MemStorage implements IStorage {
       .where(eq(sourceIdentityMetrics.domain, domain))
       .returning();
     
+    // Sync identity_score to sources table if it was updated
+    if (updated && identityScore !== undefined) {
+      await db
+        .update(sources)
+        .set({ identity_score: identityScore })
+        .where(eq(sources.domain, domain));
+    }
+    
     return updated;
   }
 
@@ -1027,6 +1035,12 @@ export class MemStorage implements IStorage {
           })
           .where(eq(sourceIdentityMetrics.domain, metric.domain));
         
+        // Sync identity_score to sources table
+        await db
+          .update(sources)
+          .set({ identity_score: identityScore })
+          .where(eq(sources.domain, metric.domain));
+        
         updateResults.push({
           domain: metric.domain,
           oldScore,
@@ -1066,6 +1080,12 @@ export class MemStorage implements IStorage {
             updated_at: new Date().toISOString(),
           })
           .where(eq(sourceIdentityMetrics.domain, metric.domain));
+        
+        // Sync identity_score to sources table
+        await db
+          .update(sources)
+          .set({ identity_score: identityScore })
+          .where(eq(sources.domain, metric.domain));
         
         updateResults.push({
           domain: metric.domain,
@@ -1111,6 +1131,12 @@ export class MemStorage implements IStorage {
           })
           .where(eq(sourceIdentityMetrics.domain, metric.domain));
         
+        // Sync identity_score to sources table
+        await db
+          .update(sources)
+          .set({ identity_score: identityScore })
+          .where(eq(sources.domain, metric.domain));
+        
         updateResults.push({
           domain: metric.domain,
           oldScore,
@@ -1125,6 +1151,39 @@ export class MemStorage implements IStorage {
     }
     
     return { updated: updatedCount, sources: updateResults };
+  }
+  
+  async syncIdentityScores(): Promise<{ synced: number; sources: { domain: string; oldScore: number; newScore: number; }[]; }> {
+    // Get all sources
+    const allSources = await db.select().from(sources);
+    
+    // Get all identity metrics
+    const allMetrics = await this.getAllSourceIdentityMetrics();
+    const metricsMap = new Map(allMetrics.map(m => [m.domain, m.identity_score]));
+    
+    const syncResults: { domain: string; oldScore: number; newScore: number; }[] = [];
+    let syncedCount = 0;
+    
+    for (const source of allSources) {
+      const metricScore = metricsMap.get(source.domain) ?? 0;
+      const oldScore = source.identity_score;
+      
+      if (oldScore !== metricScore) {
+        await db
+          .update(sources)
+          .set({ identity_score: metricScore })
+          .where(eq(sources.domain, source.domain));
+        
+        syncResults.push({
+          domain: source.domain,
+          oldScore,
+          newScore: metricScore,
+        });
+        syncedCount++;
+      }
+    }
+    
+    return { synced: syncedCount, sources: syncResults };
   }
 }
 
