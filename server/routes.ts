@@ -237,6 +237,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Sync identity scores from source_identity_metrics to sources table
+  app.post("/api/admin/sync-identity-scores", async (req, res) => {
+    try {
+      const result = await storage.syncIdentityScores();
+      res.json({
+        success: true,
+        ...result
+      });
+    } catch (error) {
+      console.error("Error syncing identity scores:", error);
+      res.status(500).json({ error: "Failed to sync identity scores" });
+    }
+  });
+
   // Sources API endpoint
   app.get("/api/sources", async (req, res) => {
     try {
