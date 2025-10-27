@@ -210,6 +210,11 @@ export const sourceIdentityMetrics = pgTable("source_identity_metrics", {
   url_repute: integer("url_repute").notNull().default(0),
   certificate: integer("certificate").notNull().default(0),
   ownership: integer("ownership").notNull().default(0),
+  // WHOIS metadata for ownership validation audit trail
+  ownership_registrar: text("ownership_registrar"),
+  ownership_organization: text("ownership_organization"),
+  ownership_domain_age: real("ownership_domain_age"),
+  ownership_status: text("ownership_status"),
   updated_at: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
