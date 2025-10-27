@@ -73,7 +73,7 @@ export type FactsEvaluation = typeof factsEvaluation.$inferSelect;
 
 export const sources = pgTable("sources", {
   domain: text("domain").primaryKey(),
-  identity: integer("identity").notNull(),
+  identity_score: integer("identity_score").notNull(),
   legitimacy: integer("legitimacy").notNull(),
   data_quality: integer("data_quality").notNull(),
   data_accuracy: integer("data_accuracy").notNull(),
@@ -90,7 +90,7 @@ export const insertSourceSchema = createInsertSchema(sources).omit({
 });
 
 export const updateSourceSchema = createInsertSchema(sources).pick({
-  identity: true,
+  identity_score: true,
   legitimacy: true,
   data_quality: true,
   data_accuracy: true,
