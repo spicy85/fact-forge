@@ -115,6 +115,7 @@ export default function AdminScoring() {
   const [recalculateUrlReputeResults, setRecalculateUrlReputeResults] = useState<RecalculateUrlReputeStats | null>(null);
   const [recalculateCertificatesResults, setRecalculateCertificatesResults] = useState<RecalculateCertificatesStats | null>(null);
   const [recalculateOwnershipResults, setRecalculateOwnershipResults] = useState<RecalculateOwnershipStats | null>(null);
+  const [syncIdentityScoresResults, setSyncIdentityScoresResults] = useState<SyncFactsCountStats | null>(null);
   
   // Pull new facts form state
   const [pullEntities, setPullEntities] = useState<string>("Canada,Mexico");
@@ -374,6 +375,28 @@ export default function AdminScoring() {
       toast({
         title: "Error",
         description: "Failed to recalculate ownership.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const syncIdentityScoresMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/sync-identity-scores");
+      return await response.json();
+    },
+    onSuccess: (data: any) => {
+      setSyncIdentityScoresResults(data);
+      queryClient.invalidateQueries({ queryKey: ["/api/sources"] });
+      toast({
+        title: "Sync complete",
+        description: `Updated identity_score for ${data.synced} source(s).`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to sync identity scores.",
         variant: "destructive",
       });
     },
@@ -1165,6 +1188,46 @@ export default function AdminScoring() {
                       {syncFactsCountResults.sources.length > 0 && (
                         <div className="mt-2 space-y-1">
                           {syncFactsCountResults.sources.map((source) => (
+                            <div key={source.domain} className="text-xs">
+                              <span className="font-mono">{source.domain}</span>:
+                              <span className="ml-1 text-muted-foreground">{source.oldCount}</span>
+                              <span className="mx-1">→</span>
+                              <span className="font-medium">{source.newCount}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Button
+                  onClick={() => syncIdentityScoresMutation.mutate()}
+                  disabled={syncIdentityScoresMutation.isPending}
+                  data-testid="button-sync-identity-scores"
+                  className="w-full"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  {syncIdentityScoresMutation.isPending ? "Syncing..." : "Sync Identity Scores"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Syncs identity_score from source_identity_metrics to sources table.
+                </p>
+                {syncIdentityScoresResults && (
+                  <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
+                    <h4 className="font-semibold text-xs">Sync Results</h4>
+                    <div className="text-xs space-y-1">
+                      <div>
+                        <span className="text-muted-foreground">Sources Updated:</span>
+                        <span className="ml-2 font-medium" data-testid="text-identity-synced-count">
+                          {syncIdentityScoresResults.synced}
+                        </span>
+                      </div>
+                      {syncIdentityScoresResults.sources.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {syncIdentityScoresResults.sources.map((source) => (
                             <div key={source.domain} className="text-xs">
                               <span className="font-mono">{source.domain}</span>:
                               <span className="ml-1 text-muted-foreground">{source.oldCount}</span>
