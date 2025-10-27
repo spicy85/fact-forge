@@ -350,6 +350,20 @@ export default function AdminScoring() {
               </TabsList>
 
               <TabsContent value="trust-calculation" className="space-y-6 mt-6">
+                <div className="mb-6 p-4 bg-muted/50 rounded-lg">
+                  <h3 className="text-sm font-medium mb-2">Source Trust Score Criteria</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Each source's overall trust score is calculated as the average of these five criteria (0-100 scale):
+                  </p>
+                  <ul className="text-sm text-muted-foreground space-y-1 ml-4 list-disc">
+                    <li><strong>Identity</strong> - Authenticity and verifiable ownership</li>
+                    <li><strong>Legitimacy</strong> - Authority and recognized expertise</li>
+                    <li><strong>Data Quality</strong> - Completeness and comprehensiveness</li>
+                    <li><strong>Data Accuracy</strong> - Precision and correctness</li>
+                    <li><strong>Proprietary</strong> - Transparency and methodology disclosure</li>
+                  </ul>
+                </div>
+
                 <div>
                   <h3 className="text-sm font-medium mb-4">
                     Score Weights (Total: {totalWeight})
