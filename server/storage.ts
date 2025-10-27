@@ -1102,6 +1102,10 @@ export class MemStorage implements IStorage {
           .update(sourceIdentityMetrics)
           .set({
             ownership: newScore,
+            ownership_registrar: ownershipResult.registrar || null,
+            ownership_organization: ownershipResult.organization || null,
+            ownership_domain_age: ownershipResult.domainAge || null,
+            ownership_status: ownershipResult.status,
             identity_score: identityScore,
             updated_at: new Date().toISOString(),
           })

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, serial, integer, index, date } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, serial, integer, index, date, doublePrecision } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -213,7 +213,7 @@ export const sourceIdentityMetrics = pgTable("source_identity_metrics", {
   // WHOIS metadata for ownership validation audit trail
   ownership_registrar: text("ownership_registrar"),
   ownership_organization: text("ownership_organization"),
-  ownership_domain_age: real("ownership_domain_age"),
+  ownership_domain_age: doublePrecision("ownership_domain_age"),
   ownership_status: text("ownership_status"),
   updated_at: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
