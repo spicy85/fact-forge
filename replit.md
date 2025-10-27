@@ -43,3 +43,4 @@ The application is a multi-page React application built with Vite, utilizing an 
 - **Wikipedia API:** Used for baseline country facts and evaluations.
 - **World Bank API:** Provides population, GDP, GDP per capita, area, and inflation data.
 - **Wikidata SPARQL API:** Used to query structured knowledge for various attributes.
+- **IMF API (IFS):** International Financial Statistics providing GDP, inflation rate, and unemployment rate data. Integration code complete in `server/integrations/imf-api.ts` and available in Pull New Facts tool. Note: IMF API endpoint (dataservices.imf.org) currently blocked in Replit environment; code tested and ready for environments with IMF API access.

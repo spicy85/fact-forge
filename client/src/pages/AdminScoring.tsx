@@ -548,7 +548,7 @@ export default function AdminScoring() {
           <CardHeader>
             <CardTitle>Pull New Facts</CardTitle>
             <CardDescription>
-              Fetch specific data from World Bank and Wikidata APIs
+              Fetch specific data from World Bank, Wikidata, and IMF APIs
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -566,7 +566,7 @@ export default function AdminScoring() {
             <div>
               <Label>Attributes</Label>
               <div className="grid grid-cols-2 gap-2 mt-2">
-                {['population', 'gdp', 'gdp_per_capita', 'inflation'].map((attr) => (
+                {['population', 'gdp', 'gdp_per_capita', 'inflation', 'inflation_rate', 'unemployment_rate'].map((attr) => (
                   <label key={attr} className="flex items-center space-x-2 text-sm">
                     <input
                       type="checkbox"

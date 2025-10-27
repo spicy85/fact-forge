@@ -2,6 +2,7 @@ import { db } from "../server/db";
 import { factsEvaluation, scoringSettings, factsActivityLog, type InsertFactsActivityLog } from "../shared/schema";
 import { eq, and } from "drizzle-orm";
 import { fetchAllIndicatorsForCountry } from "../server/integrations/worldbank-api";
+import { fetchIMFIndicator, INDICATORS as IMF_INDICATORS } from "../server/integrations/imf-api";
 import { calculateSourceTrustScore, calculateRecencyScore, calculateTrustScore } from "../server/evaluation-scoring";
 import { readFileSync } from "fs";
 import { join } from "path";
@@ -17,12 +18,14 @@ const COUNTRY_QIDS: Record<string, string> = JSON.parse(
 // Attribute to source mapping - which sources support which attributes
 const ATTRIBUTE_SOURCE_MAP: Record<string, string[]> = {
   'population': ['wikidata', 'worldbank'],
-  'gdp': ['worldbank'],
+  'gdp': ['worldbank', 'imf'],
   'gdp_usd': ['wikidata'],
   'gdp_per_capita': ['worldbank'],
   'area': ['worldbank'],
   'area_km2': ['wikidata'],
   'inflation': ['worldbank'],
+  'inflation_rate': ['imf'],
+  'unemployment_rate': ['imf'],
   'founded_year': ['wikidata']
 };
 
@@ -193,6 +196,62 @@ async function fetchFromWorldBankForYear(
   }
 }
 
+async function fetchFromIMFForYear(
+  entity: string, 
+  attribute: string,
+  targetYear: number
+): Promise<FetchResult | null> {
+  try {
+    // Map our attribute names to IMF indicator codes
+    const attributeToIMFIndicator: Record<string, { code: string, name: string }> = {
+      'gdp': { code: IMF_INDICATORS.GDP_CURRENT, name: 'gdp' },
+      'inflation_rate': { code: IMF_INDICATORS.INFLATION, name: 'inflation_rate' },
+      'unemployment_rate': { code: IMF_INDICATORS.UNEMPLOYMENT, name: 'unemployment_rate' }
+    };
+
+    const indicatorInfo = attributeToIMFIndicator[attribute];
+    if (!indicatorInfo) {
+      return null;
+    }
+
+    // Fetch data for the specific year range (just that year)
+    const response = await fetchIMFIndicator(
+      entity, 
+      indicatorInfo.code, 
+      indicatorInfo.name,
+      targetYear,
+      targetYear
+    );
+
+    if (!response.success || !response.data || response.data.length === 0) {
+      return null;
+    }
+
+    // Find data for the specific year
+    const yearData = response.data.find(d => d.year === targetYear);
+    if (!yearData) {
+      return null;
+    }
+
+    const now = new Date();
+    const evaluatedAt = now.toISOString().split('T')[0]; // YYYY-MM-DD format for today
+    const as_of_date = yearData.as_of_date; // Use actual date from IMF API
+
+    return {
+      entity,
+      attribute,
+      value: yearData.value.toString(),
+      evaluatedAt,
+      as_of_date,
+      sourceUrl: 'https://www.imf.org/',
+      sourceName: 'www.imf.org',
+      notes: `IMF IFS API, indicator ${indicatorInfo.code}, year ${yearData.year}`
+    };
+  } catch (error: any) {
+    return null;
+  }
+}
+
 async function checkDuplicate(
   entity: string,
   attribute: string,
@@ -266,6 +325,8 @@ export async function pullNewFacts(
             fetchResult = await fetchFromWikidataForYear(entity, attribute, year);
           } else if (source === 'worldbank') {
             fetchResult = await fetchFromWorldBankForYear(entity, attribute, year);
+          } else if (source === 'imf') {
+            fetchResult = await fetchFromIMFForYear(entity, attribute, year);
           }
 
           if (fetchResult) {

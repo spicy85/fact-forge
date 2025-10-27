@@ -7,6 +7,8 @@ export interface IMFEconomicData {
   year: number;
   value: number;
   indicator: string;
+  indicatorName: string;
+  as_of_date: string; // ISO date string YYYY-MM-DD
 }
 
 export interface IMFResponse {
@@ -67,6 +69,96 @@ const COUNTRY_ISO_MAP: Record<string, string> = {
   'New Zealand': 'NZ'
 };
 
+// IMF IFS (International Financial Statistics) Indicator Codes
+export const INDICATORS = {
+  GDP_CURRENT: 'NGDP_XDC',           // Nominal GDP in domestic currency
+  INFLATION: 'PCPI_IX',              // Consumer Price Index
+  UNEMPLOYMENT: 'LUR_PT',            // Unemployment rate (percent)
+  // Note: Debt to GDP is typically in Fiscal Monitor or WEO, not IFS
+};
+
+/**
+ * Generic function to fetch any IMF indicator
+ */
+export async function fetchIMFIndicator(
+  countryName: string,
+  indicatorCode: string,
+  indicatorName: string,
+  startYear: number = 2020,
+  endYear: number = 2024
+): Promise<IMFResponse> {
+  try {
+    const countryCode = COUNTRY_ISO_MAP[countryName];
+    
+    if (!countryCode) {
+      return {
+        success: false,
+        error: `Country ISO code not found for ${countryName}`
+      };
+    }
+
+    // Format: CompactData/IFS/A.{COUNTRY}.{INDICATOR}
+    // A = Annual frequency
+    const url = `${IMF_BASE_URL}/CompactData/IFS/A.${countryCode}.${indicatorCode}`;
+    
+    const response = await axios.get(url, {
+      params: {
+        startPeriod: startYear.toString(),
+        endPeriod: endYear.toString()
+      },
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'FactCheckerApp/1.0'
+      },
+      timeout: 60000
+    });
+
+    const observations = extractIMFObservations(response.data);
+    
+    if (observations.length === 0) {
+      return {
+        success: false,
+        error: `No ${indicatorName} data found for ${countryName}`
+      };
+    }
+
+    const data = observations.map(obs => {
+      const year = parseInt(obs.year);
+      // For annual frequency data (A), we use January 1st of the year as the as_of_date
+      // This is consistent with how we handle annual data from other sources
+      return {
+        country: countryName,
+        year,
+        value: obs.value,
+        indicator: indicatorCode,
+        indicatorName: indicatorName,
+        as_of_date: `${year}-01-01`
+      };
+    });
+
+    return {
+      success: true,
+      data
+    };
+
+  } catch (error: any) {
+    console.error(`Error fetching IMF ${indicatorName} for ${countryName}:`, error.message);
+    
+    // Check for specific error patterns
+    if (error.response?.status === 404) {
+      return {
+        success: false,
+        error: `Indicator ${indicatorCode} not available for ${countryName}`
+      };
+    }
+    
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
 export async function fetchIMFGDP(countryName: string): Promise<IMFResponse> {
   try {
     const countryCode = COUNTRY_ISO_MAP[countryName];
@@ -80,8 +172,8 @@ export async function fetchIMFGDP(countryName: string): Promise<IMFResponse> {
 
     // Fetch nominal GDP in national currency (NGDP_XDC)
     // Using annual frequency (A)
-    // Format: CompactData/{database}/{freq}.{country}.{indicator}.
-    const url = `${IMF_BASE_URL}/CompactData/IFS/A.${countryCode}.NGDP_XDC.`;
+    // Format: CompactData/{database}/{freq}.{country}.{indicator}
+    const url = `${IMF_BASE_URL}/CompactData/IFS/A.${countryCode}.NGDP_XDC`;
     
     const response = await axios.get(url, {
       params: {
@@ -104,12 +196,17 @@ export async function fetchIMFGDP(countryName: string): Promise<IMFResponse> {
       };
     }
 
-    const data = observations.map(obs => ({
-      country: countryName,
-      year: parseInt(obs.year),
-      value: obs.value,
-      indicator: 'gdp'
-    }));
+    const data = observations.map(obs => {
+      const year = parseInt(obs.year);
+      return {
+        country: countryName,
+        year,
+        value: obs.value,
+        indicator: 'NGDP_XDC',
+        indicatorName: 'gdp',
+        as_of_date: `${year}-01-01`
+      };
+    });
 
     return {
       success: true,
@@ -126,59 +223,41 @@ export async function fetchIMFGDP(countryName: string): Promise<IMFResponse> {
 }
 
 export async function fetchIMFInflation(countryName: string): Promise<IMFResponse> {
-  try {
-    const countryCode = COUNTRY_ISO_MAP[countryName];
+  return fetchIMFIndicator(countryName, INDICATORS.INFLATION, 'inflation_rate');
+}
+
+export async function fetchIMFUnemployment(countryName: string): Promise<IMFResponse> {
+  return fetchIMFIndicator(countryName, INDICATORS.UNEMPLOYMENT, 'unemployment_rate');
+}
+
+/**
+ * Fetch all available IMF indicators for a country
+ */
+export async function fetchAllIMFIndicatorsForCountry(
+  countryName: string,
+  startYear: number = 2020,
+  endYear: number = 2024
+): Promise<Map<string, IMFEconomicData[]>> {
+  const results = new Map<string, IMFEconomicData[]>();
+  
+  const indicatorList = [
+    { code: INDICATORS.GDP_CURRENT, name: 'gdp' },
+    { code: INDICATORS.INFLATION, name: 'inflation_rate' },
+    { code: INDICATORS.UNEMPLOYMENT, name: 'unemployment_rate' },
+  ];
+
+  for (const { code, name } of indicatorList) {
+    const response = await fetchIMFIndicator(countryName, code, name, startYear, endYear);
     
-    if (!countryCode) {
-      return {
-        success: false,
-        error: `Country ISO code not found for ${countryName}`
-      };
+    if (response.success && response.data) {
+      results.set(name, response.data);
     }
-
-    // Fetch Consumer Price Index (PCPI_IX)
-    const url = `${IMF_BASE_URL}/CompactData/IFS/A.${countryCode}.PCPI_IX.`;
     
-    const response = await axios.get(url, {
-      params: {
-        startPeriod: '2020',
-        endPeriod: '2024'
-      },
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'FactCheckerApp/1.0'
-      },
-      timeout: 60000
-    });
-
-    const observations = extractIMFObservations(response.data);
-    
-    if (observations.length === 0) {
-      return {
-        success: false,
-        error: `No inflation data found for ${countryName}`
-      };
-    }
-
-    const data = observations.map(obs => ({
-      country: countryName,
-      year: parseInt(obs.year),
-      value: obs.value,
-      indicator: 'inflation'
-    }));
-
-    return {
-      success: true,
-      data
-    };
-
-  } catch (error: any) {
-    console.error(`Error fetching IMF inflation for ${countryName}:`, error.message);
-    return {
-      success: false,
-      error: error.message
-    };
+    // Rate limiting - wait 500ms between requests
+    await new Promise(resolve => setTimeout(resolve, 500));
   }
+  
+  return results;
 }
 
 function extractIMFObservations(imfData: any): Array<{ year: string; value: number }> {
@@ -214,6 +293,32 @@ function extractIMFObservations(imfData: any): Array<{ year: string; value: numb
   }
 }
 
+/**
+ * Fetch IMF data for multiple countries
+ */
+export async function fetchIMFDataForCountries(
+  countries: string[],
+  startYear: number = 2020,
+  endYear: number = 2024
+): Promise<Map<string, Map<string, IMFEconomicData[]>>> {
+  const results = new Map<string, Map<string, IMFEconomicData[]>>();
+  
+  for (const country of countries) {
+    console.log(`Fetching IMF data for ${country}...`);
+    
+    const countryData = await fetchAllIMFIndicatorsForCountry(country, startYear, endYear);
+    
+    if (countryData.size > 0) {
+      results.set(country, countryData);
+    }
+    
+    // Rate limiting between countries - wait 1 second
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+  
+  return results;
+}
+
 export async function fetchIMFDataForAllCountries(): Promise<Map<string, IMFEconomicData[]>> {
   const results = new Map<string, IMFEconomicData[]>();
   
@@ -224,6 +329,7 @@ export async function fetchIMFDataForAllCountries(): Promise<Map<string, IMFEcon
     
     const gdpResponse = await fetchIMFGDP(country);
     const inflationResponse = await fetchIMFInflation(country);
+    const unemploymentResponse = await fetchIMFUnemployment(country);
     
     const allData: IMFEconomicData[] = [];
     
@@ -234,13 +340,17 @@ export async function fetchIMFDataForAllCountries(): Promise<Map<string, IMFEcon
     if (inflationResponse.success && inflationResponse.data) {
       allData.push(...inflationResponse.data);
     }
+
+    if (unemploymentResponse.success && unemploymentResponse.data) {
+      allData.push(...unemploymentResponse.data);
+    }
     
     if (allData.length > 0) {
       results.set(country, allData);
     }
     
-    // Rate limiting - wait 500ms between requests
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Rate limiting - wait 1 second between countries
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }
   
   return results;
