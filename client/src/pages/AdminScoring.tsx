@@ -78,6 +78,15 @@ interface RecalculateOwnershipStats {
   }[];
 }
 
+interface SyncIdentityScoreStats {
+  synced: number;
+  sources: {
+    domain: string;
+    oldScore: number;
+    newScore: number;
+  }[];
+}
+
 interface TldScore {
   tld: string;
   score: number;
@@ -115,7 +124,7 @@ export default function AdminScoring() {
   const [recalculateUrlReputeResults, setRecalculateUrlReputeResults] = useState<RecalculateUrlReputeStats | null>(null);
   const [recalculateCertificatesResults, setRecalculateCertificatesResults] = useState<RecalculateCertificatesStats | null>(null);
   const [recalculateOwnershipResults, setRecalculateOwnershipResults] = useState<RecalculateOwnershipStats | null>(null);
-  const [syncIdentityScoresResults, setSyncIdentityScoresResults] = useState<SyncFactsCountStats | null>(null);
+  const [syncIdentityScoresResults, setSyncIdentityScoresResults] = useState<SyncIdentityScoreStats | null>(null);
   
   // Pull new facts form state
   const [pullEntities, setPullEntities] = useState<string>("Canada,Mexico");
@@ -1230,9 +1239,9 @@ export default function AdminScoring() {
                           {syncIdentityScoresResults.sources.map((source) => (
                             <div key={source.domain} className="text-xs">
                               <span className="font-mono">{source.domain}</span>:
-                              <span className="ml-1 text-muted-foreground">{source.oldCount}</span>
+                              <span className="ml-1 text-muted-foreground">{source.oldScore}</span>
                               <span className="mx-1">→</span>
-                              <span className="font-medium">{source.newCount}</span>
+                              <span className="font-medium">{source.newScore}</span>
                             </div>
                           ))}
                         </div>
