@@ -725,9 +725,23 @@ export default function AdminScoring() {
                         />
                         <Button
                           onClick={() => {
-                            if (newTld.trim()) {
-                              createTldMutation.mutate({ tld: newTld.trim(), score: newTldScore });
+                            const trimmedTld = newTld.trim();
+                            if (!trimmedTld) return;
+                            
+                            // Validate TLD starts with a dot
+                            if (!trimmedTld.startsWith('.')) {
+                              toast({
+                                title: "Invalid TLD",
+                                description: "TLD must start with a dot (e.g., .gov, .org)",
+                                variant: "destructive",
+                              });
+                              return;
                             }
+                            
+                            // Clamp score between 0 and 100
+                            const clampedScore = Math.min(Math.max(newTldScore, 0), 100);
+                            
+                            createTldMutation.mutate({ tld: trimmedTld, score: clampedScore });
                           }}
                           disabled={!newTld.trim() || createTldMutation.isPending}
                           data-testid="button-add-tld"
