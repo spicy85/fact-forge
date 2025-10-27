@@ -29,7 +29,7 @@ import {
 
 interface Source {
   domain: string;
-  identity: number;
+  identity_score: number;
   legitimacy: number;
   data_quality: number;
   data_accuracy: number;
@@ -44,7 +44,7 @@ interface Source {
 export default function SourcePipeline() {
   const { toast } = useToast();
   const [newSourceDomain, setNewSourceDomain] = useState("");
-  const [newSourceIdentity, setNewSourceIdentity] = useState(70);
+  const [newSourceIdentityScore, setNewSourceIdentityScore] = useState(70);
   const [newSourceLegitimacy, setNewSourceLegitimacy] = useState(70);
   const [newSourceDataQuality, setNewSourceDataQuality] = useState(70);
   const [newSourceAccuracy, setNewSourceAccuracy] = useState(70);
@@ -72,7 +72,7 @@ export default function SourcePipeline() {
   const createSourceMutation = useMutation({
     mutationFn: async (sourceData: {
       domain: string;
-      identity: number;
+      identity_score: number;
       legitimacy: number;
       data_quality: number;
       data_accuracy: number;
@@ -88,7 +88,7 @@ export default function SourcePipeline() {
         description: "New source added to pipeline for evaluation",
       });
       setNewSourceDomain("");
-      setNewSourceIdentity(70);
+      setNewSourceIdentityScore(70);
       setNewSourceLegitimacy(70);
       setNewSourceDataQuality(70);
       setNewSourceAccuracy(70);
@@ -143,7 +143,7 @@ export default function SourcePipeline() {
     
     createSourceMutation.mutate({
       domain: newSourceDomain,
-      identity: newSourceIdentity,
+      identity_score: newSourceIdentityScore,
       legitimacy: newSourceLegitimacy,
       data_quality: newSourceDataQuality,
       data_accuracy: newSourceAccuracy,
@@ -215,8 +215,8 @@ export default function SourcePipeline() {
                         type="number"
                         min="0"
                         max="100"
-                        value={newSourceIdentity}
-                        onChange={(e) => setNewSourceIdentity(parseInt(e.target.value) || 0)}
+                        value={newSourceIdentityScore}
+                        onChange={(e) => setNewSourceIdentityScore(parseInt(e.target.value) || 0)}
                         data-testid="input-new-identity"
                       />
                     </div>
@@ -337,7 +337,7 @@ export default function SourcePipeline() {
                 <TableBody>
                   {allSources.map((source) => {
                     const overallTrust = Math.round(
-                      (source.identity + source.legitimacy + source.data_quality + source.data_accuracy + source.proprietary_score) / 5
+                      (source.identity_score + source.legitimacy + source.data_quality + source.data_accuracy + source.proprietary_score) / 5
                     );
                     
                     return (
