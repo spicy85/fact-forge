@@ -572,6 +572,18 @@ export class MemStorage implements IStorage {
       notes: null
     });
 
+    // Ensure source has identity metrics tracking
+    const existingMetrics = await this.getSourceIdentityMetric(domain);
+    if (!existingMetrics) {
+      // Auto-create identity metrics with initial values
+      await this.insertSourceIdentityMetrics({
+        domain,
+        status: 'trusted',
+        // url_repute will be auto-calculated from TLD
+        // certificate and ownership will default to 0
+      });
+    }
+
     return updatedSource;
   }
 
