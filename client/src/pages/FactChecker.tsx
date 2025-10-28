@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ShieldCheck, Table, Database, Calculator, Settings, Clock, ChevronDown } from "lucide-react";
+import { ShieldCheck, Table, Database, Calculator, Settings, Clock, ChevronDown, BookOpen } from "lucide-react";
 import {
   processText,
   processTextMultiSource,
@@ -170,6 +170,12 @@ export default function FactChecker() {
               <Button variant="outline" size="sm" data-testid="button-view-matrix">
                 <Table className="h-4 w-4 mr-2" />
                 Claims Matrix
+              </Button>
+            </Link>
+            <Link href="/data-coverage">
+              <Button variant="outline" size="sm" data-testid="button-view-coverage">
+                <BookOpen className="h-4 w-4 mr-2" />
+                Data Coverage
               </Button>
             </Link>
             <Link href="/sources">

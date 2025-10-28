@@ -11,6 +11,7 @@ import SourcePipeline from "@/pages/SourcePipeline";
 import SourceIdentityMetrics from "@/pages/SourceIdentityMetrics";
 import SourceActivityLog from "@/pages/SourceActivityLog";
 import FactsActivityLog from "@/pages/FactsActivityLog";
+import DataCoverage from "@/pages/DataCoverage";
 import EvaluationScoring from "@/pages/EvaluationScoring";
 import AdminScoring from "@/pages/AdminScoring";
 import NotFound from "@/pages/not-found";
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/sources/pipeline" component={SourcePipeline} />
       <Route path="/sources/identity-metrics" component={SourceIdentityMetrics} />
       <Route path="/sources/activity-log" component={SourceActivityLog} />
+      <Route path="/data-coverage" component={DataCoverage} />
       <Route path="/facts/activity-log" component={FactsActivityLog} />
       <Route path="/evaluation-scoring" component={EvaluationScoring} />
       <Route path="/admin" component={AdminScoring} />
