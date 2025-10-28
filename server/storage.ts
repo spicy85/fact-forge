@@ -1442,11 +1442,19 @@ export class MemStorage implements IStorage {
     // Get all sources from database
     const allSources = await this.getAllSources();
 
+    // Filter to only include trusted sources that have configured capabilities
+    // This excludes test sources, rejected sources, and pending sources
+    const sourcesWithCapabilities = allSources.filter(source => 
+      source.status === 'trusted' &&
+      sourceCapabilities[source.domain] && 
+      sourceCapabilities[source.domain].length > 0
+    );
+
     // Build coverage data
-    const sourceCoverage: SourceCoverage[] = allSources.map(source => ({
+    const sourceCoverage: SourceCoverage[] = sourcesWithCapabilities.map(source => ({
       domain: source.domain,
       status: source.status,
-      attributes: sourceCapabilities[source.domain] || [],
+      attributes: sourceCapabilities[source.domain],
       totalFacts: source.facts_count,
     }));
 

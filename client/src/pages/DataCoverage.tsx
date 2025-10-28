@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, Info } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Check, X, Info, ArrowLeft } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface AttributeInfo {
@@ -72,11 +74,19 @@ export default function DataCoverage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Data Coverage</h1>
-        <p className="text-muted-foreground mt-2">
-          Overview of available attributes from each data source
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Data Coverage</h1>
+          <p className="text-muted-foreground mt-2">
+            Overview of available attributes from each data source
+          </p>
+        </div>
+        <Link href="/">
+          <Button variant="outline" size="sm" data-testid="button-back-home">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Fact Checker
+          </Button>
+        </Link>
       </div>
 
       <div className="space-y-4">
