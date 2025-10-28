@@ -1,250 +1,250 @@
 import type { Express } from "express";
-import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { insertSourceSchema, updateSourceSchema, updateScoringSettingsSchema, insertSourceIdentityMetricsSchema, updateSourceIdentityMetricsSchema, insertTldScoreSchema, updateTldScoreSchema } from "@shared/schema";
-import express from "express";
-import path from "path";
+import { db } from "./storage";
 import { z } from "zod";
+import {
+  insertUserSchema,
+  insertVerifiedFactSchema,
+  insertFactsEvaluationSchema,
+  insertSourceSchema,
+  updateSourceSchema,
+  insertSourceActivityLogSchema,
+  insertFactsActivityLogSchema,
+  insertRequestedFactSchema,
+  insertSourceIdentityMetricSchema,
+  insertTldScoreSchema,
+  updateTldScoreSchema,
+} from "../shared/schema";
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  // Serve static files from public directory
-  app.use(express.static(path.join(process.cwd(), 'public')));
+export function registerRoutes(app: Express) {
+  const storage = db();
 
-  // Facts API endpoint (now serving verified facts)
+  // Facts API endpoint
   app.get("/api/facts", async (req, res) => {
     try {
-      const allFacts = await storage.getAllVerifiedFacts();
-      res.json(allFacts);
+      const facts = await storage.getAllVerifiedFacts();
+      res.json(facts);
     } catch (error) {
-      console.error("Error fetching verified facts:", error);
+      console.error("Error fetching facts:", error);
       res.status(500).json({ error: "Failed to fetch facts" });
     }
   });
 
-  // Facts Evaluation API endpoint
-  app.get("/api/facts-evaluation", async (req, res) => {
+  // Multi-source verification API endpoint
+  app.get("/api/facts/verify", async (req, res) => {
     try {
-      const allEvaluations = await storage.getAllFactsEvaluation();
-      res.json(allEvaluations);
-    } catch (error) {
-      console.error("Error fetching facts evaluation:", error);
-      res.status(500).json({ error: "Failed to fetch facts evaluation" });
-    }
-  });
+      const { entity, attribute, claimedValue, year } = req.query;
+      
+      if (!entity || !attribute || !claimedValue) {
+        return res.status(400).json({ 
+          error: "Missing required parameters: entity, attribute, claimedValue" 
+        });
+      }
 
-  // Multi-source evaluations endpoint
-  app.get("/api/multi-source-evaluations", async (req, res) => {
-    try {
-      const { entity, attribute } = req.query;
-      
-      if (!entity || !attribute || typeof entity !== 'string' || typeof attribute !== 'string') {
-        return res.status(400).json({ error: "Entity and attribute parameters are required" });
-      }
-      
-      const result = await storage.getMultiSourceEvaluations(entity, attribute);
-      
-      if (!result) {
-        return res.json(null);
-      }
+      const result = await storage.getMultiSourceEvaluations(
+        entity as string,
+        attribute as string,
+        parseFloat(claimedValue as string),
+        year ? parseInt(year as string) : undefined
+      );
       
       res.json(result);
     } catch (error) {
-      console.error("Error fetching multi-source evaluations:", error);
-      res.status(500).json({ error: "Failed to fetch multi-source evaluations" });
+      console.error("Error verifying fact:", error);
+      res.status(500).json({ error: "Failed to verify fact" });
     }
   });
 
-  // Log requested facts for unsupported countries/attributes
-  const requestedFactSchema = z.object({
-    entity: z.string().min(1),
-    attribute: z.string().min(1),
-    claimValue: z.string().optional(),
-    claimYear: z.number().int().optional(),
-  });
-
-  app.post("/api/requested-facts", async (req, res) => {
+  // Insert verified fact
+  app.post("/api/facts", async (req, res) => {
     try {
-      const validatedData = requestedFactSchema.parse(req.body);
-      
-      const requestedFact = await storage.createOrIncrementRequestedFact(
-        validatedData.entity,
-        validatedData.attribute,
-        validatedData.claimValue,
-        validatedData.claimYear
-      );
-      
-      // Fire-and-forget activity logging (non-blocking)
-      storage.logFactsActivity({
-        entity: validatedData.entity,
-        attribute: validatedData.attribute,
-        action: 'requested',
-        source: null,
-        process: 'user_request',
-        value: validatedData.claimValue || null,
-        notes: null
-      }).catch((error) => {
-        console.error("Error logging facts activity (non-critical):", error);
-      });
-      
-      res.json({ success: true, fact: requestedFact });
+      const fact = insertVerifiedFactSchema.parse(req.body);
+      const result = await storage.insertVerifiedFact(fact);
+      res.json(result);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid request data", details: error.errors });
       }
-      console.error("Error logging requested fact:", error);
-      res.status(500).json({ error: "Failed to log requested fact" });
+      console.error("Error inserting fact:", error);
+      res.status(500).json({ error: "Failed to insert fact" });
     }
   });
 
-  // Recalculate all evaluation scores
-  app.post("/api/facts-evaluation/recalculate", async (req, res) => {
+  // Facts evaluation endpoints
+  app.get("/api/facts-evaluation", async (req, res) => {
     try {
-      const updatedCount = await storage.recalculateAllEvaluations();
-      res.json({ 
-        success: true, 
-        message: `Recalculated ${updatedCount} evaluation records`,
-        updatedCount 
-      });
+      const evaluations = await storage.getAllFactsEvaluations();
+      res.json(evaluations);
     } catch (error) {
-      console.error("Error recalculating evaluations:", error);
-      res.status(500).json({ error: "Failed to recalculate evaluations" });
+      console.error("Error fetching facts evaluations:", error);
+      res.status(500).json({ error: "Failed to fetch facts evaluations" });
     }
   });
 
-  // Cross-check all sources for missing facts
-  app.post("/api/admin/cross-check-sources", async (req, res) => {
+  app.post("/api/facts-evaluation", async (req, res) => {
     try {
-      const { crossCheckAllSources } = await import("../scripts/cross-check-sources");
-      const stats = await crossCheckAllSources();
-      res.json({
-        success: true,
-        stats
-      });
+      const evaluation = insertFactsEvaluationSchema.parse(req.body);
+      const result = await storage.insertFactsEvaluation(evaluation);
+      res.json(result);
     } catch (error) {
-      console.error("Error during cross-check:", error);
-      res.status(500).json({ error: "Failed to cross-check sources" });
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      console.error("Error inserting facts evaluation:", error);
+      res.status(500).json({ error: "Failed to insert facts evaluation" });
     }
   });
 
-  // Fulfill requested facts
-  app.post("/api/admin/fulfill-requested-facts", async (req, res) => {
+  // Bulk insert facts evaluations
+  app.post("/api/facts-evaluation/bulk", async (req, res) => {
     try {
-      const { fulfillRequestedFacts } = await import("../scripts/fulfill-requested-facts");
-      const stats = await fulfillRequestedFacts();
-      res.json({
-        success: true,
-        stats
-      });
+      const evaluations = z.array(insertFactsEvaluationSchema).parse(req.body);
+      const result = await storage.bulkInsertFactsEvaluations(evaluations);
+      res.json(result);
     } catch (error) {
-      console.error("Error fulfilling requested facts:", error);
-      res.status(500).json({ error: "Failed to fulfill requested facts" });
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      console.error("Error bulk inserting facts evaluations:", error);
+      res.status(500).json({ error: "Failed to bulk insert facts evaluations" });
     }
   });
 
-  // Pull new facts from external APIs
-  const pullNewFactsSchema = z.object({
-    entities: z.array(z.string()).min(1),
-    attributes: z.array(z.string()).min(1),
-    years: z.array(z.number()).min(1)
-  });
-
-  app.post("/api/admin/pull-new-facts", async (req, res) => {
+  // Claims Matrix API endpoint
+  app.get("/api/claims-matrix", async (req, res) => {
     try {
-      const validatedData = pullNewFactsSchema.parse(req.body);
-      const { pullNewFacts } = await import("../scripts/pull-new-facts");
-      const stats = await pullNewFacts(
-        validatedData.entities,
-        validatedData.attributes,
-        validatedData.years
-      );
-      res.json({
-        success: true,
-        stats
-      });
+      const matrix = await storage.getClaimsMatrix();
+      res.json(matrix);
     } catch (error) {
-      console.error("Error pulling new facts:", error);
-      res.status(500).json({ error: "Failed to pull new facts" });
+      console.error("Error fetching claims matrix:", error);
+      res.status(500).json({ error: "Failed to fetch claims matrix" });
     }
   });
 
-  // Promote facts to verified
+  // Scoring settings endpoints
+  app.get("/api/scoring-settings", async (req, res) => {
+    try {
+      const settings = await storage.getScoringSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching scoring settings:", error);
+      res.status(500).json({ error: "Failed to fetch scoring settings" });
+    }
+  });
+
+  app.patch("/api/scoring-settings", async (req, res) => {
+    try {
+      const updates = req.body;
+      const result = await storage.updateScoringSettings(updates);
+      res.json(result);
+    } catch (error) {
+      console.error("Error updating scoring settings:", error);
+      res.status(500).json({ error: "Failed to update scoring settings" });
+    }
+  });
+
+  // Fact promotion endpoint
   app.post("/api/admin/promote-facts", async (req, res) => {
     try {
       const result = await storage.promoteFactsToVerified();
-      res.json({
-        success: true,
-        ...result
-      });
+      res.json(result);
     } catch (error) {
       console.error("Error promoting facts:", error);
       res.status(500).json({ error: "Failed to promote facts" });
     }
   });
 
-  // Sync facts_count for all sources
-  app.post("/api/admin/sync-facts-count", async (req, res) => {
+  // Cross-check sources endpoint
+  app.post("/api/admin/cross-check-sources", async (req, res) => {
     try {
-      const result = await storage.syncFactsCount();
-      res.json({
-        success: true,
-        ...result
-      });
+      const result = await storage.crossCheckSources();
+      res.json(result);
     } catch (error) {
-      console.error("Error syncing facts count:", error);
-      res.status(500).json({ error: "Failed to sync facts count" });
+      console.error("Error cross-checking sources:", error);
+      res.status(500).json({ error: "Failed to cross-check sources" });
     }
   });
 
-  // Recalculate url_repute for all sources based on TLD scores
+  // Fulfill requested facts endpoint
+  app.post("/api/admin/fulfill-requested-facts", async (req, res) => {
+    try {
+      const result = await storage.fulfillRequestedFacts();
+      res.json(result);
+    } catch (error) {
+      console.error("Error fulfilling requested facts:", error);
+      res.status(500).json({ error: "Failed to fulfill requested facts" });
+    }
+  });
+
+  // Pull new facts endpoint (admin tool for on-demand data fetching)
+  app.post("/api/admin/pull-new-facts", async (req, res) => {
+    try {
+      const { entities, attributes, startYear, endYear } = req.body;
+      
+      if (!entities || !Array.isArray(entities) || entities.length === 0) {
+        return res.status(400).json({ error: "entities array is required" });
+      }
+      
+      if (!attributes || !Array.isArray(attributes) || attributes.length === 0) {
+        return res.status(400).json({ error: "attributes array is required" });
+      }
+      
+      const result = await storage.pullNewFacts(entities, attributes, startYear, endYear);
+      res.json(result);
+    } catch (error) {
+      console.error("Error pulling new facts:", error);
+      res.status(500).json({ error: "Failed to pull new facts" });
+    }
+  });
+
+  // Recalculate URL reputation scores
   app.post("/api/admin/recalculate-url-repute", async (req, res) => {
     try {
       const result = await storage.recalculateUrlRepute();
-      res.json({
-        success: true,
-        ...result
-      });
+      res.json(result);
     } catch (error) {
-      console.error("Error recalculating url repute:", error);
-      res.status(500).json({ error: "Failed to recalculate url repute" });
+      console.error("Error recalculating URL reputation:", error);
+      res.status(500).json({ error: "Failed to recalculate URL reputation" });
     }
   });
 
-  // Recalculate certificates for all sources
+  // Recalculate certificate scores
   app.post("/api/admin/recalculate-certificates", async (req, res) => {
     try {
       const result = await storage.recalculateCertificates();
-      res.json({
-        success: true,
-        ...result
-      });
+      res.json(result);
     } catch (error) {
       console.error("Error recalculating certificates:", error);
       res.status(500).json({ error: "Failed to recalculate certificates" });
     }
   });
 
-  // Recalculate ownership for all sources via WHOIS
+  // Recalculate ownership scores
   app.post("/api/admin/recalculate-ownership", async (req, res) => {
     try {
       const result = await storage.recalculateOwnership();
-      res.json({
-        success: true,
-        ...result
-      });
+      res.json(result);
     } catch (error) {
       console.error("Error recalculating ownership:", error);
       res.status(500).json({ error: "Failed to recalculate ownership" });
     }
   });
 
-  // Sync identity scores from source_identity_metrics to sources table
+  // Sync facts count
+  app.post("/api/admin/sync-facts-count", async (req, res) => {
+    try {
+      const result = await storage.syncFactsCount();
+      res.json(result);
+    } catch (error) {
+      console.error("Error syncing facts count:", error);
+      res.status(500).json({ error: "Failed to sync facts count" });
+    }
+  });
+
+  // Sync identity scores between tables
   app.post("/api/admin/sync-identity-scores", async (req, res) => {
     try {
       const result = await storage.syncIdentityScores();
-      res.json({
-        success: true,
-        ...result
-      });
+      res.json(result);
     } catch (error) {
       console.error("Error syncing identity scores:", error);
       res.status(500).json({ error: "Failed to sync identity scores" });
@@ -285,123 +285,161 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Sources API endpoint
   app.get("/api/sources", async (req, res) => {
     try {
-      const { status } = req.query;
-      
-      if (status && typeof status === 'string') {
-        const sourcesByStatus = await storage.getSourcesByStatus(status);
-        return res.json(sourcesByStatus);
-      }
-      
-      const allSources = await storage.getAllSources();
-      res.json(allSources);
+      const sources = await storage.getAllSources();
+      res.json(sources);
     } catch (error) {
       console.error("Error fetching sources:", error);
       res.status(500).json({ error: "Failed to fetch sources" });
     }
   });
 
-  // Create new source
+  // Source management endpoints
   app.post("/api/sources", async (req, res) => {
     try {
-      const validatedData = insertSourceSchema.parse(req.body);
-      const newSource = await storage.insertSource(validatedData);
-      res.status(201).json(newSource);
+      const source = insertSourceSchema.parse(req.body);
+      const result = await storage.insertSource(source);
+      res.json(result);
     } catch (error) {
-      console.error("Error creating source:", error);
-      res.status(400).json({ error: "Failed to create source" });
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      console.error("Error inserting source:", error);
+      res.status(500).json({ error: "Failed to insert source" });
     }
   });
 
-  // Update source metrics
-  app.put("/api/sources/:domain", async (req, res) => {
+  app.patch("/api/sources/:domain", async (req, res) => {
     try {
       const { domain } = req.params;
-      const validatedData = updateSourceSchema.parse(req.body);
-      
-      const updatedSource = await storage.updateSource(domain, validatedData);
-      
-      if (!updatedSource) {
-        return res.status(404).json({ error: "Source not found" });
-      }
-      
-      res.json(updatedSource);
+      const updates = updateSourceSchema.parse(req.body);
+      const result = await storage.updateSource(domain, updates);
+      res.json(result);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
       console.error("Error updating source:", error);
-      res.status(400).json({ error: "Failed to update source" });
+      res.status(500).json({ error: "Failed to update source" });
     }
   });
 
-  // Promote source to trusted
-  app.put("/api/sources/:domain/promote", async (req, res) => {
+  app.post("/api/sources/:domain/promote", async (req, res) => {
     try {
       const { domain } = req.params;
-      const promotedSource = await storage.promoteSource(domain);
-      
-      if (!promotedSource) {
+      const result = await storage.promoteSource(domain);
+      if (!result) {
         return res.status(404).json({ error: "Source not found" });
       }
-      
-      res.json(promotedSource);
+      res.json(result);
     } catch (error) {
       console.error("Error promoting source:", error);
-      res.status(400).json({ error: "Failed to promote source" });
+      res.status(500).json({ error: "Failed to promote source" });
     }
   });
 
-  // Demote source back to pipeline
-  app.put("/api/sources/:domain/demote", async (req, res) => {
+  app.post("/api/sources/:domain/reject", async (req, res) => {
     try {
       const { domain } = req.params;
-      const demotedSource = await storage.demoteSource(domain);
-      
-      if (!demotedSource) {
+      const { reason } = req.body;
+      const result = await storage.rejectSource(domain, reason);
+      if (!result) {
         return res.status(404).json({ error: "Source not found" });
       }
-      
-      res.json(demotedSource);
-    } catch (error) {
-      console.error("Error demoting source:", error);
-      res.status(400).json({ error: "Failed to demote source" });
-    }
-  });
-
-  // Reject source
-  app.put("/api/sources/:domain/reject", async (req, res) => {
-    try {
-      const { domain } = req.params;
-      const { notes } = req.body;
-      const rejectedSource = await storage.rejectSource(domain, notes);
-      
-      if (!rejectedSource) {
-        return res.status(404).json({ error: "Source not found" });
-      }
-      
-      res.json(rejectedSource);
+      res.json(result);
     } catch (error) {
       console.error("Error rejecting source:", error);
-      res.status(400).json({ error: "Failed to reject source" });
+      res.status(500).json({ error: "Failed to reject source" });
     }
   });
 
-  // Get all source activity logs
-  app.get("/api/sources/activity-log", async (req, res) => {
+  // Source activity log endpoints
+  app.get("/api/source-activity-log", async (req, res) => {
     try {
-      const logs = await storage.getAllSourceActivityLogs();
+      const { domain } = req.query;
+      const logs = await storage.getSourceActivityLog(domain as string | undefined);
       res.json(logs);
     } catch (error) {
-      console.error("Error fetching activity logs:", error);
-      res.status(500).json({ error: "Failed to fetch activity logs" });
+      console.error("Error fetching source activity log:", error);
+      res.status(500).json({ error: "Failed to fetch source activity log" });
     }
   });
 
-  // Source Identity Metrics API endpoints
+  app.post("/api/source-activity-log", async (req, res) => {
+    try {
+      const log = insertSourceActivityLogSchema.parse(req.body);
+      const result = await storage.insertSourceActivityLog(log);
+      res.json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      console.error("Error inserting source activity log:", error);
+      res.status(500).json({ error: "Failed to insert source activity log" });
+    }
+  });
+
+  // Facts activity log endpoints
+  app.get("/api/facts-activity-log", async (req, res) => {
+    try {
+      const { entity, attribute } = req.query;
+      const logs = await storage.getFactsActivityLog(
+        entity as string | undefined,
+        attribute as string | undefined
+      );
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching facts activity log:", error);
+      res.status(500).json({ error: "Failed to fetch facts activity log" });
+    }
+  });
+
+  app.post("/api/facts-activity-log", async (req, res) => {
+    try {
+      const log = insertFactsActivityLogSchema.parse(req.body);
+      const result = await storage.insertFactsActivityLog(log);
+      res.json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      console.error("Error inserting facts activity log:", error);
+      res.status(500).json({ error: "Failed to insert facts activity log" });
+    }
+  });
+
+  // Requested facts endpoints
+  app.get("/api/requested-facts", async (req, res) => {
+    try {
+      const facts = await storage.getRequestedFacts();
+      res.json(facts);
+    } catch (error) {
+      console.error("Error fetching requested facts:", error);
+      res.status(500).json({ error: "Failed to fetch requested facts" });
+    }
+  });
+
+  app.post("/api/requested-facts", async (req, res) => {
+    try {
+      const fact = insertRequestedFactSchema.parse(req.body);
+      const result = await storage.insertRequestedFact(fact);
+      res.json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      console.error("Error inserting requested fact:", error);
+      res.status(500).json({ error: "Failed to insert requested fact" });
+    }
+  });
+
+  // Source identity metrics endpoints
   app.get("/api/source-identity-metrics", async (req, res) => {
     try {
       const metrics = await storage.getAllSourceIdentityMetrics();
       res.json(metrics);
     } catch (error) {
-      console.error("Error fetching identity metrics:", error);
-      res.status(500).json({ error: "Failed to fetch identity metrics" });
+      console.error("Error fetching source identity metrics:", error);
+      res.status(500).json({ error: "Failed to fetch source identity metrics" });
     }
   });
 
@@ -409,88 +447,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { domain } = req.params;
       const metric = await storage.getSourceIdentityMetric(domain);
-      
       if (!metric) {
-        return res.status(404).json({ error: "Identity metrics not found" });
+        return res.status(404).json({ error: "Source identity metric not found" });
       }
-      
       res.json(metric);
     } catch (error) {
-      console.error("Error fetching identity metric:", error);
-      res.status(500).json({ error: "Failed to fetch identity metric" });
+      console.error("Error fetching source identity metric:", error);
+      res.status(500).json({ error: "Failed to fetch source identity metric" });
     }
   });
 
   app.post("/api/source-identity-metrics", async (req, res) => {
     try {
-      const validatedData = insertSourceIdentityMetricsSchema.parse(req.body);
-      const newMetric = await storage.insertSourceIdentityMetrics(validatedData);
-      res.status(201).json(newMetric);
+      const metric = insertSourceIdentityMetricSchema.parse(req.body);
+      const result = await storage.insertSourceIdentityMetric(metric);
+      res.json(result);
     } catch (error) {
-      console.error("Error creating identity metrics:", error);
-      res.status(400).json({ error: "Failed to create identity metrics" });
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      console.error("Error inserting source identity metric:", error);
+      res.status(500).json({ error: "Failed to insert source identity metric" });
     }
   });
 
   app.patch("/api/source-identity-metrics/:domain", async (req, res) => {
     try {
       const { domain } = req.params;
-      const validatedData = updateSourceIdentityMetricsSchema.parse(req.body);
-      
-      const updatedMetric = await storage.updateSourceIdentityMetrics(domain, validatedData);
-      
-      if (!updatedMetric) {
-        return res.status(404).json({ error: "Identity metrics not found" });
+      const updates = req.body;
+      const result = await storage.updateSourceIdentityMetrics(domain, updates);
+      if (!result) {
+        return res.status(404).json({ error: "Source identity metric not found" });
       }
-      
-      res.json(updatedMetric);
+      res.json(result);
     } catch (error) {
-      console.error("Error updating identity metrics:", error);
-      res.status(400).json({ error: "Failed to update identity metrics" });
+      console.error("Error updating source identity metric:", error);
+      res.status(500).json({ error: "Failed to update source identity metric" });
     }
   });
 
-  // Get all facts activity logs with pagination
-  app.get("/api/facts-activity-log", async (req, res) => {
-    try {
-      const requestedLimit = parseInt(req.query.limit as string);
-      const requestedOffset = parseInt(req.query.offset as string);
-      
-      // Sanitize inputs: clamp limit to [1, 1000] and offset to [0, Infinity]
-      const limit = Math.max(1, Math.min(isNaN(requestedLimit) ? 100 : requestedLimit, 1000));
-      const offset = Math.max(0, isNaN(requestedOffset) ? 0 : requestedOffset);
-      
-      const logs = await storage.getAllFactsActivityLogs(limit, offset);
-      res.json(logs);
-    } catch (error) {
-      console.error("Error fetching facts activity logs:", error);
-      res.status(500).json({ error: "Failed to fetch facts activity logs" });
-    }
-  });
-
-  // Scoring Settings API endpoints
-  app.get("/api/scoring-settings", async (req, res) => {
-    try {
-      const settings = await storage.getScoringSettings();
-      res.json(settings || null);
-    } catch (error) {
-      console.error("Error fetching scoring settings:", error);
-      res.status(500).json({ error: "Failed to fetch scoring settings" });
-    }
-  });
-
-  app.put("/api/scoring-settings", async (req, res) => {
-    try {
-      const validatedData = updateScoringSettingsSchema.parse(req.body);
-      const updatedSettings = await storage.upsertScoringSettings(validatedData);
-      res.json(updatedSettings);
-    } catch (error) {
-      console.error("Error updating scoring settings:", error);
-      res.status(400).json({ error: "Failed to update scoring settings" });
-    }
-  });
-
-  // TLD Scores API endpoints
+  // TLD scores endpoints
   app.get("/api/tld-scores", async (req, res) => {
     try {
       const scores = await storage.getAllTldScores();
@@ -501,57 +497,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/tld-scores/:tld", async (req, res) => {
-    try {
-      const { tld } = req.params;
-      const score = await storage.getTldScore(tld);
-      
-      if (!score) {
-        return res.status(404).json({ error: "TLD score not found" });
-      }
-      
-      res.json(score);
-    } catch (error) {
-      console.error("Error fetching TLD score:", error);
-      res.status(500).json({ error: "Failed to fetch TLD score" });
-    }
-  });
-
   app.post("/api/tld-scores", async (req, res) => {
     try {
-      const validatedData = insertTldScoreSchema.parse(req.body);
-      const newScore = await storage.upsertTldScore(validatedData);
-      res.status(201).json(newScore);
+      const score = insertTldScoreSchema.parse(req.body);
+      const result = await storage.insertTldScore(score);
+      res.json(result);
     } catch (error) {
-      console.error("Error creating TLD score:", error);
-      res.status(400).json({ error: "Failed to create TLD score" });
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      console.error("Error inserting TLD score:", error);
+      res.status(500).json({ error: "Failed to insert TLD score" });
     }
   });
 
-  app.put("/api/tld-scores/:tld", async (req, res) => {
+  app.patch("/api/tld-scores/:tld", async (req, res) => {
     try {
       const { tld } = req.params;
-      const validatedData = updateTldScoreSchema.parse(req.body);
-      const updatedScore = await storage.upsertTldScore({ tld, ...validatedData });
-      res.json(updatedScore);
+      const updates = updateTldScoreSchema.parse(req.body);
+      const result = await storage.updateTldScore(tld, updates);
+      if (!result) {
+        return res.status(404).json({ error: "TLD score not found" });
+      }
+      res.json(result);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
       console.error("Error updating TLD score:", error);
-      res.status(400).json({ error: "Failed to update TLD score" });
+      res.status(500).json({ error: "Failed to update TLD score" });
     }
   });
 
   app.delete("/api/tld-scores/:tld", async (req, res) => {
     try {
       const { tld } = req.params;
-      await storage.deleteTldScore(tld);
-      res.status(204).send();
+      const result = await storage.deleteTldScore(tld);
+      if (!result) {
+        return res.status(404).json({ error: "TLD score not found" });
+      }
+      res.json({ success: true });
     } catch (error) {
       console.error("Error deleting TLD score:", error);
-      res.status(400).json({ error: "Failed to delete TLD score" });
+      res.status(500).json({ error: "Failed to delete TLD score" });
     }
   });
 
-  const httpServer = createServer(app);
-
-  return httpServer;
+  // Data coverage endpoint
+  app.get("/api/data-coverage", async (req, res) => {
+    try {
+      const coverage = await storage.getDataCoverage();
+      res.json(coverage);
+    } catch (error) {
+      console.error("Error fetching data coverage:", error);
+      res.status(500).json({ error: "Failed to fetch data coverage" });
+    }
+  });
 }

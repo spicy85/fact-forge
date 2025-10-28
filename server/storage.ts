@@ -18,6 +18,25 @@ export interface MultiSourceResult {
   credibleEvaluations: FactsEvaluation[];
 }
 
+export interface AttributeInfo {
+  attribute: string;
+  description: string;
+  dataType: string;
+  apiCode?: string;
+}
+
+export interface SourceCoverage {
+  domain: string;
+  status: string;
+  attributes: AttributeInfo[];
+  totalFacts: number;
+}
+
+export interface DataCoverageResponse {
+  sources: SourceCoverage[];
+  allAttributes: string[];
+}
+
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -57,6 +76,7 @@ export interface IStorage {
   recalculateCertificates(): Promise<{ updated: number; sources: { domain: string; oldScore: number; newScore: number; status: string; }[]; }>;
   recalculateOwnership(): Promise<{ updated: number; sources: { domain: string; oldScore: number; newScore: number; status: string; registrar?: string; organization?: string; domainAge?: number; }[]; }>;
   addAndScoreTrustedSource(domain: string, legitimacy?: number, trust?: number): Promise<{ success: boolean; error?: string; source?: Source; metrics?: SourceIdentityMetrics; urlReputeStatus?: string; certificateStatus?: string; ownershipStatus?: string; }>;
+  getDataCoverage(): Promise<DataCoverageResponse>;
 }
 
 // Utility function to validate hostname format
@@ -1383,6 +1403,64 @@ export class MemStorage implements IStorage {
       console.error('[addAndScoreTrustedSource] Error:', error);
       return { success: false, error: error.message || 'Unknown error occurred' };
     }
+  }
+
+  async getDataCoverage(): Promise<DataCoverageResponse> {
+    // Define source capabilities based on integration files
+    const sourceCapabilities: Record<string, AttributeInfo[]> = {
+      'data.worldbank.org': [
+        { attribute: 'population', description: 'Total population', dataType: 'numeric', apiCode: 'SP.POP.TOTL' },
+        { attribute: 'gdp', description: 'GDP (current US$)', dataType: 'numeric', apiCode: 'NY.GDP.MKTP.CD' },
+        { attribute: 'gdp_per_capita', description: 'GDP per capita (current US$)', dataType: 'numeric', apiCode: 'NY.GDP.PCAP.CD' },
+        { attribute: 'area', description: 'Land area (sq. km)', dataType: 'numeric', apiCode: 'AG.LND.TOTL.K2' },
+        { attribute: 'inflation', description: 'Inflation, consumer prices (annual %)', dataType: 'numeric', apiCode: 'FP.CPI.TOTL.ZG' },
+        { attribute: 'life_expectancy', description: 'Life expectancy at birth', dataType: 'numeric', apiCode: 'SP.DYN.LE00.IN' },
+        { attribute: 'unemployment', description: 'Unemployment (% of labor force)', dataType: 'numeric', apiCode: 'SL.UEM.TOTL.ZS' },
+      ],
+      'en.wikipedia.org': [
+        { attribute: 'founded_year', description: 'Year of founding/inception', dataType: 'year', apiCode: undefined },
+        { attribute: 'population', description: 'Population from Wikipedia', dataType: 'numeric', apiCode: undefined },
+        { attribute: 'area', description: 'Land area from Wikipedia', dataType: 'numeric', apiCode: undefined },
+      ],
+      'www.wikidata.org': [
+        { attribute: 'population', description: 'Population (P1082)', dataType: 'numeric', apiCode: 'P1082' },
+        { attribute: 'gdp', description: 'Nominal GDP (P2131)', dataType: 'numeric', apiCode: 'P2131' },
+        { attribute: 'area', description: 'Area in km² (P2046)', dataType: 'numeric', apiCode: 'P2046' },
+        { attribute: 'founded_year', description: 'Inception date (P571)', dataType: 'year', apiCode: 'P571' },
+      ],
+      'www.imf.org': [
+        { attribute: 'gdp', description: 'Nominal GDP in domestic currency', dataType: 'numeric', apiCode: 'NGDP_XDC' },
+        { attribute: 'inflation', description: 'Consumer Price Index', dataType: 'numeric', apiCode: 'PCPI_IX' },
+        { attribute: 'unemployment', description: 'Unemployment rate (percent)', dataType: 'numeric', apiCode: 'LUR_PT' },
+      ],
+      'unstats.un.org': [
+        { attribute: 'population', description: 'Population statistics', dataType: 'numeric', apiCode: undefined },
+        { attribute: 'gdp', description: 'GDP data', dataType: 'numeric', apiCode: undefined },
+      ],
+    };
+
+    // Get all sources from database
+    const allSources = await this.getAllSources();
+
+    // Build coverage data
+    const sourceCoverage: SourceCoverage[] = allSources.map(source => ({
+      domain: source.domain,
+      status: source.status,
+      attributes: sourceCapabilities[source.domain] || [],
+      totalFacts: source.facts_count,
+    }));
+
+    // Get unique attributes across all sources
+    const allAttributesSet = new Set<string>();
+    Object.values(sourceCapabilities).forEach(attrs => {
+      attrs.forEach(attr => allAttributesSet.add(attr.attribute));
+    });
+    const allAttributes = Array.from(allAttributesSet).sort();
+
+    return {
+      sources: sourceCoverage,
+      allAttributes,
+    };
   }
 }
 
