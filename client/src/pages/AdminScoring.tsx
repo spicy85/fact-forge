@@ -126,6 +126,12 @@ export default function AdminScoring() {
   const [recalculateOwnershipResults, setRecalculateOwnershipResults] = useState<RecalculateOwnershipStats | null>(null);
   const [syncIdentityScoresResults, setSyncIdentityScoresResults] = useState<SyncIdentityScoreStats | null>(null);
   
+  // Quick Add Trusted Source form state
+  const [quickAddDomain, setQuickAddDomain] = useState<string>("");
+  const [quickAddLegitimacy, setQuickAddLegitimacy] = useState<number>(70);
+  const [quickAddTrust, setQuickAddTrust] = useState<number>(70);
+  const [quickAddResults, setQuickAddResults] = useState<any | null>(null);
+  
   // Pull new facts form state
   const [pullEntities, setPullEntities] = useState<string>("Canada,Mexico");
   const [pullAttributes, setPullAttributes] = useState<string[]>(["population"]);
@@ -471,6 +477,38 @@ export default function AdminScoring() {
       toast({
         title: "Error",
         description: "Failed to delete TLD score.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const quickAddTrustedSourceMutation = useMutation({
+    mutationFn: async (data: { domain: string; legitimacy?: number; trust?: number }) => {
+      const response = await apiRequest("POST", "/api/admin/add-trusted-source", data);
+      return await response.json();
+    },
+    onSuccess: (data: any) => {
+      if (data.success) {
+        setQuickAddResults(data);
+        queryClient.invalidateQueries({ queryKey: ["/api/sources"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/source-identity-metrics"] });
+        setQuickAddDomain("");
+        toast({
+          title: "Source added successfully",
+          description: `${data.source?.domain} has been added, promoted to trusted, and scored across all metrics.`,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to add trusted source.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add trusted source.",
         variant: "destructive",
       });
     },
@@ -888,6 +926,146 @@ export default function AdminScoring() {
                 )}
               </TabsContent>
             </Tabs>
+          </CardContent>
+        </Card>
+
+        {/* Quick Add Trusted Source Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Add Trusted Source</CardTitle>
+            <CardDescription>
+              Add a new source, promote to trusted, and score across all identity metrics in one step
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="col-span-3 sm:col-span-1">
+                <Label htmlFor="quick-add-domain">Domain</Label>
+                <Input
+                  id="quick-add-domain"
+                  value={quickAddDomain}
+                  onChange={(e) => {
+                    let value = e.target.value.trim();
+                    // Remove protocol if present
+                    value = value.replace(/^https?:\/\//i, '');
+                    // Remove path, query, hash
+                    value = value.split('/')[0].split('?')[0].split('#')[0];
+                    // Lowercase
+                    value = value.toLowerCase();
+                    setQuickAddDomain(value);
+                  }}
+                  placeholder="example.gov"
+                  data-testid="input-quick-add-domain"
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Format: example.gov (no https:// or paths)
+                </p>
+              </div>
+              <div>
+                <Label htmlFor="quick-add-legitimacy">Legitimacy (0-100)</Label>
+                <Input
+                  id="quick-add-legitimacy"
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={quickAddLegitimacy}
+                  onChange={(e) => setQuickAddLegitimacy(parseInt(e.target.value) || 70)}
+                  data-testid="input-quick-add-legitimacy"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="quick-add-trust">Trust/Quality (0-100)</Label>
+                <Input
+                  id="quick-add-trust"
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={quickAddTrust}
+                  onChange={(e) => setQuickAddTrust(parseInt(e.target.value) || 70)}
+                  data-testid="input-quick-add-trust"
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <Button
+              onClick={() => {
+                if (!quickAddDomain.trim()) {
+                  toast({
+                    title: "Domain required",
+                    description: "Please enter a domain to add.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                quickAddTrustedSourceMutation.mutate({
+                  domain: quickAddDomain.trim(),
+                  legitimacy: quickAddLegitimacy,
+                  trust: quickAddTrust,
+                });
+              }}
+              disabled={!quickAddDomain.trim() || quickAddTrustedSourceMutation.isPending}
+              data-testid="button-quick-add-source"
+              className="w-full"
+            >
+              {quickAddTrustedSourceMutation.isPending ? "Processing..." : "Add & Score Source"}
+            </Button>
+
+            {quickAddResults && (
+              <div className="mt-4 p-4 bg-muted/50 rounded-lg space-y-3">
+                <div className="flex items-center gap-2 font-medium text-sm">
+                  <Database className="h-4 w-4" />
+                  Results for {quickAddResults.source?.domain}
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <div className="text-muted-foreground">URL Repute</div>
+                    <div className="font-mono font-medium" data-testid="text-quick-add-url-repute">
+                      {quickAddResults.metrics?.url_repute}
+                    </div>
+                    <div className="text-xs text-muted-foreground">{quickAddResults.urlReputeStatus}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Certificate</div>
+                    <div className="font-mono font-medium" data-testid="text-quick-add-certificate">
+                      {quickAddResults.metrics?.certificate}
+                    </div>
+                    <div className="text-xs text-muted-foreground">{quickAddResults.certificateStatus}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Ownership</div>
+                    <div className="font-mono font-medium" data-testid="text-quick-add-ownership">
+                      {quickAddResults.metrics?.ownership}
+                    </div>
+                    <div className="text-xs text-muted-foreground">{quickAddResults.ownershipStatus}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Identity Score</div>
+                    <div className="font-mono font-medium text-lg" data-testid="text-quick-add-identity-score">
+                      {quickAddResults.metrics?.identity_score}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Final averaged score</div>
+                  </div>
+                </div>
+                {quickAddResults.metrics?.ownership_registrar && (
+                  <div className="pt-2 border-t text-xs">
+                    <div className="text-muted-foreground">WHOIS Details:</div>
+                    <div className="mt-1 space-y-0.5">
+                      {quickAddResults.metrics.ownership_registrar && (
+                        <div>Registrar: {quickAddResults.metrics.ownership_registrar}</div>
+                      )}
+                      {quickAddResults.metrics.ownership_organization && (
+                        <div>Organization: {quickAddResults.metrics.ownership_organization}</div>
+                      )}
+                      {quickAddResults.metrics.ownership_domain_age && (
+                        <div>Domain Age: {quickAddResults.metrics.ownership_domain_age.toFixed(1)} years</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 

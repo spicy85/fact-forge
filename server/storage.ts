@@ -56,6 +56,56 @@ export interface IStorage {
   recalculateUrlRepute(): Promise<{ updated: number; sources: { domain: string; oldScore: number; newScore: number; tld: string; }[]; }>;
   recalculateCertificates(): Promise<{ updated: number; sources: { domain: string; oldScore: number; newScore: number; status: string; }[]; }>;
   recalculateOwnership(): Promise<{ updated: number; sources: { domain: string; oldScore: number; newScore: number; status: string; registrar?: string; organization?: string; domainAge?: number; }[]; }>;
+  addAndScoreTrustedSource(domain: string, legitimacy?: number, trust?: number): Promise<{ success: boolean; error?: string; source?: Source; metrics?: SourceIdentityMetrics; urlReputeStatus?: string; certificateStatus?: string; ownershipStatus?: string; }>;
+}
+
+// Utility function to validate hostname format
+// Ensures valid DNS hostname: no empty labels, no leading/trailing dots, valid character set
+function isValidHostname(hostname: string): boolean {
+  // Must have at least one dot (minimum: label.tld)
+  if (!hostname.includes('.')) {
+    return false;
+  }
+  
+  // No leading or trailing dots
+  if (hostname.startsWith('.') || hostname.endsWith('.')) {
+    return false;
+  }
+  
+  // Split into labels (parts between dots)
+  const labels = hostname.split('.');
+  
+  // Must have at least 2 labels (e.g., example.com)
+  if (labels.length < 2) {
+    return false;
+  }
+  
+  // Validate each label
+  for (const label of labels) {
+    // No empty labels (catches consecutive dots like "example..com")
+    if (label.length === 0) {
+      return false;
+    }
+    
+    // Label must be 1-63 characters
+    if (label.length > 63) {
+      return false;
+    }
+    
+    // Label must contain only valid characters (letters, digits, hyphens)
+    // Cannot start or end with hyphen
+    if (!/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i.test(label)) {
+      return false;
+    }
+  }
+  
+  // TLD (last label) must be at least 2 characters
+  const tld = labels[labels.length - 1];
+  if (tld.length < 2) {
+    return false;
+  }
+  
+  return true;
 }
 
 // Utility function to extract best matching TLD from domain
@@ -1196,6 +1246,143 @@ export class MemStorage implements IStorage {
     }
     
     return { synced: syncedCount, sources: syncResults };
+  }
+
+  async addAndScoreTrustedSource(domain: string, legitimacy: number = 70, trust: number = 70): Promise<{ success: boolean; error?: string; source?: Source; metrics?: SourceIdentityMetrics; urlReputeStatus?: string; certificateStatus?: string; ownershipStatus?: string; }> {
+    try {
+      // 1. Normalize domain input
+      let normalizedDomain = domain.trim();
+      
+      // Remove protocol (http://, https://)
+      normalizedDomain = normalizedDomain.replace(/^https?:\/\//i, '');
+      
+      // Remove path, query string, and hash
+      normalizedDomain = normalizedDomain.split('/')[0].split('?')[0].split('#')[0];
+      
+      // Lowercase
+      normalizedDomain = normalizedDomain.toLowerCase();
+      
+      // Validate hostname format using strict DNS rules
+      if (!isValidHostname(normalizedDomain)) {
+        return { success: false, error: 'Invalid domain format. Expected valid hostname like example.gov (no protocol, path, or malformed labels)' };
+      }
+
+      // 2. Check for duplicates
+      const [existing] = await db
+        .select()
+        .from(sources)
+        .where(eq(sources.domain, normalizedDomain))
+        .limit(1);
+      
+      if (existing) {
+        return { success: false, error: `Source already exists: ${normalizedDomain}` };
+      }
+
+      // Continue with normalized domain
+      domain = normalizedDomain;
+
+      // 3. Add source to pipeline
+      const newSource = await this.insertSource({
+        domain,
+        status: 'pending_review',
+        legitimacy: legitimacy,
+        data_quality: trust,
+        data_accuracy: trust,
+        proprietary_score: 0,
+        identity_score: 0,
+        facts_count: 0,
+      });
+
+      // 4. Promote to trusted (this auto-creates identity metrics with TLD-based url_repute)
+      const promotedSource = await this.promoteSource(domain);
+      if (!promotedSource) {
+        return { success: false, error: 'Failed to promote source' };
+      }
+
+      // 5. Get the auto-created identity metrics
+      let metrics = await this.getSourceIdentityMetric(domain);
+      if (!metrics) {
+        return { success: false, error: 'Failed to create identity metrics' };
+      }
+
+      // Determine TLD for status reporting
+      const allTlds = await this.getAllTldScores();
+      const tldMatch = await extractBestMatchingTld(domain, allTlds);
+      const urlReputeStatus = tldMatch ? `TLD ${tldMatch} configured` : 'No TLD match, defaulted to 0';
+
+      // 6. Run certificate validation for this specific domain
+      const certResult = await checkCertificateValidity(domain);
+      const certificateStatus = certResult.status;
+      
+      // Update certificate score
+      if (certResult.score !== metrics.certificate) {
+        const urlRepute = metrics.url_repute;
+        const ownership = metrics.ownership;
+        const identityScore = Math.round((urlRepute + certResult.score + ownership) / 3);
+        
+        await db
+          .update(sourceIdentityMetrics)
+          .set({
+            certificate: certResult.score,
+            identity_score: identityScore,
+            updated_at: new Date().toISOString(),
+          })
+          .where(eq(sourceIdentityMetrics.domain, domain));
+        
+        // Sync to sources table
+        await db
+          .update(sources)
+          .set({ identity_score: identityScore })
+          .where(eq(sources.domain, domain));
+        
+        metrics = await this.getSourceIdentityMetric(domain);
+      }
+
+      // 7. Run WHOIS ownership check for this specific domain
+      const ownershipResult = await checkDomainOwnership(domain);
+      const ownershipStatus = ownershipResult.status;
+      
+      // Update ownership score
+      if (metrics && ownershipResult.score !== metrics.ownership) {
+        const urlRepute = metrics.url_repute;
+        const certificate = metrics.certificate;
+        const identityScore = Math.round((urlRepute + certificate + ownershipResult.score) / 3);
+        
+        await db
+          .update(sourceIdentityMetrics)
+          .set({
+            ownership: ownershipResult.score,
+            ownership_registrar: ownershipResult.registrar || null,
+            ownership_organization: ownershipResult.organization || null,
+            ownership_domain_age: ownershipResult.domainAge || null,
+            ownership_status: ownershipResult.status,
+            identity_score: identityScore,
+            updated_at: new Date().toISOString(),
+          })
+          .where(eq(sourceIdentityMetrics.domain, domain));
+        
+        // Sync to sources table
+        await db
+          .update(sources)
+          .set({ identity_score: identityScore })
+          .where(eq(sources.domain, domain));
+        
+        metrics = await this.getSourceIdentityMetric(domain);
+      }
+
+      // 8. Return success with all details
+      return {
+        success: true,
+        source: promotedSource,
+        metrics: metrics || undefined,
+        urlReputeStatus,
+        certificateStatus,
+        ownershipStatus,
+      };
+    } catch (error: any) {
+      console.error('[addAndScoreTrustedSource] Error:', error);
+      return { success: false, error: error.message || 'Unknown error occurred' };
+    }
   }
 }
 

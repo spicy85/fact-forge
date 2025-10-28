@@ -251,6 +251,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add and score a new trusted source (unified workflow)
+  const addTrustedSourceSchema = z.object({
+    domain: z.string().min(1, "Domain is required"),
+    legitimacy: z.number().int().min(0).max(100).optional().default(70),
+    trust: z.number().int().min(0).max(100).optional().default(70),
+  });
+
+  app.post("/api/admin/add-trusted-source", async (req, res) => {
+    try {
+      const validatedData = addTrustedSourceSchema.parse(req.body);
+      
+      const result = await storage.addAndScoreTrustedSource(
+        validatedData.domain,
+        validatedData.legitimacy,
+        validatedData.trust
+      );
+      
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+      
+      res.json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      console.error("Error adding and scoring trusted source:", error);
+      res.status(500).json({ error: "Failed to add and score trusted source" });
+    }
+  });
+
   // Sources API endpoint
   app.get("/api/sources", async (req, res) => {
     try {
