@@ -51,6 +51,29 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Multi-source evaluations API endpoint (used by frontend fact checker)
+  app.get("/api/multi-source-evaluations", async (req, res) => {
+    try {
+      const { entity, attribute } = req.query;
+      
+      if (!entity || !attribute) {
+        return res.status(400).json({ 
+          error: "Missing required parameters: entity, attribute" 
+        });
+      }
+
+      const result = await storage.getMultiSourceEvaluations(
+        entity as string,
+        attribute as string
+      );
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching multi-source evaluations:", error);
+      res.status(500).json({ error: "Failed to fetch multi-source evaluations" });
+    }
+  });
+
   // Insert verified fact
   app.post("/api/facts", async (req, res) => {
     try {
