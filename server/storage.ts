@@ -864,23 +864,35 @@ export class MemStorage implements IStorage {
 
     const factsToPromote = Array.from(deduplicatedMap.values());
     
-    // Check which facts already exist in verified_facts to avoid duplicates
+    // Check which facts already exist in verified_facts
     const existingFacts = await db.select().from(verifiedFacts);
-    const existingKeys = new Set(
-      existingFacts.map(f => `${f.entity}|||${f.attribute}|||${f.source_name}|||${f.as_of_date || ''}`)
+    const existingMap = new Map(
+      existingFacts.map(f => [
+        `${f.entity}|||${f.attribute}|||${f.source_name}|||${f.as_of_date || ''}`,
+        f
+      ])
     );
 
-    // Separate facts into new vs existing
+    // Separate facts into new vs updates
     const newFacts: typeof factsToPromote = [];
+    const factsToUpdate: typeof factsToPromote = [];
     const logsToInsert: InsertFactsActivityLog[] = [];
-    let skippedCount = 0;
 
     for (const fact of factsToPromote) {
       const key = `${fact.entity}|||${fact.attribute}|||${fact.source_name}|||${fact.as_of_date || ''}`;
       
-      if (existingKeys.has(key)) {
-        // Skip existing facts for now (could batch update in future)
-        skippedCount++;
+      if (existingMap.has(key)) {
+        factsToUpdate.push(fact);
+        logsToInsert.push({
+          entity: fact.entity,
+          entity_type: fact.entity_type,
+          attribute: fact.attribute,
+          action: 'updated',
+          source: fact.source_name,
+          process: 'promotion',
+          value: fact.value,
+          notes: `Updated from evaluation (trust_score: ${fact.trust_score})`,
+        });
       } else {
         newFacts.push(fact);
         logsToInsert.push({
@@ -902,6 +914,7 @@ export class MemStorage implements IStorage {
         entity: fact.entity,
         entity_type: fact.entity_type,
         attribute: fact.attribute,
+        attribute_class: fact.attribute_class,
         value: fact.value,
         value_type: fact.value_type,
         source_url: fact.source_url,
@@ -913,6 +926,64 @@ export class MemStorage implements IStorage {
       await db.insert(verifiedFacts).values(valuesToInsert);
     }
 
+    // Batch update existing facts using raw SQL for efficiency
+    if (factsToUpdate.length > 0) {
+      // Build a batch update using CASE statements for each fact
+      const valueCases = factsToUpdate.map((fact, idx) => {
+        const asOfDateCond = fact.as_of_date 
+          ? `AND as_of_date = '${fact.as_of_date}'`
+          : `AND as_of_date IS NULL`;
+        return `WHEN entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' AND source_name = '${fact.source_name.replace(/'/g, "''")}' ${asOfDateCond} THEN '${fact.value.replace(/'/g, "''")}'`;
+      }).join(' ');
+      
+      const timestampCases = factsToUpdate.map((fact, idx) => {
+        const asOfDateCond = fact.as_of_date 
+          ? `AND as_of_date = '${fact.as_of_date}'`
+          : `AND as_of_date IS NULL`;
+        return `WHEN entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' AND source_name = '${fact.source_name.replace(/'/g, "''")}' ${asOfDateCond} THEN '${fact.evaluated_at.replace(/'/g, "''")}'`;
+      }).join(' ');
+      
+      const sourceUrlCases = factsToUpdate.map((fact, idx) => {
+        const asOfDateCond = fact.as_of_date 
+          ? `AND as_of_date = '${fact.as_of_date}'`
+          : `AND as_of_date IS NULL`;
+        return `WHEN entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' AND source_name = '${fact.source_name.replace(/'/g, "''")}' ${asOfDateCond} THEN '${fact.source_url.replace(/'/g, "''")}'`;
+      }).join(' ');
+      
+      const valueTypeCases = factsToUpdate.map((fact, idx) => {
+        const asOfDateCond = fact.as_of_date 
+          ? `AND as_of_date = '${fact.as_of_date}'`
+          : `AND as_of_date IS NULL`;
+        return `WHEN entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' AND source_name = '${fact.source_name.replace(/'/g, "''")}' ${asOfDateCond} THEN '${fact.value_type.replace(/'/g, "''")}'`;
+      }).join(' ');
+      
+      const attributeClassCases = factsToUpdate.map((fact, idx) => {
+        const asOfDateCond = fact.as_of_date 
+          ? `AND as_of_date = '${fact.as_of_date}'`
+          : `AND as_of_date IS NULL`;
+        return `WHEN entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' AND source_name = '${fact.source_name.replace(/'/g, "''")}' ${asOfDateCond} THEN '${fact.attribute_class.replace(/'/g, "''")}'`;
+      }).join(' ');
+      
+      // Build WHERE clause to match any of the facts to update
+      const whereConditions = factsToUpdate.map(fact => {
+        const asOfDateCond = fact.as_of_date 
+          ? `AND as_of_date = '${fact.as_of_date}'`
+          : `AND as_of_date IS NULL`;
+        return `(entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' AND source_name = '${fact.source_name.replace(/'/g, "''")}' ${asOfDateCond})`;
+      }).join(' OR ');
+      
+      await db.execute(sql.raw(`
+        UPDATE verified_facts
+        SET 
+          value = CASE ${valueCases} END,
+          last_verified_at = CASE ${timestampCases} END,
+          source_url = CASE ${sourceUrlCases} END,
+          value_type = CASE ${valueTypeCases} END,
+          attribute_class = CASE ${attributeClassCases} END
+        WHERE ${whereConditions}
+      `));
+    }
+
     // Batch insert logs
     if (logsToInsert.length > 0) {
       await this.logFactsActivityBatch(logsToInsert);
@@ -921,7 +992,7 @@ export class MemStorage implements IStorage {
     // Sync facts_count for all sources in bulk
     await this.syncFactsCount();
 
-    return { promotedCount: newFacts.length, skippedCount };
+    return { promotedCount: newFacts.length + factsToUpdate.length, skippedCount: 0 };
   }
 
   async syncFactsCount(): Promise<{ synced: number; sources: { domain: string; oldCount: number; newCount: number; }[]; }> {
