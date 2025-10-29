@@ -191,6 +191,7 @@ export function detectEntity(
 /**
  * Determines if a numeric claim is likely a year in temporal context
  * Years should not be verified as standalone claims
+ * EXCEPT when they're historical event years (revolution, liberation, etc.)
  */
 export function isTemporalYear(claim: NumericClaim): boolean {
   const num = parseFloat(claim.value.replace(/,/g, ''));
@@ -200,11 +201,26 @@ export function isTemporalYear(claim: NumericClaim): boolean {
     return false;
   }
   
-  // Check for temporal keywords in context
   const context = (claim.contextBefore + " " + claim.contextAfter).toLowerCase();
+  
+  // Historical event keywords - years with these ARE claims to verify
+  const historicalEventKeywords = [
+    'revolution', 'revolutionary', 'revolt', 'uprising',
+    'liberation', 'liberated', 'freed',
+    'unification', 'unified', 'reunification',
+    'world war', 'wwii', 'ww2', 'ww1', 'vietnam war', 'korean war', 'gulf war',
+    'founded', 'established', 'independence', 'independent'
+  ];
+  
+  // If this year appears with historical event keywords, it's a CLAIM not just context
+  if (historicalEventKeywords.some(keyword => context.includes(keyword))) {
+    return false; // NOT a temporal year - should be verified
+  }
+  
+  // Check for temporal keywords in context
   const temporalKeywords = [
     'in ', ' in', 'during', 'since', 'by ', 'from', 'until', 'as of',
-    'year', 'founded', 'established', 'independence'
+    'year'
   ];
   
   return temporalKeywords.some(keyword => context.includes(keyword));
@@ -268,8 +284,8 @@ export function extractNumericClaims(text: string): NumericClaim[] {
   while ((match = numberRegex.exec(text)) !== null) {
     const startIndex = match.index;
     const endIndex = startIndex + match[0].length;
-    const contextStart = Math.max(0, startIndex - 20);
-    const contextEnd = Math.min(text.length, endIndex + 20);
+    const contextStart = Math.max(0, startIndex - 50);
+    const contextEnd = Math.min(text.length, endIndex + 50);
 
     const claim: NumericClaim = {
       value: match[0].trim(),
