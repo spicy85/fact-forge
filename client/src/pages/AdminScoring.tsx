@@ -36,6 +36,14 @@ interface PullNewFactsStats {
   errors: string[];
 }
 
+interface PullHistoricalEventsStats {
+  requested: number;
+  eventsInserted: number;
+  factsCreated: number;
+  duplicates: number;
+  errors: number;
+}
+
 interface SyncFactsCountStats {
   synced: number;
   sources: {
@@ -137,6 +145,10 @@ export default function AdminScoring() {
   const [pullAttributes, setPullAttributes] = useState<string[]>(["population"]);
   const [pullYearStart, setPullYearStart] = useState<string>("2023");
   const [pullYearEnd, setPullYearEnd] = useState<string>("2024");
+
+  // Pull historical events form state
+  const [pullEventsCountries, setPullEventsCountries] = useState<string>("France,United States,Germany");
+  const [pullHistoricalEventsResults, setPullHistoricalEventsResults] = useState<PullHistoricalEventsStats | null>(null);
 
   // TLD scores form state
   const [newTld, setNewTld] = useState<string>("");
@@ -302,6 +314,33 @@ export default function AdminScoring() {
       toast({
         title: "Error",
         description: "Failed to pull new facts.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const pullHistoricalEventsMutation = useMutation({
+    mutationFn: async () => {
+      const countries = pullEventsCountries.split(',').map(c => c.trim()).filter(c => c.length > 0);
+      
+      const response = await apiRequest("POST", "/api/admin/pull-historical-events", {
+        countries
+      });
+      return await response.json();
+    },
+    onSuccess: (data: any) => {
+      setPullHistoricalEventsResults(data.stats);
+      queryClient.invalidateQueries({ queryKey: ["/api/historical-events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/facts-evaluation"] });
+      toast({
+        title: "Events pulled",
+        description: `Inserted ${data.stats.eventsInserted} events and created ${data.stats.factsCreated} fact evaluations.`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to pull historical events.",
         variant: "destructive",
       });
     },
@@ -1186,6 +1225,91 @@ export default function AdminScoring() {
                     </ul>
                   </div>
                 )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Pull Historical Events Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Pull Historical Events</CardTitle>
+            <CardDescription>
+              Fetch historical events from Wikidata (founding, independence, wars, treaties)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="pull-events-countries">Countries (comma-separated)</Label>
+              <Input
+                id="pull-events-countries"
+                value={pullEventsCountries}
+                onChange={(e) => setPullEventsCountries(e.target.value)}
+                placeholder="France,United States,Germany"
+                data-testid="input-pull-events-countries"
+                className="mt-1"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Events will be inserted into historical_events table. Founding/independence events also create corresponding fact evaluations.
+              </p>
+            </div>
+            <Button
+              onClick={() => pullHistoricalEventsMutation.mutate()}
+              disabled={pullHistoricalEventsMutation.isPending}
+              data-testid="button-pull-historical-events"
+              className="w-full"
+            >
+              <Database className="h-4 w-4 mr-2" />
+              {pullHistoricalEventsMutation.isPending ? "Pulling..." : "Pull Historical Events"}
+            </Button>
+
+            {pullHistoricalEventsResults && (
+              <div className="border rounded-lg p-4 bg-muted/50 space-y-2">
+                <h4 className="font-semibold text-sm">Pull Historical Events Results</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Requested:</span>
+                    <span className="ml-2 font-medium" data-testid="text-events-requested">
+                      {pullHistoricalEventsResults.requested}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Events Inserted:</span>
+                    <span className="ml-2 font-medium" data-testid="text-events-inserted">
+                      {pullHistoricalEventsResults.eventsInserted}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Facts Created:</span>
+                    <span className="ml-2 font-medium text-primary" data-testid="text-facts-created">
+                      {pullHistoricalEventsResults.factsCreated}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Duplicates:</span>
+                    <span className="ml-2 font-medium" data-testid="text-events-duplicates">
+                      {pullHistoricalEventsResults.duplicates}
+                    </span>
+                  </div>
+                </div>
+                {pullHistoricalEventsResults.errors > 0 && (
+                  <div className="mt-2">
+                    <p className="text-sm text-destructive font-medium">
+                      Errors: {pullHistoricalEventsResults.errors}
+                    </p>
+                  </div>
+                )}
+                <div className="pt-2 border-t text-xs text-muted-foreground">
+                  <p>
+                    ✓ Historical events stored in <code className="font-mono bg-muted px-1 rounded">historical_events</code> table
+                  </p>
+                  <p>
+                    ✓ Founding/independence dates also created as <code className="font-mono bg-muted px-1 rounded">facts_evaluation</code> entries
+                  </p>
+                  <p>
+                    ✓ Facts can be promoted to verified status using the fact promotion system
+                  </p>
+                </div>
               </div>
             )}
           </CardContent>

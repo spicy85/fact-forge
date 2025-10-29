@@ -81,6 +81,7 @@ export interface IStorage {
   getEventsByEntity(entity: string): Promise<HistoricalEvent[]>;
   getEventsByDateRange(entity: string, startYear: number, endYear: number): Promise<HistoricalEvent[]>;
   insertHistoricalEvent(event: InsertHistoricalEvent): Promise<HistoricalEvent>;
+  insertHistoricalEventWithFactEvaluation(event: InsertHistoricalEvent): Promise<{ event: HistoricalEvent; factCreated: boolean; factEvaluation?: FactsEvaluation; isDuplicate: boolean; }>;
 }
 
 // Utility function to validate hostname format
@@ -1506,6 +1507,88 @@ export class MemStorage implements IStorage {
   async insertHistoricalEvent(event: InsertHistoricalEvent): Promise<HistoricalEvent> {
     const [inserted] = await db.insert(historicalEvents).values(event).returning();
     return inserted;
+  }
+
+  async insertHistoricalEventWithFactEvaluation(event: InsertHistoricalEvent): Promise<{ 
+    event: HistoricalEvent; 
+    factCreated: boolean; 
+    factEvaluation?: FactsEvaluation; 
+    isDuplicate: boolean; 
+  }> {
+    // Check if event already exists (deduplication based on entity + year + title)
+    const existingEvent = await db
+      .select()
+      .from(historicalEvents)
+      .where(
+        and(
+          eq(historicalEvents.entity, event.entity),
+          eq(historicalEvents.event_year, event.event_year),
+          eq(historicalEvents.title, event.title)
+        )
+      )
+      .limit(1);
+
+    if (existingEvent.length > 0) {
+      return {
+        event: existingEvent[0],
+        factCreated: false,
+        isDuplicate: true
+      };
+    }
+
+    // Insert the historical event
+    const [insertedEvent] = await db.insert(historicalEvents).values(event).returning();
+
+    // Determine if we should create a corresponding fact evaluation
+    // Map event_type to attribute
+    let attribute: string | null = null;
+    if (event.event_type === 'founding') {
+      attribute = 'founded_year';
+    } else if (event.event_type === 'independence') {
+      attribute = 'independence_year';
+    }
+
+    let factEvaluation: FactsEvaluation | undefined;
+    let factCreated = false;
+
+    if (attribute && event.source_name) {
+      // Check if fact evaluation already exists for this entity+attribute+source
+      const existingFact = await db
+        .select()
+        .from(factsEvaluation)
+        .where(
+          and(
+            eq(factsEvaluation.entity, event.entity),
+            eq(factsEvaluation.attribute, attribute),
+            eq(factsEvaluation.source_name, event.source_name)
+          )
+        )
+        .limit(1);
+
+      if (existingFact.length === 0) {
+        // Create fact evaluation
+        const factData: InsertFactsEvaluation = {
+          entity: event.entity,
+          attribute: attribute,
+          value: event.event_year.toString(),
+          source_url: event.source_url || `https://${event.source_name}`,
+          source_name: event.source_name,
+          evaluated_at: new Date().toISOString().split('T')[0],
+          as_of_date: event.event_date || `${event.event_year}-01-01`,
+          attribute_class: 'historical_constant'
+        };
+
+        factEvaluation = await this.insertFactsEvaluation(factData);
+        factCreated = true;
+      }
+    }
+
+    return {
+      event: insertedEvent,
+      factCreated,
+      factEvaluation,
+      isDuplicate: false
+    };
   }
 }
 

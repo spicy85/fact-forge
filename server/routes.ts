@@ -265,6 +265,59 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Pull historical events from Wikidata
+  const pullHistoricalEventsSchema = z.object({
+    countries: z.array(z.string()).min(1, "At least one country is required"),
+  });
+
+  app.post("/api/admin/pull-historical-events", async (req, res) => {
+    try {
+      const validatedData = pullHistoricalEventsSchema.parse(req.body);
+      const { fetchHistoricalEvents } = await import("./integrations/wikidata-events");
+      
+      const events = await fetchHistoricalEvents(validatedData.countries);
+      
+      let eventsInserted = 0;
+      let factsCreated = 0;
+      let duplicates = 0;
+      const errors: string[] = [];
+      
+      for (const event of events) {
+        try {
+          const result = await storage.insertHistoricalEventWithFactEvaluation(event);
+          if (result.isDuplicate) {
+            duplicates++;
+          } else {
+            eventsInserted++;
+            if (result.factCreated) {
+              factsCreated++;
+            }
+          }
+        } catch (error: any) {
+          errors.push(`Failed to insert event "${event.title}": ${error.message}`);
+        }
+      }
+      
+      res.json({
+        success: true,
+        stats: {
+          requested: events.length,
+          eventsInserted,
+          factsCreated,
+          duplicates,
+          errors: errors.length
+        },
+        errors: errors.length > 0 ? errors : undefined
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      console.error("Error pulling historical events:", error);
+      res.status(500).json({ error: "Failed to pull historical events" });
+    }
+  });
+
   // Add and score a new trusted source (unified workflow)
   const addTrustedSourceSchema = z.object({
     domain: z.string().min(1, "Domain is required"),
