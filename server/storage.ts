@@ -1429,18 +1429,9 @@ export class MemStorage implements IStorage {
         { attribute: 'founded_year', description: 'Inception date (P571)', dataType: 'year', apiCode: 'P571' },
       ],
       'www.imf.org': [
-        // IFS Database (3 indicators)
-        { attribute: 'gdp', description: 'Nominal GDP in domestic currency (IFS)', dataType: 'numeric', apiCode: 'NGDP_XDC' },
-        { attribute: 'inflation_rate', description: 'Consumer Price Index (IFS)', dataType: 'numeric', apiCode: 'PCPI_IX' },
-        { attribute: 'unemployment_rate', description: 'Unemployment rate (IFS)', dataType: 'numeric', apiCode: 'LUR_PT' },
-        // WEO Database (7 indicators)
-        { attribute: 'gdp_growth_rate', description: 'Real GDP growth rate (WEO)', dataType: 'numeric', apiCode: 'NGDP_RPCH' },
-        { attribute: 'gdp_usd', description: 'GDP in current USD (WEO)', dataType: 'numeric', apiCode: 'NGDPD' },
-        { attribute: 'government_debt', description: 'General government gross debt (% GDP) (WEO)', dataType: 'numeric', apiCode: 'GGXWDG_NGDP' },
-        { attribute: 'fiscal_balance', description: 'Government net lending/borrowing (% GDP) (WEO)', dataType: 'numeric', apiCode: 'GGXCNL_NGDP' },
-        { attribute: 'current_account_balance', description: 'Current account balance (% GDP) (WEO)', dataType: 'numeric', apiCode: 'BCA_NGDPD' },
-        { attribute: 'government_revenue', description: 'General government revenue (% GDP) (WEO)', dataType: 'numeric', apiCode: 'GGR_NGDP' },
-        { attribute: 'government_expenditure', description: 'General government expenditure (% GDP) (WEO)', dataType: 'numeric', apiCode: 'GGX_NGDP' },
+        { attribute: 'gdp', description: 'Nominal GDP in domestic currency', dataType: 'numeric', apiCode: 'NGDP_XDC' },
+        { attribute: 'inflation', description: 'Consumer Price Index', dataType: 'numeric', apiCode: 'PCPI_IX' },
+        { attribute: 'unemployment', description: 'Unemployment rate (percent)', dataType: 'numeric', apiCode: 'LUR_PT' },
       ],
       'unstats.un.org': [
         { attribute: 'population', description: 'Population statistics', dataType: 'numeric', apiCode: undefined },

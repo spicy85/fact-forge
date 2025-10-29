@@ -70,57 +70,17 @@ const COUNTRY_ISO_MAP: Record<string, string> = {
 };
 
 // IMF IFS (International Financial Statistics) Indicator Codes
-export const IFS_INDICATORS = {
+export const INDICATORS = {
   GDP_CURRENT: 'NGDP_XDC',           // Nominal GDP in domestic currency
   INFLATION: 'PCPI_IX',              // Consumer Price Index
   UNEMPLOYMENT: 'LUR_PT',            // Unemployment rate (percent)
+  // Note: Debt to GDP is typically in Fiscal Monitor or WEO, not IFS
 };
-
-// IMF WEO (World Economic Outlook) Indicator Codes
-export const WEO_INDICATORS = {
-  GDP_GROWTH: 'NGDP_RPCH',           // Real GDP growth (% change)
-  GDP_USD: 'NGDPD',                  // GDP in current USD
-  GOVT_DEBT: 'GGXWDG_NGDP',         // General government gross debt (% GDP)
-  FISCAL_BALANCE: 'GGXCNL_NGDP',    // Government net lending/borrowing (% GDP)
-  CURRENT_ACCOUNT: 'BCA_NGDPD',     // Current account balance (% GDP)
-  GOVT_REVENUE: 'GGR_NGDP',         // General government revenue (% GDP)
-  GOVT_EXPENDITURE: 'GGX_NGDP',     // General government total expenditure (% GDP)
-};
-
-// Legacy export for backwards compatibility
-export const INDICATORS = IFS_INDICATORS;
 
 /**
- * Generic function to fetch any IMF IFS indicator
+ * Generic function to fetch any IMF indicator
  */
 export async function fetchIMFIndicator(
-  countryName: string,
-  indicatorCode: string,
-  indicatorName: string,
-  startYear: number = 2020,
-  endYear: number = 2024
-): Promise<IMFResponse> {
-  return fetchIMFData('IFS', countryName, indicatorCode, indicatorName, startYear, endYear);
-}
-
-/**
- * Generic function to fetch any IMF WEO indicator
- */
-export async function fetchWEOIndicator(
-  countryName: string,
-  indicatorCode: string,
-  indicatorName: string,
-  startYear: number = 2020,
-  endYear: number = 2024
-): Promise<IMFResponse> {
-  return fetchIMFData('WEO', countryName, indicatorCode, indicatorName, startYear, endYear);
-}
-
-/**
- * Generic function to fetch data from any IMF database (IFS or WEO)
- */
-async function fetchIMFData(
-  database: 'IFS' | 'WEO',
   countryName: string,
   indicatorCode: string,
   indicatorName: string,
@@ -137,9 +97,9 @@ async function fetchIMFData(
       };
     }
 
-    // Format: CompactData/{DATABASE}/A.{COUNTRY}.{INDICATOR}
+    // Format: CompactData/IFS/A.{COUNTRY}.{INDICATOR}
     // A = Annual frequency
-    const url = `${IMF_BASE_URL}/CompactData/${database}/A.${countryCode}.${indicatorCode}`;
+    const url = `${IMF_BASE_URL}/CompactData/IFS/A.${countryCode}.${indicatorCode}`;
     
     const response = await axios.get(url, {
       params: {
@@ -182,7 +142,7 @@ async function fetchIMFData(
     };
 
   } catch (error: any) {
-    console.error(`Error fetching ${database} ${indicatorName} for ${countryName}:`, error.message);
+    console.error(`Error fetching IMF ${indicatorName} for ${countryName}:`, error.message);
     
     // Check for specific error patterns
     if (error.response?.status === 404) {
@@ -263,44 +223,15 @@ export async function fetchIMFGDP(countryName: string): Promise<IMFResponse> {
 }
 
 export async function fetchIMFInflation(countryName: string): Promise<IMFResponse> {
-  return fetchIMFIndicator(countryName, IFS_INDICATORS.INFLATION, 'inflation_rate');
+  return fetchIMFIndicator(countryName, INDICATORS.INFLATION, 'inflation_rate');
 }
 
 export async function fetchIMFUnemployment(countryName: string): Promise<IMFResponse> {
-  return fetchIMFIndicator(countryName, IFS_INDICATORS.UNEMPLOYMENT, 'unemployment_rate');
-}
-
-// WEO-specific fetch functions
-export async function fetchWEOGDPGrowth(countryName: string): Promise<IMFResponse> {
-  return fetchWEOIndicator(countryName, WEO_INDICATORS.GDP_GROWTH, 'gdp_growth_rate');
-}
-
-export async function fetchWEOGDPUSD(countryName: string): Promise<IMFResponse> {
-  return fetchWEOIndicator(countryName, WEO_INDICATORS.GDP_USD, 'gdp_usd');
-}
-
-export async function fetchWEOGovtDebt(countryName: string): Promise<IMFResponse> {
-  return fetchWEOIndicator(countryName, WEO_INDICATORS.GOVT_DEBT, 'government_debt');
-}
-
-export async function fetchWEOFiscalBalance(countryName: string): Promise<IMFResponse> {
-  return fetchWEOIndicator(countryName, WEO_INDICATORS.FISCAL_BALANCE, 'fiscal_balance');
-}
-
-export async function fetchWEOCurrentAccount(countryName: string): Promise<IMFResponse> {
-  return fetchWEOIndicator(countryName, WEO_INDICATORS.CURRENT_ACCOUNT, 'current_account_balance');
-}
-
-export async function fetchWEOGovtRevenue(countryName: string): Promise<IMFResponse> {
-  return fetchWEOIndicator(countryName, WEO_INDICATORS.GOVT_REVENUE, 'government_revenue');
-}
-
-export async function fetchWEOGovtExpenditure(countryName: string): Promise<IMFResponse> {
-  return fetchWEOIndicator(countryName, WEO_INDICATORS.GOVT_EXPENDITURE, 'government_expenditure');
+  return fetchIMFIndicator(countryName, INDICATORS.UNEMPLOYMENT, 'unemployment_rate');
 }
 
 /**
- * Fetch all available IMF indicators for a country (both IFS and WEO)
+ * Fetch all available IMF indicators for a country
  */
 export async function fetchAllIMFIndicatorsForCountry(
   countryName: string,
@@ -309,28 +240,14 @@ export async function fetchAllIMFIndicatorsForCountry(
 ): Promise<Map<string, IMFEconomicData[]>> {
   const results = new Map<string, IMFEconomicData[]>();
   
-  // IFS indicators (database: IFS)
-  const ifsIndicatorList = [
-    { code: IFS_INDICATORS.GDP_CURRENT, name: 'gdp', database: 'IFS' as const },
-    { code: IFS_INDICATORS.INFLATION, name: 'inflation_rate', database: 'IFS' as const },
-    { code: IFS_INDICATORS.UNEMPLOYMENT, name: 'unemployment_rate', database: 'IFS' as const },
+  const indicatorList = [
+    { code: INDICATORS.GDP_CURRENT, name: 'gdp' },
+    { code: INDICATORS.INFLATION, name: 'inflation_rate' },
+    { code: INDICATORS.UNEMPLOYMENT, name: 'unemployment_rate' },
   ];
 
-  // WEO indicators (database: WEO)
-  const weoIndicatorList = [
-    { code: WEO_INDICATORS.GDP_GROWTH, name: 'gdp_growth_rate', database: 'WEO' as const },
-    { code: WEO_INDICATORS.GDP_USD, name: 'gdp_usd', database: 'WEO' as const },
-    { code: WEO_INDICATORS.GOVT_DEBT, name: 'government_debt', database: 'WEO' as const },
-    { code: WEO_INDICATORS.FISCAL_BALANCE, name: 'fiscal_balance', database: 'WEO' as const },
-    { code: WEO_INDICATORS.CURRENT_ACCOUNT, name: 'current_account_balance', database: 'WEO' as const },
-    { code: WEO_INDICATORS.GOVT_REVENUE, name: 'government_revenue', database: 'WEO' as const },
-    { code: WEO_INDICATORS.GOVT_EXPENDITURE, name: 'government_expenditure', database: 'WEO' as const },
-  ];
-
-  const allIndicators = [...ifsIndicatorList, ...weoIndicatorList];
-
-  for (const { code, name, database } of allIndicators) {
-    const response = await fetchIMFData(database, countryName, code, name, startYear, endYear);
+  for (const { code, name } of indicatorList) {
+    const response = await fetchIMFIndicator(countryName, code, name, startYear, endYear);
     
     if (response.success && response.data) {
       results.set(name, response.data);
@@ -410,23 +327,12 @@ export async function fetchIMFDataForAllCountries(): Promise<Map<string, IMFEcon
   for (const country of countries) {
     console.log(`Fetching IMF data for ${country}...`);
     
-    // IFS indicators
     const gdpResponse = await fetchIMFGDP(country);
     const inflationResponse = await fetchIMFInflation(country);
     const unemploymentResponse = await fetchIMFUnemployment(country);
     
-    // WEO indicators
-    const gdpGrowthResponse = await fetchWEOGDPGrowth(country);
-    const gdpUsdResponse = await fetchWEOGDPUSD(country);
-    const govtDebtResponse = await fetchWEOGovtDebt(country);
-    const fiscalBalanceResponse = await fetchWEOFiscalBalance(country);
-    const currentAccountResponse = await fetchWEOCurrentAccount(country);
-    const govtRevenueResponse = await fetchWEOGovtRevenue(country);
-    const govtExpenditureResponse = await fetchWEOGovtExpenditure(country);
-    
     const allData: IMFEconomicData[] = [];
     
-    // Add IFS data
     if (gdpResponse.success && gdpResponse.data) {
       allData.push(...gdpResponse.data);
     }
@@ -437,35 +343,6 @@ export async function fetchIMFDataForAllCountries(): Promise<Map<string, IMFEcon
 
     if (unemploymentResponse.success && unemploymentResponse.data) {
       allData.push(...unemploymentResponse.data);
-    }
-    
-    // Add WEO data
-    if (gdpGrowthResponse.success && gdpGrowthResponse.data) {
-      allData.push(...gdpGrowthResponse.data);
-    }
-    
-    if (gdpUsdResponse.success && gdpUsdResponse.data) {
-      allData.push(...gdpUsdResponse.data);
-    }
-    
-    if (govtDebtResponse.success && govtDebtResponse.data) {
-      allData.push(...govtDebtResponse.data);
-    }
-    
-    if (fiscalBalanceResponse.success && fiscalBalanceResponse.data) {
-      allData.push(...fiscalBalanceResponse.data);
-    }
-    
-    if (currentAccountResponse.success && currentAccountResponse.data) {
-      allData.push(...currentAccountResponse.data);
-    }
-    
-    if (govtRevenueResponse.success && govtRevenueResponse.data) {
-      allData.push(...govtRevenueResponse.data);
-    }
-    
-    if (govtExpenditureResponse.success && govtExpenditureResponse.data) {
-      allData.push(...govtExpenditureResponse.data);
     }
     
     if (allData.length > 0) {
