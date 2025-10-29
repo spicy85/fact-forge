@@ -852,12 +852,20 @@ export class MemStorage implements IStorage {
       return { promotedCount: 0, skippedCount: 0 };
     }
 
-    // Deduplicate: Keep most recent fact per (entity, attribute, source_name, as_of_date)
-    // Including as_of_date allows for time-series data (e.g., population in 2020, 2021, 2022)
+    // Deduplicate based on attribute_class:
+    // - historical_constant: Keep only ONE fact per (entity, attribute) with highest trust_score
+    // - time_series/static: Keep one fact per (entity, attribute, source_name, as_of_date)
     const deduplicatedMap = new Map<string, typeof candidateFacts[0]>();
     for (const fact of candidateFacts) {
-      const key = `${fact.entity}|||${fact.attribute}|||${fact.source_name}|||${fact.as_of_date || ''}`;
-      if (!deduplicatedMap.has(key)) {
+      // For historical constants, we want only one canonical value per entity/attribute
+      const key = fact.attribute_class === 'historical_constant'
+        ? `${fact.entity}|||${fact.attribute}`
+        : `${fact.entity}|||${fact.attribute}|||${fact.source_name}|||${fact.as_of_date || ''}`;
+      
+      const existing = deduplicatedMap.get(key);
+      // Keep the fact with highest trust_score for historical constants
+      // For time-series, keep the first one (already sorted by as_of_date desc)
+      if (!existing || (fact.attribute_class === 'historical_constant' && (fact.trust_score ?? 0) > (existing.trust_score ?? 0))) {
         deduplicatedMap.set(key, fact);
       }
     }
@@ -868,7 +876,9 @@ export class MemStorage implements IStorage {
     const existingFacts = await db.select().from(verifiedFacts);
     const existingMap = new Map(
       existingFacts.map(f => [
-        `${f.entity}|||${f.attribute}|||${f.source_name}|||${f.as_of_date || ''}`,
+        f.attribute_class === 'historical_constant'
+          ? `${f.entity}|||${f.attribute}`
+          : `${f.entity}|||${f.attribute}|||${f.source_name}|||${f.as_of_date || ''}`,
         f
       ])
     );
@@ -879,7 +889,9 @@ export class MemStorage implements IStorage {
     const logsToInsert: InsertFactsActivityLog[] = [];
 
     for (const fact of factsToPromote) {
-      const key = `${fact.entity}|||${fact.attribute}|||${fact.source_name}|||${fact.as_of_date || ''}`;
+      const key = fact.attribute_class === 'historical_constant'
+        ? `${fact.entity}|||${fact.attribute}`
+        : `${fact.entity}|||${fact.attribute}|||${fact.source_name}|||${fact.as_of_date || ''}`;
       
       if (existingMap.has(key)) {
         factsToUpdate.push(fact);
@@ -929,47 +941,60 @@ export class MemStorage implements IStorage {
     // Batch update existing facts using raw SQL for efficiency
     if (factsToUpdate.length > 0) {
       // Build a batch update using CASE statements for each fact
+      // For historical constants, use only entity + attribute
+      // For time-series, use entity + attribute + source_name + as_of_date
       const valueCases = factsToUpdate.map((fact, idx) => {
-        const asOfDateCond = fact.as_of_date 
-          ? `AND as_of_date = '${fact.as_of_date}'`
-          : `AND as_of_date IS NULL`;
-        return `WHEN entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' AND source_name = '${fact.source_name.replace(/'/g, "''")}' ${asOfDateCond} THEN '${fact.value.replace(/'/g, "''")}'`;
+        const cond = fact.attribute_class === 'historical_constant'
+          ? `entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' `
+          : `entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' AND source_name = '${fact.source_name.replace(/'/g, "''")}' AND ${fact.as_of_date ? `as_of_date = '${fact.as_of_date}'` : `as_of_date IS NULL`}`;
+        return `WHEN ${cond} THEN '${fact.value.replace(/'/g, "''")}'`;
       }).join(' ');
       
       const timestampCases = factsToUpdate.map((fact, idx) => {
-        const asOfDateCond = fact.as_of_date 
-          ? `AND as_of_date = '${fact.as_of_date}'`
-          : `AND as_of_date IS NULL`;
-        return `WHEN entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' AND source_name = '${fact.source_name.replace(/'/g, "''")}' ${asOfDateCond} THEN '${fact.evaluated_at.replace(/'/g, "''")}'`;
+        const cond = fact.attribute_class === 'historical_constant'
+          ? `entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' `
+          : `entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' AND source_name = '${fact.source_name.replace(/'/g, "''")}' AND ${fact.as_of_date ? `as_of_date = '${fact.as_of_date}'` : `as_of_date IS NULL`}`;
+        return `WHEN ${cond} THEN '${fact.evaluated_at.replace(/'/g, "''")}'`;
       }).join(' ');
       
       const sourceUrlCases = factsToUpdate.map((fact, idx) => {
-        const asOfDateCond = fact.as_of_date 
-          ? `AND as_of_date = '${fact.as_of_date}'`
-          : `AND as_of_date IS NULL`;
-        return `WHEN entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' AND source_name = '${fact.source_name.replace(/'/g, "''")}' ${asOfDateCond} THEN '${fact.source_url.replace(/'/g, "''")}'`;
+        const cond = fact.attribute_class === 'historical_constant'
+          ? `entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' `
+          : `entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' AND source_name = '${fact.source_name.replace(/'/g, "''")}' AND ${fact.as_of_date ? `as_of_date = '${fact.as_of_date}'` : `as_of_date IS NULL`}`;
+        return `WHEN ${cond} THEN '${fact.source_url.replace(/'/g, "''")}'`;
       }).join(' ');
       
       const valueTypeCases = factsToUpdate.map((fact, idx) => {
-        const asOfDateCond = fact.as_of_date 
-          ? `AND as_of_date = '${fact.as_of_date}'`
-          : `AND as_of_date IS NULL`;
-        return `WHEN entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' AND source_name = '${fact.source_name.replace(/'/g, "''")}' ${asOfDateCond} THEN '${fact.value_type.replace(/'/g, "''")}'`;
+        const cond = fact.attribute_class === 'historical_constant'
+          ? `entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' `
+          : `entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' AND source_name = '${fact.source_name.replace(/'/g, "''")}' AND ${fact.as_of_date ? `as_of_date = '${fact.as_of_date}'` : `as_of_date IS NULL`}`;
+        return `WHEN ${cond} THEN '${fact.value_type.replace(/'/g, "''")}'`;
       }).join(' ');
       
       const attributeClassCases = factsToUpdate.map((fact, idx) => {
-        const asOfDateCond = fact.as_of_date 
-          ? `AND as_of_date = '${fact.as_of_date}'`
-          : `AND as_of_date IS NULL`;
-        return `WHEN entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' AND source_name = '${fact.source_name.replace(/'/g, "''")}' ${asOfDateCond} THEN '${fact.attribute_class.replace(/'/g, "''")}'`;
+        const cond = fact.attribute_class === 'historical_constant'
+          ? `entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' `
+          : `entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' AND source_name = '${fact.source_name.replace(/'/g, "''")}' AND ${fact.as_of_date ? `as_of_date = '${fact.as_of_date}'` : `as_of_date IS NULL`}`;
+        return `WHEN ${cond} THEN '${fact.attribute_class.replace(/'/g, "''")}'`;
+      }).join(' ');
+      
+      const sourceNameCases = factsToUpdate.map((fact, idx) => {
+        const cond = fact.attribute_class === 'historical_constant'
+          ? `entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' `
+          : `entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' AND source_name = '${fact.source_name.replace(/'/g, "''")}' AND ${fact.as_of_date ? `as_of_date = '${fact.as_of_date}'` : `as_of_date IS NULL`}`;
+        return `WHEN ${cond} THEN '${fact.source_name.replace(/'/g, "''")}'`;
       }).join(' ');
       
       // Build WHERE clause to match any of the facts to update
       const whereConditions = factsToUpdate.map(fact => {
-        const asOfDateCond = fact.as_of_date 
-          ? `AND as_of_date = '${fact.as_of_date}'`
-          : `AND as_of_date IS NULL`;
-        return `(entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' AND source_name = '${fact.source_name.replace(/'/g, "''")}' ${asOfDateCond})`;
+        if (fact.attribute_class === 'historical_constant') {
+          return `(entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}')`;
+        } else {
+          const asOfDateCond = fact.as_of_date 
+            ? `AND as_of_date = '${fact.as_of_date}'`
+            : `AND as_of_date IS NULL`;
+          return `(entity = '${fact.entity.replace(/'/g, "''")}' AND attribute = '${fact.attribute.replace(/'/g, "''")}' AND source_name = '${fact.source_name.replace(/'/g, "''")}' ${asOfDateCond})`;
+        }
       }).join(' OR ');
       
       await db.execute(sql.raw(`
@@ -979,7 +1004,8 @@ export class MemStorage implements IStorage {
           last_verified_at = CASE ${timestampCases} END,
           source_url = CASE ${sourceUrlCases} END,
           value_type = CASE ${valueTypeCases} END,
-          attribute_class = CASE ${attributeClassCases} END
+          attribute_class = CASE ${attributeClassCases} END,
+          source_name = CASE ${sourceNameCases} END
         WHERE ${whereConditions}
       `));
     }
