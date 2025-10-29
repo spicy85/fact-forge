@@ -13,6 +13,7 @@ import {
   insertSourceIdentityMetricsSchema,
   insertTldScoreSchema,
   updateTldScoreSchema,
+  insertHistoricalEventSchema,
 } from "../shared/schema";
 
 export function registerRoutes(app: Express) {
@@ -554,6 +555,54 @@ export function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Error fetching data coverage:", error);
       res.status(500).json({ error: "Failed to fetch data coverage" });
+    }
+  });
+
+  // Historical events endpoints
+  app.get("/api/historical-events", async (req, res) => {
+    try {
+      const events = await storage.getAllHistoricalEvents();
+      res.json(events);
+    } catch (error) {
+      console.error("Error fetching historical events:", error);
+      res.status(500).json({ error: "Failed to fetch historical events" });
+    }
+  });
+
+  app.get("/api/historical-events/entity/:entity", async (req, res) => {
+    try {
+      const { entity } = req.params;
+      const { startYear, endYear } = req.query;
+      
+      let events;
+      if (startYear && endYear) {
+        events = await storage.getEventsByDateRange(
+          entity,
+          parseInt(startYear as string),
+          parseInt(endYear as string)
+        );
+      } else {
+        events = await storage.getEventsByEntity(entity);
+      }
+      
+      res.json(events);
+    } catch (error) {
+      console.error("Error fetching historical events for entity:", error);
+      res.status(500).json({ error: "Failed to fetch historical events for entity" });
+    }
+  });
+
+  app.post("/api/historical-events", async (req, res) => {
+    try {
+      const event = insertHistoricalEventSchema.parse(req.body);
+      const result = await storage.insertHistoricalEvent(event);
+      res.json(result);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      console.error("Error inserting historical event:", error);
+      res.status(500).json({ error: "Failed to insert historical event" });
     }
   });
 }

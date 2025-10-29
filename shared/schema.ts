@@ -248,3 +248,31 @@ export const updateTldScoreSchema = createInsertSchema(tldScores).omit({
 export type InsertTldScore = z.infer<typeof insertTldScoreSchema>;
 export type UpdateTldScore = z.infer<typeof updateTldScoreSchema>;
 export type TldScore = typeof tldScores.$inferSelect;
+
+export const historicalEvents = pgTable("historical_events", {
+  id: serial("id").primaryKey(),
+  entity: text("entity").notNull(),
+  entity_type: varchar("entity_type", { length: 50 }).notNull().default("country"),
+  event_date: date("event_date"),
+  event_year: integer("event_year").notNull(),
+  event_type: varchar("event_type", { length: 100 }).notNull(), // independence, revolution, treaty, war, constitution, etc.
+  title: text("title").notNull(),
+  description: text("description"),
+  source_name: text("source_name").notNull(),
+  source_url: text("source_url"),
+  importance: integer("importance").notNull().default(5), // 1-10 scale, 10 being most important
+  verified: integer("verified").notNull().default(0), // 0 or 1 (boolean)
+  added_at: text("added_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => ({
+  entityIdx: index("historical_events_entity_idx").on(table.entity),
+  yearIdx: index("historical_events_year_idx").on(table.event_year),
+  typeIdx: index("historical_events_type_idx").on(table.event_type),
+}));
+
+export const insertHistoricalEventSchema = createInsertSchema(historicalEvents).omit({
+  id: true,
+  added_at: true,
+});
+
+export type InsertHistoricalEvent = z.infer<typeof insertHistoricalEventSchema>;
+export type HistoricalEvent = typeof historicalEvents.$inferSelect;

@@ -1,8 +1,8 @@
-import { type User, type InsertUser, type VerifiedFact, type InsertVerifiedFact, type FactsEvaluation, type InsertFactsEvaluation, type Source, type InsertSource, type UpdateSource, type ScoringSettings, type InsertScoringSettings, type UpdateScoringSettings, type RequestedFact, type InsertRequestedFact, type SourceActivityLog, type InsertSourceActivityLog, type FactsActivityLog, type InsertFactsActivityLog, type SourceIdentityMetrics, type InsertSourceIdentityMetrics, type UpdateSourceIdentityMetrics, type TldScore, type InsertTldScore, type UpdateTldScore } from "@shared/schema";
+import { type User, type InsertUser, type VerifiedFact, type InsertVerifiedFact, type FactsEvaluation, type InsertFactsEvaluation, type Source, type InsertSource, type UpdateSource, type ScoringSettings, type InsertScoringSettings, type UpdateScoringSettings, type RequestedFact, type InsertRequestedFact, type SourceActivityLog, type InsertSourceActivityLog, type FactsActivityLog, type InsertFactsActivityLog, type SourceIdentityMetrics, type InsertSourceIdentityMetrics, type UpdateSourceIdentityMetrics, type TldScore, type InsertTldScore, type UpdateTldScore, type HistoricalEvent, type InsertHistoricalEvent } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { verifiedFacts, factsEvaluation, sources, scoringSettings, requestedFacts, sourceActivityLog, factsActivityLog, sourceIdentityMetrics, tldScores } from "@shared/schema";
-import { eq, and, sql, desc } from "drizzle-orm";
+import { verifiedFacts, factsEvaluation, sources, scoringSettings, requestedFacts, sourceActivityLog, factsActivityLog, sourceIdentityMetrics, tldScores, historicalEvents } from "@shared/schema";
+import { eq, and, sql, desc, gte, lte, between } from "drizzle-orm";
 import { calculateSourceTrustScore, calculateRecencyScore, calculateTrustScore } from "./evaluation-scoring";
 import * as https from "https";
 import { whoisDomain } from "whoiser";
@@ -77,6 +77,10 @@ export interface IStorage {
   recalculateOwnership(): Promise<{ updated: number; sources: { domain: string; oldScore: number; newScore: number; status: string; registrar?: string; organization?: string; domainAge?: number; }[]; }>;
   addAndScoreTrustedSource(domain: string, legitimacy?: number, trust?: number): Promise<{ success: boolean; error?: string; source?: Source; metrics?: SourceIdentityMetrics; urlReputeStatus?: string; certificateStatus?: string; ownershipStatus?: string; }>;
   getDataCoverage(): Promise<DataCoverageResponse>;
+  getAllHistoricalEvents(): Promise<HistoricalEvent[]>;
+  getEventsByEntity(entity: string): Promise<HistoricalEvent[]>;
+  getEventsByDateRange(entity: string, startYear: number, endYear: number): Promise<HistoricalEvent[]>;
+  insertHistoricalEvent(event: InsertHistoricalEvent): Promise<HistoricalEvent>;
 }
 
 // Utility function to validate hostname format
@@ -1468,6 +1472,40 @@ export class MemStorage implements IStorage {
       sources: sourceCoverage,
       allAttributes,
     };
+  }
+
+  async getAllHistoricalEvents(): Promise<HistoricalEvent[]> {
+    const events = await db.select().from(historicalEvents).orderBy(historicalEvents.event_year);
+    return events;
+  }
+
+  async getEventsByEntity(entity: string): Promise<HistoricalEvent[]> {
+    const events = await db
+      .select()
+      .from(historicalEvents)
+      .where(eq(historicalEvents.entity, entity))
+      .orderBy(historicalEvents.event_year);
+    return events;
+  }
+
+  async getEventsByDateRange(entity: string, startYear: number, endYear: number): Promise<HistoricalEvent[]> {
+    const events = await db
+      .select()
+      .from(historicalEvents)
+      .where(
+        and(
+          eq(historicalEvents.entity, entity),
+          gte(historicalEvents.event_year, startYear),
+          lte(historicalEvents.event_year, endYear)
+        )
+      )
+      .orderBy(historicalEvents.event_year);
+    return events;
+  }
+
+  async insertHistoricalEvent(event: InsertHistoricalEvent): Promise<HistoricalEvent> {
+    const [inserted] = await db.insert(historicalEvents).values(event).returning();
+    return inserted;
   }
 }
 
