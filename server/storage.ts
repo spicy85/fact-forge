@@ -1571,6 +1571,7 @@ export class MemStorage implements IStorage {
           entity: event.entity,
           attribute: attribute,
           value: event.event_year.toString(),
+          value_type: 'numeric',
           source_url: event.source_url || `https://${event.source_name}`,
           source_name: event.source_name,
           evaluated_at: new Date().toISOString().split('T')[0],

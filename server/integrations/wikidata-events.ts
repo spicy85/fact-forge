@@ -52,7 +52,10 @@ async function fetchCountryEvents(countryName: string, qid: string): Promise<His
   const results: HistoricalEventResult[] = [];
 
   try {
-    // First, try to get independence date (P1619) - this is more specific
+    // Query both independence (P1619) and founding (P571) dates independently
+    // They can be different - e.g., a country founded centuries ago but gained independence later
+    
+    // 1. Independence date (P1619)
     const independenceQuery = `
       SELECT ?value WHERE {
         wd:${qid} wdt:P1619 ?value.
@@ -60,43 +63,46 @@ async function fetchCountryEvents(countryName: string, qid: string): Promise<His
       LIMIT 1
     `;
 
-    const independenceData = await executeSparqlQuery(independenceQuery);
-    if (independenceData.results?.bindings?.length > 0) {
-      const binding = independenceData.results.bindings[0];
-      const dateValue = binding.value.value;
-      const date = new Date(dateValue);
-      const year = date.getFullYear();
-      
-      // Skip if year is invalid (NaN)
-      if (!isNaN(year)) {
-        const event_date = dateValue.split('T')[0]; // Extract YYYY-MM-DD
+    try {
+      const independenceData = await executeSparqlQuery(independenceQuery);
+      if (independenceData.results?.bindings?.length > 0) {
+        const binding = independenceData.results.bindings[0];
+        const dateValue = binding.value.value;
+        const date = new Date(dateValue);
+        const year = date.getFullYear();
+        
+        // Only add if year is valid
+        if (!isNaN(year) && year > 0 && year < 3000) {
+          const event_date = dateValue.split('T')[0]; // Extract YYYY-MM-DD
 
-        results.push({
-          entity: countryName,
-          entity_type: 'country',
-          event_year: year,
-          event_date,
-          event_type: 'independence',
-          title: `Independence of ${countryName}`,
-          description: `${countryName} gained independence on ${event_date}.`,
-          source_name: 'www.wikidata.org',
-          source_url: `https://www.wikidata.org/wiki/${qid}#P1619`,
-          importance: 10,
-          verified: 1
-        });
+          results.push({
+            entity: countryName,
+            entity_type: 'country',
+            event_year: year,
+            event_date,
+            event_type: 'independence',
+            title: `Independence of ${countryName}`,
+            description: `${countryName} gained independence on ${event_date}.`,
+            source_name: 'www.wikidata.org',
+            source_url: `https://www.wikidata.org/wiki/${qid}#P1619`,
+            importance: 10,
+            verified: 1
+          });
+        }
       }
+    } catch (error: any) {
+      console.warn(`Error fetching independence date for ${countryName}:`, error.message);
     }
 
-    // Query for inception/founding date (P571) - but only if we didn't find independence
-    if (results.length === 0) {
-      const inceptionQuery = `
-        SELECT ?value ?label WHERE {
-          wd:${qid} wdt:P571 ?value.
-          OPTIONAL { wd:${qid} rdfs:label ?label. FILTER(LANG(?label) = "en") }
-        }
-        LIMIT 1
-      `;
+    // 2. Founding/inception date (P571) - query independently
+    const inceptionQuery = `
+      SELECT ?value WHERE {
+        wd:${qid} wdt:P571 ?value.
+      }
+      LIMIT 1
+    `;
 
+    try {
       const inceptionData = await executeSparqlQuery(inceptionQuery);
       if (inceptionData.results?.bindings?.length > 0) {
         const binding = inceptionData.results.bindings[0];
@@ -104,8 +110,8 @@ async function fetchCountryEvents(countryName: string, qid: string): Promise<His
         const date = new Date(dateValue);
         const year = date.getFullYear();
         
-        // Skip if year is invalid (NaN)
-        if (!isNaN(year)) {
+        // Only add if year is valid
+        if (!isNaN(year) && year > 0 && year < 3000) {
           const event_date = dateValue.split('T')[0]; // Extract YYYY-MM-DD
 
           results.push({
@@ -123,6 +129,8 @@ async function fetchCountryEvents(countryName: string, qid: string): Promise<His
           });
         }
       }
+    } catch (error: any) {
+      console.warn(`Error fetching founding date for ${countryName}:`, error.message);
     }
 
     // Query for significant events (P793)
