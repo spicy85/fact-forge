@@ -1435,7 +1435,6 @@ export class MemStorage implements IStorage {
       ],
       'unstats.un.org': [
         { attribute: 'population', description: 'Population statistics', dataType: 'numeric', apiCode: undefined },
-        { attribute: 'gdp', description: 'GDP data', dataType: 'numeric', apiCode: undefined },
       ],
     };
 
