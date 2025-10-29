@@ -8,7 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Settings, Save, RotateCcw, ExternalLink, ArrowLeft, RefreshCw, Database } from "lucide-react";
+import { Settings, Save, RotateCcw, ExternalLink, ArrowLeft, RefreshCw, Database, Shield, FileText, Calculator } from "lucide-react";
 import { Link } from "wouter";
 import type { ScoringSettings } from "@shared/schema";
 
@@ -134,23 +134,19 @@ export default function AdminScoring() {
   const [recalculateOwnershipResults, setRecalculateOwnershipResults] = useState<RecalculateOwnershipStats | null>(null);
   const [syncIdentityScoresResults, setSyncIdentityScoresResults] = useState<SyncIdentityScoreStats | null>(null);
   
-  // Quick Add Trusted Source form state
   const [quickAddDomain, setQuickAddDomain] = useState<string>("");
   const [quickAddLegitimacy, setQuickAddLegitimacy] = useState<number>(70);
   const [quickAddTrust, setQuickAddTrust] = useState<number>(70);
   const [quickAddResults, setQuickAddResults] = useState<any | null>(null);
   
-  // Pull new facts form state
   const [pullEntities, setPullEntities] = useState<string>("Canada,Mexico");
   const [pullAttributes, setPullAttributes] = useState<string[]>(["population"]);
   const [pullYearStart, setPullYearStart] = useState<string>("2023");
   const [pullYearEnd, setPullYearEnd] = useState<string>("2024");
 
-  // Pull historical events form state
   const [pullEventsCountries, setPullEventsCountries] = useState<string>("France,United States,Germany");
   const [pullHistoricalEventsResults, setPullHistoricalEventsResults] = useState<PullHistoricalEventsStats | null>(null);
   
-  // Backfill historical facts state
   const [backfillHistoricalFactsResults, setBackfillHistoricalFactsResults] = useState<{
     processed: number;
     created: number;
@@ -158,7 +154,6 @@ export default function AdminScoring() {
     results: { entity: string; event_type: string; attribute: string; year: number; created: boolean; }[];
   } | null>(null);
 
-  // TLD scores form state
   const [newTld, setNewTld] = useState<string>("");
   const [newTldScore, setNewTldScore] = useState<number>(0);
   const [editingTld, setEditingTld] = useState<Record<string, number>>({});
@@ -588,7 +583,6 @@ export default function AdminScoring() {
   };
 
   const handleReset = () => {
-    // Reload from current database settings instead of hardcoded values
     if (settings) {
       setFormData({
         source_trust_weight: settings.source_trust_weight,
@@ -610,7 +604,7 @@ export default function AdminScoring() {
       <div className="container mx-auto p-6">
         <div className="flex items-center gap-2 mb-6">
           <Settings className="h-6 w-6" />
-          <h1 className="text-3xl font-bold">Admin - Scoring Configuration</h1>
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
         </div>
         <p>Loading settings...</p>
       </div>
@@ -620,1191 +614,1227 @@ export default function AdminScoring() {
   const totalWeight = formData.source_trust_weight + formData.recency_weight + formData.consensus_weight;
 
   return (
-    <div className="container mx-auto p-6 max-w-5xl">
+    <div className="container mx-auto p-6 max-w-6xl">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Settings className="h-6 w-6" />
-          <h1 className="text-3xl font-bold">Admin - Scoring Configuration</h1>
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
         </div>
-        <div className="flex gap-2">
-          <Link href="/">
-            <Button variant="outline" data-testid="button-back-home">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Home
-            </Button>
-          </Link>
-          <Button
-            variant="outline"
-            onClick={handleReset}
-            data-testid="button-reset"
-          >
-            <RotateCcw className="h-4 w-4 mr-2" />
-            Reset to Defaults
+        <Link href="/">
+          <Button variant="outline" data-testid="button-back-home">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Home
           </Button>
-          <Button
-            onClick={handleSave}
-            disabled={updateMutation.isPending}
-            data-testid="button-save"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            {updateMutation.isPending ? "Saving..." : "Save Changes"}
-          </Button>
-        </div>
+        </Link>
       </div>
 
-      <div className="grid gap-6">
-        {/* Configuration Card with Tabs */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Scoring Configuration</CardTitle>
-            <CardDescription>
-              Configure trust score calculation, recency tiers, and promotion thresholds
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="trust-calculation" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="trust-calculation">Trust Calculation</TabsTrigger>
-                <TabsTrigger value="recency-scoring">Recency Scoring</TabsTrigger>
-                <TabsTrigger value="fact-promotion">Fact Promotion</TabsTrigger>
-                <TabsTrigger value="tld-config">TLD Configuration</TabsTrigger>
-              </TabsList>
+      <Tabs defaultValue="source-management" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsTrigger value="source-management" className="gap-2" data-testid="tab-source-management">
+            <Shield className="h-4 w-4" />
+            Source Management
+          </TabsTrigger>
+          <TabsTrigger value="data-management" className="gap-2" data-testid="tab-data-management">
+            <Database className="h-4 w-4" />
+            Data Management
+          </TabsTrigger>
+          <TabsTrigger value="fact-evaluation" className="gap-2" data-testid="tab-fact-evaluation">
+            <Calculator className="h-4 w-4" />
+            Fact Evaluation
+          </TabsTrigger>
+        </TabsList>
 
-              <TabsContent value="trust-calculation" className="space-y-6 mt-6">
-                <div className="mb-6 p-4 bg-muted/50 rounded-lg">
-                  <h3 className="text-sm font-medium mb-2">Source Trust Score Criteria</h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Each source's overall trust score is calculated as the average of these five criteria (0-100 scale):
-                  </p>
-                  <ul className="text-sm text-muted-foreground space-y-1 ml-4 list-disc">
-                    <li><strong>Identity</strong> - Authenticity and verifiable ownership</li>
-                    <li><strong>Legitimacy</strong> - Authority and recognized expertise</li>
-                    <li><strong>Data Quality</strong> - Completeness and comprehensiveness</li>
-                    <li><strong>Data Accuracy</strong> - Precision and correctness</li>
-                    <li><strong>Proprietary</strong> - Transparency and methodology disclosure</li>
-                  </ul>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-medium mb-4">
-                    Score Weights (Total: {totalWeight})
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <Label htmlFor="source-trust-weight">Source Trust Weight</Label>
-                        <span className="text-sm font-medium" data-testid="text-source-trust-weight">
-                          {formData.source_trust_weight} ({Math.round((formData.source_trust_weight / totalWeight) * 100)}%)
-                        </span>
-                      </div>
-                      <Slider
-                        id="source-trust-weight"
-                        min={0}
-                        max={10}
-                        step={1}
-                        value={[formData.source_trust_weight]}
-                        onValueChange={([value]) => setFormData({ ...formData, source_trust_weight: value })}
-                        data-testid="slider-source-trust-weight"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <Label htmlFor="recency-weight">Recency Weight</Label>
-                        <span className="text-sm font-medium" data-testid="text-recency-weight">
-                          {formData.recency_weight} ({Math.round((formData.recency_weight / totalWeight) * 100)}%)
-                        </span>
-                      </div>
-                      <Slider
-                        id="recency-weight"
-                        min={0}
-                        max={10}
-                        step={1}
-                        value={[formData.recency_weight]}
-                        onValueChange={([value]) => setFormData({ ...formData, recency_weight: value })}
-                        data-testid="slider-recency-weight"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <Label htmlFor="consensus-weight">Consensus Weight</Label>
-                        <span className="text-sm font-medium" data-testid="text-consensus-weight">
-                          {formData.consensus_weight} ({Math.round((formData.consensus_weight / totalWeight) * 100)}%)
-                        </span>
-                      </div>
-                      <Slider
-                        id="consensus-weight"
-                        min={0}
-                        max={10}
-                        step={1}
-                        value={[formData.consensus_weight]}
-                        onValueChange={([value]) => setFormData({ ...formData, consensus_weight: value })}
-                        data-testid="slider-consensus-weight"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-medium mb-4">Multi-Source Verification</h3>
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <Label htmlFor="credible-threshold">Credible Threshold (0-100)</Label>
-                      <span className="text-sm font-medium" data-testid="text-credible-threshold">
-                        {formData.credible_threshold}
-                      </span>
-                    </div>
-                    <Slider
-                      id="credible-threshold"
-                      min={0}
-                      max={100}
-                      step={5}
-                      value={[formData.credible_threshold]}
-                      onValueChange={([value]) => setFormData({ ...formData, credible_threshold: value })}
-                      data-testid="slider-credible-threshold"
-                    />
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Only sources with a trust score of {formData.credible_threshold} or higher will be used to calculate consensus and range in multi-source verification.
-                    </p>
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="recency-scoring" className="space-y-4 mt-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="tier1-days">Tier 1: Days Threshold</Label>
-                    <Input
-                      id="tier1-days"
-                      type="number"
-                      min={1}
-                      value={formData.recency_tier1_days}
-                      onChange={(e) => setFormData({ ...formData, recency_tier1_days: parseInt(e.target.value) || 7 })}
-                      data-testid="input-tier1-days"
-                    />
-                    <p className="text-sm text-muted-foreground mt-1">
-                      ≤ {formData.recency_tier1_days} days old
-                    </p>
-                  </div>
-                  <div>
-                    <Label htmlFor="tier1-score">Tier 1: Score</Label>
-                    <Input
-                      id="tier1-score"
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={formData.recency_tier1_score}
-                      onChange={(e) => setFormData({ ...formData, recency_tier1_score: parseInt(e.target.value) || 100 })}
-                      data-testid="input-tier1-score"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="tier2-days">Tier 2: Days Threshold</Label>
-                    <Input
-                      id="tier2-days"
-                      type="number"
-                      min={1}
-                      value={formData.recency_tier2_days}
-                      onChange={(e) => setFormData({ ...formData, recency_tier2_days: parseInt(e.target.value) || 30 })}
-                      data-testid="input-tier2-days"
-                    />
-                    <p className="text-sm text-muted-foreground mt-1">
-                      ≤ {formData.recency_tier2_days} days old
-                    </p>
-                  </div>
-                  <div>
-                    <Label htmlFor="tier2-score">Tier 2: Score</Label>
-                    <Input
-                      id="tier2-score"
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={formData.recency_tier2_score}
-                      onChange={(e) => setFormData({ ...formData, recency_tier2_score: parseInt(e.target.value) || 50 })}
-                      data-testid="input-tier2-score"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Tier 3: Days Threshold</Label>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      &gt; {formData.recency_tier2_days} days old
-                    </p>
-                  </div>
-                  <div>
-                    <Label htmlFor="tier3-score">Tier 3: Score</Label>
-                    <Input
-                      id="tier3-score"
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={formData.recency_tier3_score}
-                      onChange={(e) => setFormData({ ...formData, recency_tier3_score: parseInt(e.target.value) || 10 })}
-                      data-testid="input-tier3-score"
-                    />
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="fact-promotion" className="space-y-4 mt-6">
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <Label htmlFor="promotion-threshold">Promotion Threshold (0-100)</Label>
-                    <span className="text-sm font-medium" data-testid="text-promotion-threshold">
-                      {formData.promotion_threshold}
-                    </span>
-                  </div>
-                  <Slider
-                    id="promotion-threshold"
-                    min={0}
-                    max={100}
-                    step={5}
-                    value={[formData.promotion_threshold]}
-                    onValueChange={([value]) => setFormData({ ...formData, promotion_threshold: value })}
-                    data-testid="slider-promotion-threshold"
+        {/* SOURCE MANAGEMENT TAB */}
+        <TabsContent value="source-management" className="space-y-6">
+          {/* Quick Add Trusted Source */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Add Trusted Source</CardTitle>
+              <CardDescription>
+                Add a new source, promote to trusted, and score across all identity metrics in one step
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="col-span-3 sm:col-span-1">
+                  <Label htmlFor="quick-add-domain">Domain</Label>
+                  <Input
+                    id="quick-add-domain"
+                    value={quickAddDomain}
+                    onChange={(e) => {
+                      let value = e.target.value.trim();
+                      value = value.replace(/^https?:\/\//i, '');
+                      value = value.split('/')[0].split('?')[0].split('#')[0];
+                      value = value.toLowerCase();
+                      setQuickAddDomain(value);
+                    }}
+                    placeholder="example.gov"
+                    data-testid="input-quick-add-domain"
+                    className="mt-1"
                   />
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Facts with a trust score of {formData.promotion_threshold} or higher will be promoted to the verified_facts table when you run the promotion process.
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Format: example.gov (no https:// or paths)
                   </p>
                 </div>
-              </TabsContent>
-
-              <TabsContent value="tld-config" className="space-y-4 mt-6">
-                <div className="mb-4 p-4 bg-muted/50 rounded-lg">
-                  <h3 className="text-sm font-medium mb-2">Top-Level Domain (TLD) Reputation Scores</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Configure how different domain extensions contribute to URL reputation scoring. Higher scores indicate more trustworthy domains.
-                  </p>
+                <div>
+                  <Label htmlFor="quick-add-legitimacy">Legitimacy (0-100)</Label>
+                  <Input
+                    id="quick-add-legitimacy"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={quickAddLegitimacy}
+                    onChange={(e) => setQuickAddLegitimacy(parseInt(e.target.value) || 70)}
+                    data-testid="input-quick-add-legitimacy"
+                    className="mt-1"
+                  />
                 </div>
+                <div>
+                  <Label htmlFor="quick-add-trust">Trust/Quality (0-100)</Label>
+                  <Input
+                    id="quick-add-trust"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={quickAddTrust}
+                    onChange={(e) => setQuickAddTrust(parseInt(e.target.value) || 70)}
+                    data-testid="input-quick-add-trust"
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+              <Button
+                onClick={() => {
+                  if (!quickAddDomain.trim()) {
+                    toast({
+                      title: "Domain required",
+                      description: "Please enter a domain to add.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  quickAddTrustedSourceMutation.mutate({
+                    domain: quickAddDomain.trim(),
+                    legitimacy: quickAddLegitimacy,
+                    trust: quickAddTrust,
+                  });
+                }}
+                disabled={!quickAddDomain.trim() || quickAddTrustedSourceMutation.isPending}
+                data-testid="button-quick-add-source"
+                className="w-full"
+              >
+                {quickAddTrustedSourceMutation.isPending ? "Processing..." : "Add & Score Source"}
+              </Button>
 
-                {tldScoresLoading ? (
-                  <div className="text-center py-4 text-muted-foreground">Loading TLD scores...</div>
-                ) : (
-                  <>
-                    <div className="space-y-2">
-                      <Label>Existing TLD Scores</Label>
-                      <div className="border rounded-md">
-                        <div className="grid grid-cols-[1fr_120px_120px] gap-2 p-3 border-b bg-muted/30 font-medium text-sm">
-                          <div>TLD</div>
-                          <div className="text-center">Score (0-100)</div>
-                          <div className="text-center">Actions</div>
-                        </div>
-                        {tldScores.length === 0 ? (
-                          <div className="p-4 text-center text-sm text-muted-foreground">
-                            No TLD scores configured yet
-                          </div>
-                        ) : (
-                          tldScores.map((tldScore) => (
-                            <div key={tldScore.tld} className="grid grid-cols-[1fr_120px_120px] gap-2 p-3 border-b last:border-b-0">
-                              <div className="flex items-center font-mono" data-testid={`text-tld-${tldScore.tld}`}>
-                                {tldScore.tld}
-                              </div>
-                              <div className="flex items-center justify-center">
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  max="100"
-                                  value={editingTld[tldScore.tld] !== undefined ? editingTld[tldScore.tld] : tldScore.score}
-                                  onChange={(e) => {
-                                    const value = parseInt(e.target.value) || 0;
-                                    setEditingTld({ ...editingTld, [tldScore.tld]: Math.min(Math.max(value, 0), 100) });
-                                  }}
-                                  className="w-20 text-center"
-                                  data-testid={`input-tld-score-${tldScore.tld}`}
-                                />
-                              </div>
-                              <div className="flex items-center justify-center gap-2">
-                                {editingTld[tldScore.tld] !== undefined && editingTld[tldScore.tld] !== tldScore.score && (
-                                  <Button
-                                    size="sm"
-                                    onClick={() => updateTldMutation.mutate({ tld: tldScore.tld, score: editingTld[tldScore.tld] })}
-                                    disabled={updateTldMutation.isPending}
-                                    data-testid={`button-save-tld-${tldScore.tld}`}
-                                  >
-                                    <Save className="h-3 w-3" />
-                                  </Button>
-                                )}
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => deleteTldMutation.mutate(tldScore.tld)}
-                                  disabled={deleteTldMutation.isPending}
-                                  data-testid={`button-delete-tld-${tldScore.tld}`}
-                                >
-                                  Delete
-                                </Button>
-                              </div>
-                            </div>
-                          ))
+              {quickAddResults && (
+                <div className="mt-4 p-4 bg-muted/50 rounded-lg space-y-3">
+                  <div className="flex items-center gap-2 font-medium text-sm">
+                    <Database className="h-4 w-4" />
+                    Results for {quickAddResults.source?.domain}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <div className="text-muted-foreground">URL Repute</div>
+                      <div className="font-mono font-medium" data-testid="text-quick-add-url-repute">
+                        {quickAddResults.metrics?.url_repute}
+                      </div>
+                      <div className="text-xs text-muted-foreground">{quickAddResults.urlReputeStatus}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Certificate</div>
+                      <div className="font-mono font-medium" data-testid="text-quick-add-certificate">
+                        {quickAddResults.metrics?.certificate}
+                      </div>
+                      <div className="text-xs text-muted-foreground">{quickAddResults.certificateStatus}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Ownership</div>
+                      <div className="font-mono font-medium" data-testid="text-quick-add-ownership">
+                        {quickAddResults.metrics?.ownership}
+                      </div>
+                      <div className="text-xs text-muted-foreground">{quickAddResults.ownershipStatus}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Identity Score</div>
+                      <div className="font-mono font-medium text-lg" data-testid="text-quick-add-identity-score">
+                        {quickAddResults.metrics?.identity_score}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Final averaged score</div>
+                    </div>
+                  </div>
+                  {quickAddResults.metrics?.ownership_registrar && (
+                    <div className="pt-2 border-t text-xs">
+                      <div className="text-muted-foreground">WHOIS Details:</div>
+                      <div className="mt-1 space-y-0.5">
+                        {quickAddResults.metrics.ownership_registrar && (
+                          <div>Registrar: {quickAddResults.metrics.ownership_registrar}</div>
+                        )}
+                        {quickAddResults.metrics.ownership_organization && (
+                          <div>Organization: {quickAddResults.metrics.ownership_organization}</div>
+                        )}
+                        {quickAddResults.metrics.ownership_domain_age && (
+                          <div>Domain Age: {quickAddResults.metrics.ownership_domain_age.toFixed(1)} years</div>
                         )}
                       </div>
                     </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-                    <div className="space-y-2 pt-4 border-t">
-                      <Label>Add New TLD Score</Label>
-                      <div className="grid grid-cols-[1fr_120px_120px] gap-2">
-                        <Input
-                          placeholder="e.g., .gov, .org, .com"
-                          value={newTld}
-                          onChange={(e) => setNewTld(e.target.value)}
-                          data-testid="input-new-tld"
-                        />
-                        <Input
-                          type="number"
-                          min="0"
-                          max="100"
-                          placeholder="Score"
-                          value={newTldScore}
-                          onChange={(e) => setNewTldScore(parseInt(e.target.value) || 0)}
-                          data-testid="input-new-tld-score"
-                        />
-                        <Button
-                          onClick={() => {
-                            const trimmedTld = newTld.trim();
-                            if (!trimmedTld) return;
-                            
-                            // Validate TLD starts with a dot
-                            if (!trimmedTld.startsWith('.')) {
-                              toast({
-                                title: "Invalid TLD",
-                                description: "TLD must start with a dot (e.g., .gov, .org)",
-                                variant: "destructive",
-                              });
-                              return;
-                            }
-                            
-                            // Clamp score between 0 and 100
-                            const clampedScore = Math.min(Math.max(newTldScore, 0), 100);
-                            
-                            createTldMutation.mutate({ tld: trimmedTld, score: clampedScore });
-                          }}
-                          disabled={!newTld.trim() || createTldMutation.isPending}
-                          data-testid="button-add-tld"
-                        >
-                          Add TLD
-                        </Button>
+          {/* TLD Configuration */}
+          <Card>
+            <CardHeader>
+              <CardTitle>TLD Reputation Configuration</CardTitle>
+              <CardDescription>
+                Configure reputation scores for top-level domains (TLDs) to automatically score sources
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="col-span-2">
+                  <Label htmlFor="new-tld">TLD (e.g., .gov, .org)</Label>
+                  <Input
+                    id="new-tld"
+                    value={newTld}
+                    onChange={(e) => setNewTld(e.target.value.toLowerCase())}
+                    placeholder=".gov"
+                    data-testid="input-new-tld"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="new-tld-score">Score (0-100)</Label>
+                  <Input
+                    id="new-tld-score"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={newTldScore}
+                    onChange={(e) => setNewTldScore(parseInt(e.target.value) || 0)}
+                    data-testid="input-new-tld-score"
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+              <Button
+                onClick={() => {
+                  const trimmedTld = newTld.trim();
+                  if (!trimmedTld.startsWith('.')) {
+                    toast({
+                      title: "Invalid TLD",
+                      description: "TLD must start with a dot (e.g., .gov, .org)",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  const clampedScore = Math.min(Math.max(newTldScore, 0), 100);
+                  createTldMutation.mutate({ tld: trimmedTld, score: clampedScore });
+                }}
+                disabled={!newTld.trim() || createTldMutation.isPending}
+                data-testid="button-add-tld"
+                className="w-full"
+              >
+                Add TLD
+              </Button>
+
+              {!tldScoresLoading && tldScores.length > 0 && (
+                <div className="border rounded-lg p-4 space-y-2">
+                  <h4 className="font-semibold text-sm mb-3">Configured TLD Scores</h4>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {tldScores.map((tld) => (
+                      <div key={tld.tld} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                        <div className="flex items-center gap-3 flex-1">
+                          <span className="font-mono text-sm min-w-[100px]">{tld.tld}</span>
+                          {editingTld[tld.tld] !== undefined ? (
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={editingTld[tld.tld]}
+                              onChange={(e) => setEditingTld({ ...editingTld, [tld.tld]: parseInt(e.target.value) || 0 })}
+                              className="w-24 h-8"
+                              data-testid={`input-edit-tld-${tld.tld}`}
+                            />
+                          ) : (
+                            <span className="font-medium text-sm">{tld.score}</span>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          {editingTld[tld.tld] !== undefined ? (
+                            <>
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  const score = Math.min(Math.max(editingTld[tld.tld], 0), 100);
+                                  updateTldMutation.mutate({ tld: tld.tld, score });
+                                }}
+                                disabled={updateTldMutation.isPending}
+                                data-testid={`button-save-tld-${tld.tld}`}
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  const newEditing = { ...editingTld };
+                                  delete newEditing[tld.tld];
+                                  setEditingTld(newEditing);
+                                }}
+                                data-testid={`button-cancel-tld-${tld.tld}`}
+                              >
+                                Cancel
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditingTld({ ...editingTld, [tld.tld]: tld.score })}
+                                data-testid={`button-edit-tld-${tld.tld}`}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  if (confirm(`Delete TLD ${tld.tld}?`)) {
+                                    deleteTldMutation.mutate(tld.tld);
+                                  }
+                                }}
+                                disabled={deleteTldMutation.isPending}
+                                data-testid={`button-delete-tld-${tld.tld}`}
+                              >
+                                Delete
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </>
-                )}
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-
-        {/* Quick Add Trusted Source Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Add Trusted Source</CardTitle>
-            <CardDescription>
-              Add a new source, promote to trusted, and score across all identity metrics in one step
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-3 sm:col-span-1">
-                <Label htmlFor="quick-add-domain">Domain</Label>
-                <Input
-                  id="quick-add-domain"
-                  value={quickAddDomain}
-                  onChange={(e) => {
-                    let value = e.target.value.trim();
-                    // Remove protocol if present
-                    value = value.replace(/^https?:\/\//i, '');
-                    // Remove path, query, hash
-                    value = value.split('/')[0].split('?')[0].split('#')[0];
-                    // Lowercase
-                    value = value.toLowerCase();
-                    setQuickAddDomain(value);
-                  }}
-                  placeholder="example.gov"
-                  data-testid="input-quick-add-domain"
-                  className="mt-1"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Format: example.gov (no https:// or paths)
-                </p>
-              </div>
-              <div>
-                <Label htmlFor="quick-add-legitimacy">Legitimacy (0-100)</Label>
-                <Input
-                  id="quick-add-legitimacy"
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={quickAddLegitimacy}
-                  onChange={(e) => setQuickAddLegitimacy(parseInt(e.target.value) || 70)}
-                  data-testid="input-quick-add-legitimacy"
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="quick-add-trust">Trust/Quality (0-100)</Label>
-                <Input
-                  id="quick-add-trust"
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={quickAddTrust}
-                  onChange={(e) => setQuickAddTrust(parseInt(e.target.value) || 70)}
-                  data-testid="input-quick-add-trust"
-                  className="mt-1"
-                />
-              </div>
-            </div>
-            <Button
-              onClick={() => {
-                if (!quickAddDomain.trim()) {
-                  toast({
-                    title: "Domain required",
-                    description: "Please enter a domain to add.",
-                    variant: "destructive",
-                  });
-                  return;
-                }
-                quickAddTrustedSourceMutation.mutate({
-                  domain: quickAddDomain.trim(),
-                  legitimacy: quickAddLegitimacy,
-                  trust: quickAddTrust,
-                });
-              }}
-              disabled={!quickAddDomain.trim() || quickAddTrustedSourceMutation.isPending}
-              data-testid="button-quick-add-source"
-              className="w-full"
-            >
-              {quickAddTrustedSourceMutation.isPending ? "Processing..." : "Add & Score Source"}
-            </Button>
-
-            {quickAddResults && (
-              <div className="mt-4 p-4 bg-muted/50 rounded-lg space-y-3">
-                <div className="flex items-center gap-2 font-medium text-sm">
-                  <Database className="h-4 w-4" />
-                  Results for {quickAddResults.source?.domain}
-                </div>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <div className="text-muted-foreground">URL Repute</div>
-                    <div className="font-mono font-medium" data-testid="text-quick-add-url-repute">
-                      {quickAddResults.metrics?.url_repute}
-                    </div>
-                    <div className="text-xs text-muted-foreground">{quickAddResults.urlReputeStatus}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Certificate</div>
-                    <div className="font-mono font-medium" data-testid="text-quick-add-certificate">
-                      {quickAddResults.metrics?.certificate}
-                    </div>
-                    <div className="text-xs text-muted-foreground">{quickAddResults.certificateStatus}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Ownership</div>
-                    <div className="font-mono font-medium" data-testid="text-quick-add-ownership">
-                      {quickAddResults.metrics?.ownership}
-                    </div>
-                    <div className="text-xs text-muted-foreground">{quickAddResults.ownershipStatus}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Identity Score</div>
-                    <div className="font-mono font-medium text-lg" data-testid="text-quick-add-identity-score">
-                      {quickAddResults.metrics?.identity_score}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Final averaged score</div>
+                    ))}
                   </div>
                 </div>
-                {quickAddResults.metrics?.ownership_registrar && (
-                  <div className="pt-2 border-t text-xs">
-                    <div className="text-muted-foreground">WHOIS Details:</div>
-                    <div className="mt-1 space-y-0.5">
-                      {quickAddResults.metrics.ownership_registrar && (
-                        <div>Registrar: {quickAddResults.metrics.ownership_registrar}</div>
-                      )}
-                      {quickAddResults.metrics.ownership_organization && (
-                        <div>Organization: {quickAddResults.metrics.ownership_organization}</div>
-                      )}
-                      {quickAddResults.metrics.ownership_domain_age && (
-                        <div>Domain Age: {quickAddResults.metrics.ownership_domain_age.toFixed(1)} years</div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              )}
+            </CardContent>
+          </Card>
 
-        {/* Pull New Facts Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Pull New Facts</CardTitle>
-            <CardDescription>
-              Fetch specific data from World Bank, Wikidata, and IMF APIs
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="pull-entities">Countries (comma-separated)</Label>
-              <Input
-                id="pull-entities"
-                value={pullEntities}
-                onChange={(e) => setPullEntities(e.target.value)}
-                placeholder="Canada,Mexico,United States"
-                data-testid="input-pull-entities"
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label>Attributes</Label>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                {['population', 'gdp', 'gdp_per_capita', 'inflation', 'inflation_rate', 'unemployment_rate'].map((attr) => (
-                  <label key={attr} className="flex items-center space-x-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={pullAttributes.includes(attr)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setPullAttributes([...pullAttributes, attr]);
-                        } else {
-                          setPullAttributes(pullAttributes.filter(a => a !== attr));
-                        }
-                      }}
-                      data-testid={`checkbox-pull-${attr}`}
-                    />
-                    <span>{attr.replace(/_/g, ' ')}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="pull-year-start">Year Start</Label>
-                <Input
-                  id="pull-year-start"
-                  type="number"
-                  value={pullYearStart}
-                  onChange={(e) => setPullYearStart(e.target.value)}
-                  data-testid="input-pull-year-start"
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="pull-year-end">Year End</Label>
-                <Input
-                  id="pull-year-end"
-                  type="number"
-                  value={pullYearEnd}
-                  onChange={(e) => setPullYearEnd(e.target.value)}
-                  data-testid="input-pull-year-end"
-                  className="mt-1"
-                />
-              </div>
-            </div>
-            <Button
-              onClick={() => pullNewFactsMutation.mutate()}
-              disabled={pullNewFactsMutation.isPending || pullAttributes.length === 0}
-              data-testid="button-pull-new-facts"
-              className="w-full"
-            >
-              <Database className="h-4 w-4 mr-2" />
-              {pullNewFactsMutation.isPending ? "Pulling..." : "Pull New Facts"}
-            </Button>
-
-            {pullNewFactsResults && (
-              <div className="border rounded-lg p-4 bg-muted/50 space-y-2">
-                <h4 className="font-semibold text-sm">Pull New Facts Results</h4>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Requested:</span>
-                    <span className="ml-2 font-medium" data-testid="text-pull-requested">
-                      {pullNewFactsResults.requested}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Found:</span>
-                    <span className="ml-2 font-medium" data-testid="text-pull-found">
-                      {pullNewFactsResults.found}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Duplicates:</span>
-                    <span className="ml-2 font-medium" data-testid="text-pull-duplicates">
-                      {pullNewFactsResults.duplicates}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Inserted:</span>
-                    <span className="ml-2 font-medium" data-testid="text-pull-inserted">
-                      {pullNewFactsResults.inserted}
-                    </span>
-                  </div>
-                </div>
-                {pullNewFactsResults.errors.length > 0 && (
-                  <div className="mt-2">
-                    <p className="text-sm text-destructive font-medium">
-                      Errors: {pullNewFactsResults.errors.length}
-                    </p>
-                    <ul className="text-xs text-destructive mt-1 space-y-1">
-                      {pullNewFactsResults.errors.slice(0, 3).map((error, i) => (
-                        <li key={i}>• {error}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Pull Historical Events Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Pull Historical Events</CardTitle>
-            <CardDescription>
-              Fetch historical events from Wikidata (founding, independence, wars, treaties)
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="pull-events-countries">Countries (comma-separated)</Label>
-              <Input
-                id="pull-events-countries"
-                value={pullEventsCountries}
-                onChange={(e) => setPullEventsCountries(e.target.value)}
-                placeholder="France,United States,Germany"
-                data-testid="input-pull-events-countries"
-                className="mt-1"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Events will be inserted into historical_events table. Founding/independence events also create corresponding fact evaluations.
-              </p>
-            </div>
-            <Button
-              onClick={() => pullHistoricalEventsMutation.mutate()}
-              disabled={pullHistoricalEventsMutation.isPending}
-              data-testid="button-pull-historical-events"
-              className="w-full"
-            >
-              <Database className="h-4 w-4 mr-2" />
-              {pullHistoricalEventsMutation.isPending ? "Pulling..." : "Pull Historical Events"}
-            </Button>
-
-            {pullHistoricalEventsResults && (
-              <div className="border rounded-lg p-4 bg-muted/50 space-y-2">
-                <h4 className="font-semibold text-sm">Pull Historical Events Results</h4>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Requested:</span>
-                    <span className="ml-2 font-medium" data-testid="text-events-requested">
-                      {pullHistoricalEventsResults.requested}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Events Inserted:</span>
-                    <span className="ml-2 font-medium" data-testid="text-events-inserted">
-                      {pullHistoricalEventsResults.eventsInserted}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Facts Created:</span>
-                    <span className="ml-2 font-medium text-primary" data-testid="text-facts-created">
-                      {pullHistoricalEventsResults.factsCreated}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Duplicates:</span>
-                    <span className="ml-2 font-medium" data-testid="text-events-duplicates">
-                      {pullHistoricalEventsResults.duplicates}
-                    </span>
-                  </div>
-                </div>
-                {pullHistoricalEventsResults.errors > 0 && (
-                  <div className="mt-2">
-                    <p className="text-sm text-destructive font-medium">
-                      Errors: {pullHistoricalEventsResults.errors}
-                    </p>
-                  </div>
-                )}
-                <div className="pt-2 border-t text-xs text-muted-foreground">
-                  <p>
-                    ✓ Historical events stored in <code className="font-mono bg-muted px-1 rounded">historical_events</code> table
+          {/* Identity Metrics Operations */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Identity Metrics Operations</CardTitle>
+              <CardDescription>
+                Recalculate identity metrics for all sources
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Button
+                    onClick={() => recalculateUrlReputeMutation.mutate()}
+                    disabled={recalculateUrlReputeMutation.isPending}
+                    data-testid="button-recalculate-url-repute"
+                    className="w-full"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    {recalculateUrlReputeMutation.isPending ? "Recalculating..." : "Recalculate URL Reputation"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Updates url_repute scores for all sources based on configured TLD scores.
                   </p>
-                  <p>
-                    ✓ Founding/independence dates also created as <code className="font-mono bg-muted px-1 rounded">facts_evaluation</code> entries
-                  </p>
-                  <p>
-                    ✓ Facts can be promoted to verified status using the fact promotion system
-                  </p>
+                  {recalculateUrlReputeResults && (
+                    <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
+                      <h4 className="font-semibold text-xs">Recalculation Results</h4>
+                      <div className="text-xs space-y-1">
+                        <div>
+                          <span className="text-muted-foreground">Sources Updated:</span>
+                          <span className="ml-2 font-medium" data-testid="text-recalculated-count">
+                            {recalculateUrlReputeResults.updated}
+                          </span>
+                        </div>
+                        {recalculateUrlReputeResults.sources.length > 0 && (
+                          <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                            {recalculateUrlReputeResults.sources.map((source) => (
+                              <div key={source.domain} className="text-xs">
+                                <span className="font-mono">{source.domain}</span>
+                                <span className="ml-1 text-muted-foreground">({source.tld})</span>:
+                                <span className="ml-1 text-muted-foreground">{source.oldScore}</span>
+                                <span className="mx-1">→</span>
+                                <span className="font-medium">{source.newScore}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Backfill Historical Facts Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Backfill Historical Facts</CardTitle>
-            <CardDescription>
-              Create missing fact evaluations from existing historical events
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground mb-4">
-                This tool processes all events in the <code className="font-mono bg-muted px-1 rounded">historical_events</code> table
-                and creates corresponding <code className="font-mono bg-muted px-1 rounded">facts_evaluation</code> entries for
-                any events that don't yet have them. Useful when historical events were created before the dual-insertion
-                mechanism was implemented.
-              </p>
-            </div>
-            <Button
-              onClick={() => backfillHistoricalFactsMutation.mutate()}
-              disabled={backfillHistoricalFactsMutation.isPending}
-              data-testid="button-backfill-historical-facts"
-              className="w-full"
-            >
-              <Database className="h-4 w-4 mr-2" />
-              {backfillHistoricalFactsMutation.isPending ? "Backfilling..." : "Backfill Historical Facts"}
-            </Button>
-
-            {backfillHistoricalFactsResults && (
-              <div className="border rounded-lg p-4 bg-muted/50 space-y-2">
-                <h4 className="font-semibold text-sm">Backfill Results</h4>
-                <div className="grid grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Processed:</span>
-                    <span className="ml-2 font-medium" data-testid="text-backfill-processed">
-                      {backfillHistoricalFactsResults.processed}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Created:</span>
-                    <span className="ml-2 font-medium text-primary" data-testid="text-backfill-created">
-                      {backfillHistoricalFactsResults.created}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Skipped:</span>
-                    <span className="ml-2 font-medium" data-testid="text-backfill-skipped">
-                      {backfillHistoricalFactsResults.skipped}
-                    </span>
-                  </div>
-                </div>
-                {backfillHistoricalFactsResults.created > 0 && (
-                  <div className="pt-2 border-t text-xs text-muted-foreground space-y-1">
-                    <p>✓ Facts created from historical events (revolution, liberation, unification, war, etc.)</p>
-                    <p>✓ Use "Promote Facts to Verified" below to move these to verified_facts table</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Data Operations Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Data Operations</CardTitle>
-            <CardDescription>
-              Perform batch operations across all integrated sources
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Button
-                  onClick={() => crossCheckMutation.mutate()}
-                  disabled={crossCheckMutation.isPending}
-                  data-testid="button-cross-check"
-                  className="w-full"
-                >
-                  <Database className="h-4 w-4 mr-2" />
-                  {crossCheckMutation.isPending ? "Cross-Checking..." : "Cross-Check All Sources"}
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Identifies all entity-attribute pairs present in at least one source and fetches missing data from Wikipedia, World Bank, and Wikidata.
-                </p>
-                {crossCheckResults && (
-                  <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
-                    <h4 className="font-semibold text-xs">Cross-Check Results</h4>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="text-muted-foreground">Total Pairs:</span>
-                        <span className="ml-2 font-medium" data-testid="text-total-pairs">
-                          {crossCheckResults.totalPairs}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Wikipedia:</span>
-                        <span className="ml-2 font-medium" data-testid="text-wikipedia-added">
-                          {crossCheckResults.wikipediaAdded}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">World Bank:</span>
-                        <span className="ml-2 font-medium" data-testid="text-worldbank-added">
-                          {crossCheckResults.worldBankAdded}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Wikidata:</span>
-                        <span className="ml-2 font-medium" data-testid="text-wikidata-added">
-                          {crossCheckResults.wikidataAdded}
-                        </span>
-                      </div>
-                    </div>
-                    {crossCheckResults.errors.length > 0 && (
-                      <div className="mt-2">
-                        <p className="text-xs text-destructive font-medium">
-                          Errors: {crossCheckResults.errors.length}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Button
-                  onClick={() => fulfillRequestedFactsMutation.mutate()}
-                  disabled={fulfillRequestedFactsMutation.isPending}
-                  data-testid="button-fulfill-requested-facts"
-                  className="w-full"
-                >
-                  <Database className="h-4 w-4 mr-2" />
-                  {fulfillRequestedFactsMutation.isPending ? "Fulfilling..." : "Fulfill Requested Facts"}
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Processes user-requested facts and attempts to fetch data from existing sources (Wikidata, World Bank).
-                </p>
-                {fulfillResults && (
-                  <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
-                    <h4 className="font-semibold text-xs">Fulfill Results</h4>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="text-muted-foreground">Total:</span>
-                        <span className="ml-2 font-medium" data-testid="text-total-requests">
-                          {fulfillResults.totalRequests}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Fulfilled:</span>
-                        <span className="ml-2 font-medium" data-testid="text-fulfilled">
-                          {fulfillResults.fulfilledCount}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Not Found:</span>
-                        <span className="ml-2 font-medium" data-testid="text-not-found">
-                          {fulfillResults.notFoundCount}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Existed:</span>
-                        <span className="ml-2 font-medium" data-testid="text-already-exists">
-                          {fulfillResults.alreadyExistsCount}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Button
-                  onClick={() => recalculateMutation.mutate()}
-                  disabled={recalculateMutation.isPending}
-                  data-testid="button-recalculate"
-                  className="w-full"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  {recalculateMutation.isPending ? "Recalculating..." : "Recalculate All Scores"}
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Recalculates trust scores for all evaluations using current scoring settings.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Button
-                  onClick={() => promoteFactsMutation.mutate()}
-                  disabled={promoteFactsMutation.isPending}
-                  data-testid="button-promote-facts"
-                  className="w-full"
-                >
-                  <Database className="h-4 w-4 mr-2" />
-                  {promoteFactsMutation.isPending ? "Promoting..." : "Promote Facts to Verified"}
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Promotes facts from evaluation table to verified gold standard (trust score ≥ {formData.promotion_threshold}).
-                </p>
-                {promotionResults && (
-                  <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
-                    <h4 className="font-semibold text-xs">Promotion Results</h4>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="text-muted-foreground">Promoted:</span>
-                        <span className="ml-2 font-medium" data-testid="text-promoted-count">
-                          {promotionResults.promotedCount}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Skipped:</span>
-                        <span className="ml-2 font-medium" data-testid="text-skipped-count">
-                          {promotionResults.skippedCount}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Button
-                  onClick={() => syncFactsCountMutation.mutate()}
-                  disabled={syncFactsCountMutation.isPending}
-                  data-testid="button-sync-facts-count"
-                  className="w-full"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  {syncFactsCountMutation.isPending ? "Syncing..." : "Sync Source Facts Count"}
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Recalculates facts_count for all sources from verified_facts table to fix discrepancies.
-                </p>
-                {syncFactsCountResults && (
-                  <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
-                    <h4 className="font-semibold text-xs">Sync Results</h4>
-                    <div className="text-xs space-y-1">
-                      <div>
-                        <span className="text-muted-foreground">Sources Updated:</span>
-                        <span className="ml-2 font-medium" data-testid="text-synced-count">
-                          {syncFactsCountResults.synced}
-                        </span>
-                      </div>
-                      {syncFactsCountResults.sources.length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          {syncFactsCountResults.sources.map((source) => (
-                            <div key={source.domain} className="text-xs">
-                              <span className="font-mono">{source.domain}</span>:
-                              <span className="ml-1 text-muted-foreground">{source.oldCount}</span>
-                              <span className="mx-1">→</span>
-                              <span className="font-medium">{source.newCount}</span>
-                            </div>
-                          ))}
+                <div className="space-y-2">
+                  <Button
+                    onClick={() => recalculateCertificatesMutation.mutate()}
+                    disabled={recalculateCertificatesMutation.isPending}
+                    data-testid="button-recalculate-certificates"
+                    className="w-full"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    {recalculateCertificatesMutation.isPending ? "Checking..." : "Recalculate Certificates"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Checks SSL/TLS certificate validity for all sources and updates certificate scores.
+                  </p>
+                  {recalculateCertificatesResults && (
+                    <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
+                      <h4 className="font-semibold text-xs">Certificate Check Results</h4>
+                      <div className="text-xs space-y-1">
+                        <div>
+                          <span className="text-muted-foreground">Sources Updated:</span>
+                          <span className="ml-2 font-medium" data-testid="text-certificates-updated-count">
+                            {recalculateCertificatesResults.updated}
+                          </span>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Button
-                  onClick={() => syncIdentityScoresMutation.mutate()}
-                  disabled={syncIdentityScoresMutation.isPending}
-                  data-testid="button-sync-identity-scores"
-                  className="w-full"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  {syncIdentityScoresMutation.isPending ? "Syncing..." : "Sync Identity Scores"}
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Syncs identity_score from source_identity_metrics to sources table.
-                </p>
-                {syncIdentityScoresResults && (
-                  <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
-                    <h4 className="font-semibold text-xs">Sync Results</h4>
-                    <div className="text-xs space-y-1">
-                      <div>
-                        <span className="text-muted-foreground">Sources Updated:</span>
-                        <span className="ml-2 font-medium" data-testid="text-identity-synced-count">
-                          {syncIdentityScoresResults.synced}
-                        </span>
-                      </div>
-                      {syncIdentityScoresResults.sources.length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          {syncIdentityScoresResults.sources.map((source) => (
-                            <div key={source.domain} className="text-xs">
-                              <span className="font-mono">{source.domain}</span>:
-                              <span className="ml-1 text-muted-foreground">{source.oldScore}</span>
-                              <span className="mx-1">→</span>
-                              <span className="font-medium">{source.newScore}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Button
-                  onClick={() => recalculateUrlReputeMutation.mutate()}
-                  disabled={recalculateUrlReputeMutation.isPending}
-                  data-testid="button-recalculate-url-repute"
-                  className="w-full"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  {recalculateUrlReputeMutation.isPending ? "Recalculating..." : "Recalculate URL Reputation"}
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Updates url_repute scores for all sources based on configured TLD scores.
-                </p>
-                {recalculateUrlReputeResults && (
-                  <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
-                    <h4 className="font-semibold text-xs">Recalculation Results</h4>
-                    <div className="text-xs space-y-1">
-                      <div>
-                        <span className="text-muted-foreground">Sources Updated:</span>
-                        <span className="ml-2 font-medium" data-testid="text-recalculated-count">
-                          {recalculateUrlReputeResults.updated}
-                        </span>
-                      </div>
-                      {recalculateUrlReputeResults.sources.length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          {recalculateUrlReputeResults.sources.map((source) => (
-                            <div key={source.domain} className="text-xs">
-                              <span className="font-mono">{source.domain}</span>
-                              <span className="ml-1 text-muted-foreground">({source.tld})</span>:
-                              <span className="ml-1 text-muted-foreground">{source.oldScore}</span>
-                              <span className="mx-1">→</span>
-                              <span className="font-medium">{source.newScore}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Button
-                  onClick={() => recalculateCertificatesMutation.mutate()}
-                  disabled={recalculateCertificatesMutation.isPending}
-                  data-testid="button-recalculate-certificates"
-                  className="w-full"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  {recalculateCertificatesMutation.isPending ? "Checking..." : "Recalculate Certificates"}
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Checks SSL/TLS certificate validity for all sources and updates certificate scores.
-                </p>
-                {recalculateCertificatesResults && (
-                  <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
-                    <h4 className="font-semibold text-xs">Certificate Check Results</h4>
-                    <div className="text-xs space-y-1">
-                      <div>
-                        <span className="text-muted-foreground">Sources Updated:</span>
-                        <span className="ml-2 font-medium" data-testid="text-certificates-updated-count">
-                          {recalculateCertificatesResults.updated}
-                        </span>
-                      </div>
-                      {recalculateCertificatesResults.sources.length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          {recalculateCertificatesResults.sources.map((source) => (
-                            <div key={source.domain} className="text-xs">
-                              <span className="font-mono">{source.domain}</span>
-                              <span className="ml-1 text-muted-foreground">({source.status})</span>:
-                              <span className="ml-1 text-muted-foreground">{source.oldScore}</span>
-                              <span className="mx-1">→</span>
-                              <span className="font-medium">{source.newScore}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Button
-                  onClick={() => recalculateOwnershipMutation.mutate()}
-                  disabled={recalculateOwnershipMutation.isPending}
-                  data-testid="button-recalculate-ownership"
-                  className="w-full"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  {recalculateOwnershipMutation.isPending ? "Checking..." : "Recalculate Ownership"}
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Performs WHOIS lookups for all sources and updates ownership scores based on registrar trust and domain age.
-                </p>
-                {recalculateOwnershipResults && (
-                  <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
-                    <h4 className="font-semibold text-xs">Ownership Check Results</h4>
-                    <div className="text-xs space-y-1">
-                      <div>
-                        <span className="text-muted-foreground">Sources Updated:</span>
-                        <span className="ml-2 font-medium" data-testid="text-ownership-updated-count">
-                          {recalculateOwnershipResults.updated}
-                        </span>
-                      </div>
-                      {recalculateOwnershipResults.sources.length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          {recalculateOwnershipResults.sources.map((source) => (
-                            <div key={source.domain} className="text-xs space-y-0.5">
-                              <div>
+                        {recalculateCertificatesResults.sources.length > 0 && (
+                          <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                            {recalculateCertificatesResults.sources.map((source) => (
+                              <div key={source.domain} className="text-xs">
                                 <span className="font-mono">{source.domain}</span>
                                 <span className="ml-1 text-muted-foreground">({source.status})</span>:
                                 <span className="ml-1 text-muted-foreground">{source.oldScore}</span>
                                 <span className="mx-1">→</span>
                                 <span className="font-medium">{source.newScore}</span>
                               </div>
-                              {source.registrar && (
-                                <div className="text-muted-foreground pl-4">
-                                  Registrar: {source.registrar}
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Button
+                    onClick={() => recalculateOwnershipMutation.mutate()}
+                    disabled={recalculateOwnershipMutation.isPending}
+                    data-testid="button-recalculate-ownership"
+                    className="w-full"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    {recalculateOwnershipMutation.isPending ? "Checking..." : "Recalculate Ownership"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Performs WHOIS lookups for all sources and updates ownership scores based on registrar trust and domain age.
+                  </p>
+                  {recalculateOwnershipResults && (
+                    <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
+                      <h4 className="font-semibold text-xs">Ownership Check Results</h4>
+                      <div className="text-xs space-y-1">
+                        <div>
+                          <span className="text-muted-foreground">Sources Updated:</span>
+                          <span className="ml-2 font-medium" data-testid="text-ownership-updated-count">
+                            {recalculateOwnershipResults.updated}
+                          </span>
+                        </div>
+                        {recalculateOwnershipResults.sources.length > 0 && (
+                          <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                            {recalculateOwnershipResults.sources.map((source) => (
+                              <div key={source.domain} className="text-xs space-y-0.5">
+                                <div>
+                                  <span className="font-mono">{source.domain}</span>
+                                  <span className="ml-1 text-muted-foreground">({source.status})</span>:
+                                  <span className="ml-1 text-muted-foreground">{source.oldScore}</span>
+                                  <span className="mx-1">→</span>
+                                  <span className="font-medium">{source.newScore}</span>
                                 </div>
-                              )}
-                              {source.organization && (
-                                <div className="text-muted-foreground pl-4">
-                                  Organization: {source.organization}
-                                </div>
-                              )}
-                              {source.domainAge !== undefined && (
-                                <div className="text-muted-foreground pl-4">
-                                  Domain Age: {source.domainAge.toFixed(1)} years
-                                </div>
-                              )}
-                            </div>
-                          ))}
+                                {source.registrar && (
+                                  <div className="text-muted-foreground pl-4">
+                                    Registrar: {source.registrar}
+                                  </div>
+                                )}
+                                {source.organization && (
+                                  <div className="text-muted-foreground pl-4">
+                                    Organization: {source.organization}
+                                  </div>
+                                )}
+                                {source.domainAge !== undefined && (
+                                  <div className="text-muted-foreground pl-4">
+                                    Domain Age: {source.domainAge.toFixed(1)} years
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Button
+                    onClick={() => syncIdentityScoresMutation.mutate()}
+                    disabled={syncIdentityScoresMutation.isPending}
+                    data-testid="button-sync-identity-scores"
+                    className="w-full"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    {syncIdentityScoresMutation.isPending ? "Syncing..." : "Sync Identity Scores"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Syncs identity_score from source_identity_metrics to sources table.
+                  </p>
+                  {syncIdentityScoresResults && (
+                    <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
+                      <h4 className="font-semibold text-xs">Sync Results</h4>
+                      <div className="text-xs space-y-1">
+                        <div>
+                          <span className="text-muted-foreground">Sources Updated:</span>
+                          <span className="ml-2 font-medium" data-testid="text-identity-synced-count">
+                            {syncIdentityScoresResults.synced}
+                          </span>
+                        </div>
+                        {syncIdentityScoresResults.sources.length > 0 && (
+                          <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                            {syncIdentityScoresResults.sources.map((source) => (
+                              <div key={source.domain} className="text-xs">
+                                <span className="font-mono">{source.domain}</span>:
+                                <span className="ml-1 text-muted-foreground">{source.oldScore}</span>
+                                <span className="mx-1">→</span>
+                                <span className="font-medium">{source.newScore}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Source Reliability Management Link */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Source Reliability Management</CardTitle>
+              <CardDescription>
+                Manage source reliability metrics that affect source trust scores
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/sources">
+                <Button variant="outline" className="w-full" data-testid="button-manage-sources">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Manage Source Reliability Metrics
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* DATA MANAGEMENT TAB */}
+        <TabsContent value="data-management" className="space-y-6">
+          {/* Pull New Facts */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Pull New Facts</CardTitle>
+              <CardDescription>
+                Fetch specific data from World Bank, Wikidata, and IMF APIs
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="pull-entities">Countries (comma-separated)</Label>
+                <Input
+                  id="pull-entities"
+                  value={pullEntities}
+                  onChange={(e) => setPullEntities(e.target.value)}
+                  placeholder="Canada,Mexico,United States"
+                  data-testid="input-pull-entities"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Attributes</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {['population', 'gdp', 'gdp_per_capita', 'inflation', 'inflation_rate', 'unemployment_rate'].map((attr) => (
+                    <label key={attr} className="flex items-center space-x-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={pullAttributes.includes(attr)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setPullAttributes([...pullAttributes, attr]);
+                          } else {
+                            setPullAttributes(pullAttributes.filter(a => a !== attr));
+                          }
+                        }}
+                        data-testid={`checkbox-pull-${attr}`}
+                      />
+                      <span>{attr.replace(/_/g, ' ')}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="pull-year-start">Year Start</Label>
+                  <Input
+                    id="pull-year-start"
+                    type="number"
+                    value={pullYearStart}
+                    onChange={(e) => setPullYearStart(e.target.value)}
+                    data-testid="input-pull-year-start"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="pull-year-end">Year End</Label>
+                  <Input
+                    id="pull-year-end"
+                    type="number"
+                    value={pullYearEnd}
+                    onChange={(e) => setPullYearEnd(e.target.value)}
+                    data-testid="input-pull-year-end"
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+              <Button
+                onClick={() => pullNewFactsMutation.mutate()}
+                disabled={pullNewFactsMutation.isPending || pullAttributes.length === 0}
+                data-testid="button-pull-new-facts"
+                className="w-full"
+              >
+                <Database className="h-4 w-4 mr-2" />
+                {pullNewFactsMutation.isPending ? "Pulling..." : "Pull New Facts"}
+              </Button>
+
+              {pullNewFactsResults && (
+                <div className="border rounded-lg p-4 bg-muted/50 space-y-2">
+                  <h4 className="font-semibold text-sm">Pull New Facts Results</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Requested:</span>
+                      <span className="ml-2 font-medium" data-testid="text-pull-requested">
+                        {pullNewFactsResults.requested}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Found:</span>
+                      <span className="ml-2 font-medium" data-testid="text-pull-found">
+                        {pullNewFactsResults.found}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Duplicates:</span>
+                      <span className="ml-2 font-medium" data-testid="text-pull-duplicates">
+                        {pullNewFactsResults.duplicates}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Inserted:</span>
+                      <span className="ml-2 font-medium" data-testid="text-pull-inserted">
+                        {pullNewFactsResults.inserted}
+                      </span>
+                    </div>
+                  </div>
+                  {pullNewFactsResults.errors.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-sm text-destructive font-medium">
+                        Errors: {pullNewFactsResults.errors.length}
+                      </p>
+                      <ul className="text-xs text-destructive mt-1 space-y-1">
+                        {pullNewFactsResults.errors.slice(0, 3).map((error, i) => (
+                          <li key={i}>• {error}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Pull Historical Events */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Pull Historical Events</CardTitle>
+              <CardDescription>
+                Fetch historical events from Wikidata (founding, independence, wars, treaties)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="pull-events-countries">Countries (comma-separated)</Label>
+                <Input
+                  id="pull-events-countries"
+                  value={pullEventsCountries}
+                  onChange={(e) => setPullEventsCountries(e.target.value)}
+                  placeholder="France,United States,Germany"
+                  data-testid="input-pull-events-countries"
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Events will be inserted into historical_events table. Founding/independence events also create corresponding fact evaluations.
+                </p>
+              </div>
+              <Button
+                onClick={() => pullHistoricalEventsMutation.mutate()}
+                disabled={pullHistoricalEventsMutation.isPending}
+                data-testid="button-pull-historical-events"
+                className="w-full"
+              >
+                <Database className="h-4 w-4 mr-2" />
+                {pullHistoricalEventsMutation.isPending ? "Pulling..." : "Pull Historical Events"}
+              </Button>
+
+              {pullHistoricalEventsResults && (
+                <div className="border rounded-lg p-4 bg-muted/50 space-y-2">
+                  <h4 className="font-semibold text-sm">Pull Historical Events Results</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Requested:</span>
+                      <span className="ml-2 font-medium" data-testid="text-events-requested">
+                        {pullHistoricalEventsResults.requested}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Events Inserted:</span>
+                      <span className="ml-2 font-medium" data-testid="text-events-inserted">
+                        {pullHistoricalEventsResults.eventsInserted}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Facts Created:</span>
+                      <span className="ml-2 font-medium text-primary" data-testid="text-facts-created">
+                        {pullHistoricalEventsResults.factsCreated}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Duplicates:</span>
+                      <span className="ml-2 font-medium" data-testid="text-events-duplicates">
+                        {pullHistoricalEventsResults.duplicates}
+                      </span>
+                    </div>
+                  </div>
+                  {pullHistoricalEventsResults.errors > 0 && (
+                    <div className="mt-2">
+                      <p className="text-sm text-destructive font-medium">
+                        Errors: {pullHistoricalEventsResults.errors}
+                      </p>
+                    </div>
+                  )}
+                  <div className="pt-2 border-t text-xs text-muted-foreground">
+                    <p>
+                      ✓ Historical events stored in <code className="font-mono bg-muted px-1 rounded">historical_events</code> table
+                    </p>
+                    <p>
+                      ✓ Founding/independence dates also created as <code className="font-mono bg-muted px-1 rounded">facts_evaluation</code> entries
+                    </p>
+                    <p>
+                      ✓ Facts can be promoted to verified status using the fact promotion system
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Automated Data Operations */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Automated Data Operations</CardTitle>
+              <CardDescription>
+                Batch operations to synchronize and enrich data across all sources
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Button
+                    onClick={() => crossCheckMutation.mutate()}
+                    disabled={crossCheckMutation.isPending}
+                    data-testid="button-cross-check"
+                    className="w-full"
+                  >
+                    <Database className="h-4 w-4 mr-2" />
+                    {crossCheckMutation.isPending ? "Cross-Checking..." : "Cross-Check All Sources"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Identifies all entity-attribute pairs present in at least one source and fetches missing data from Wikipedia, World Bank, and Wikidata.
+                  </p>
+                  {crossCheckResults && (
+                    <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
+                      <h4 className="font-semibold text-xs">Cross-Check Results</h4>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-muted-foreground">Total Pairs:</span>
+                          <span className="ml-2 font-medium" data-testid="text-total-pairs">
+                            {crossCheckResults.totalPairs}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Wikipedia:</span>
+                          <span className="ml-2 font-medium" data-testid="text-wikipedia-added">
+                            {crossCheckResults.wikipediaAdded}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">World Bank:</span>
+                          <span className="ml-2 font-medium" data-testid="text-worldbank-added">
+                            {crossCheckResults.worldBankAdded}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Wikidata:</span>
+                          <span className="ml-2 font-medium" data-testid="text-wikidata-added">
+                            {crossCheckResults.wikidataAdded}
+                          </span>
+                        </div>
+                      </div>
+                      {crossCheckResults.errors.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-xs text-destructive font-medium">
+                            Errors: {crossCheckResults.errors.length}
+                          </p>
                         </div>
                       )}
                     </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                  )}
+                </div>
 
-        {/* Source Management Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Source Reliability Management</CardTitle>
-            <CardDescription>
-              Manage source reliability metrics that affect source trust scores
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/sources">
-              <Button variant="outline" className="w-full" data-testid="button-manage-sources">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Manage Source Reliability Metrics
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
+                <div className="space-y-2">
+                  <Button
+                    onClick={() => fulfillRequestedFactsMutation.mutate()}
+                    disabled={fulfillRequestedFactsMutation.isPending}
+                    data-testid="button-fulfill-requested-facts"
+                    className="w-full"
+                  >
+                    <Database className="h-4 w-4 mr-2" />
+                    {fulfillRequestedFactsMutation.isPending ? "Fulfilling..." : "Fulfill Requested Facts"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Processes user-requested facts and attempts to fetch data from existing sources (Wikidata, World Bank).
+                  </p>
+                  {fulfillResults && (
+                    <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
+                      <h4 className="font-semibold text-xs">Fulfill Results</h4>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-muted-foreground">Total:</span>
+                          <span className="ml-2 font-medium" data-testid="text-total-requests">
+                            {fulfillResults.totalRequests}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Fulfilled:</span>
+                          <span className="ml-2 font-medium" data-testid="text-fulfilled">
+                            {fulfillResults.fulfilledCount}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Not Found:</span>
+                          <span className="ml-2 font-medium" data-testid="text-not-found">
+                            {fulfillResults.notFoundCount}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Existed:</span>
+                          <span className="ml-2 font-medium" data-testid="text-already-exists">
+                            {fulfillResults.alreadyExistsCount}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Button
+                    onClick={() => backfillHistoricalFactsMutation.mutate()}
+                    disabled={backfillHistoricalFactsMutation.isPending}
+                    data-testid="button-backfill-historical-facts"
+                    className="w-full"
+                  >
+                    <Database className="h-4 w-4 mr-2" />
+                    {backfillHistoricalFactsMutation.isPending ? "Backfilling..." : "Backfill Historical Facts"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Create missing fact evaluations from existing historical events.
+                  </p>
+                  {backfillHistoricalFactsResults && (
+                    <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
+                      <h4 className="font-semibold text-xs">Backfill Results</h4>
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div>
+                          <span className="text-muted-foreground">Processed:</span>
+                          <span className="ml-2 font-medium" data-testid="text-backfill-processed">
+                            {backfillHistoricalFactsResults.processed}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Created:</span>
+                          <span className="ml-2 font-medium text-primary" data-testid="text-backfill-created">
+                            {backfillHistoricalFactsResults.created}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Skipped:</span>
+                          <span className="ml-2 font-medium" data-testid="text-backfill-skipped">
+                            {backfillHistoricalFactsResults.skipped}
+                          </span>
+                        </div>
+                      </div>
+                      {backfillHistoricalFactsResults.created > 0 && (
+                        <div className="pt-2 border-t text-xs text-muted-foreground space-y-1">
+                          <p>✓ Facts created from historical events (revolution, liberation, unification, war, etc.)</p>
+                          <p>✓ Use "Promote Facts to Verified" in Fact Evaluation tab to verify these facts</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Button
+                    onClick={() => syncFactsCountMutation.mutate()}
+                    disabled={syncFactsCountMutation.isPending}
+                    data-testid="button-sync-facts-count"
+                    className="w-full"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    {syncFactsCountMutation.isPending ? "Syncing..." : "Sync Source Facts Count"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Recalculates facts_count for all sources from verified_facts table to fix discrepancies.
+                  </p>
+                  {syncFactsCountResults && (
+                    <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
+                      <h4 className="font-semibold text-xs">Sync Results</h4>
+                      <div className="text-xs space-y-1">
+                        <div>
+                          <span className="text-muted-foreground">Sources Updated:</span>
+                          <span className="ml-2 font-medium" data-testid="text-synced-count">
+                            {syncFactsCountResults.synced}
+                          </span>
+                        </div>
+                        {syncFactsCountResults.sources.length > 0 && (
+                          <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                            {syncFactsCountResults.sources.map((source) => (
+                              <div key={source.domain} className="text-xs">
+                                <span className="font-mono">{source.domain}</span>:
+                                <span className="ml-1 text-muted-foreground">{source.oldCount}</span>
+                                <span className="mx-1">→</span>
+                                <span className="font-medium">{source.newCount}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* FACT EVALUATION TAB */}
+        <TabsContent value="fact-evaluation" className="space-y-6">
+          {/* Scoring Configuration */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Scoring Configuration</CardTitle>
+                  <CardDescription>
+                    Configure trust score calculation, recency tiers, and promotion thresholds
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleReset}
+                    data-testid="button-reset"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Reset
+                  </Button>
+                  <Button
+                    onClick={handleSave}
+                    disabled={updateMutation.isPending}
+                    data-testid="button-save"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {updateMutation.isPending ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="trust-calculation" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="trust-calculation">Trust Calculation</TabsTrigger>
+                  <TabsTrigger value="recency-scoring">Recency Scoring</TabsTrigger>
+                  <TabsTrigger value="fact-promotion">Fact Promotion</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="trust-calculation" className="space-y-4 pt-4">
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Trust scores are calculated from three weighted components: source trust, data recency, and cross-source consensus.
+                    </p>
+                    
+                    <div className="grid gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="source-trust-weight">Source Trust Weight</Label>
+                          <span className="text-sm font-medium">{formData.source_trust_weight.toFixed(2)}</span>
+                        </div>
+                        <Slider
+                          id="source-trust-weight"
+                          min={0}
+                          max={3}
+                          step={0.1}
+                          value={[formData.source_trust_weight]}
+                          onValueChange={(value) => setFormData({ ...formData, source_trust_weight: value[0] })}
+                          data-testid="slider-source-trust-weight"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="recency-weight">Recency Weight</Label>
+                          <span className="text-sm font-medium">{formData.recency_weight.toFixed(2)}</span>
+                        </div>
+                        <Slider
+                          id="recency-weight"
+                          min={0}
+                          max={3}
+                          step={0.1}
+                          value={[formData.recency_weight]}
+                          onValueChange={(value) => setFormData({ ...formData, recency_weight: value[0] })}
+                          data-testid="slider-recency-weight"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="consensus-weight">Consensus Weight</Label>
+                          <span className="text-sm font-medium">{formData.consensus_weight.toFixed(2)}</span>
+                        </div>
+                        <Slider
+                          id="consensus-weight"
+                          min={0}
+                          max={3}
+                          step={0.1}
+                          value={[formData.consensus_weight]}
+                          onValueChange={(value) => setFormData({ ...formData, consensus_weight: value[0] })}
+                          data-testid="slider-consensus-weight"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                      <p className="text-xs text-muted-foreground">
+                        Total weight: {totalWeight.toFixed(2)} | The final score is normalized to 0-100 scale
+                      </p>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="recency-scoring" className="space-y-4 pt-4">
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Configure how data freshness affects trust scores using a three-tier system.
+                    </p>
+
+                    <div className="grid gap-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="tier1-days">Tier 1 - Days Threshold</Label>
+                          <Input
+                            id="tier1-days"
+                            type="number"
+                            value={formData.recency_tier1_days}
+                            onChange={(e) => setFormData({ ...formData, recency_tier1_days: parseInt(e.target.value) || 7 })}
+                            data-testid="input-tier1-days"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="tier1-score">Tier 1 - Score</Label>
+                          <Input
+                            id="tier1-score"
+                            type="number"
+                            value={formData.recency_tier1_score}
+                            onChange={(e) => setFormData({ ...formData, recency_tier1_score: parseInt(e.target.value) || 100 })}
+                            data-testid="input-tier1-score"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="tier2-days">Tier 2 - Days Threshold</Label>
+                          <Input
+                            id="tier2-days"
+                            type="number"
+                            value={formData.recency_tier2_days}
+                            onChange={(e) => setFormData({ ...formData, recency_tier2_days: parseInt(e.target.value) || 30 })}
+                            data-testid="input-tier2-days"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="tier2-score">Tier 2 - Score</Label>
+                          <Input
+                            id="tier2-score"
+                            type="number"
+                            value={formData.recency_tier2_score}
+                            onChange={(e) => setFormData({ ...formData, recency_tier2_score: parseInt(e.target.value) || 50 })}
+                            data-testid="input-tier2-score"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-muted-foreground">Tier 3 - Days Threshold</Label>
+                          <p className="text-sm text-muted-foreground">Beyond Tier 2 threshold</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="tier3-score">Tier 3 - Score</Label>
+                          <Input
+                            id="tier3-score"
+                            type="number"
+                            value={formData.recency_tier3_score}
+                            onChange={(e) => setFormData({ ...formData, recency_tier3_score: parseInt(e.target.value) || 10 })}
+                            data-testid="input-tier3-score"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="fact-promotion" className="space-y-4 pt-4">
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Configure thresholds for determining credible sources and promoting facts to verified status.
+                    </p>
+
+                    <div className="grid gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="credible-threshold">Credible Source Threshold</Label>
+                        <div className="flex items-center gap-3">
+                          <Slider
+                            id="credible-threshold"
+                            min={0}
+                            max={100}
+                            step={1}
+                            value={[formData.credible_threshold]}
+                            onValueChange={(value) => setFormData({ ...formData, credible_threshold: value[0] })}
+                            data-testid="slider-credible-threshold"
+                            className="flex-1"
+                          />
+                          <span className="text-sm font-medium w-12 text-right">{formData.credible_threshold}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Minimum trust score required for a source to be considered credible for consensus calculation
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="promotion-threshold">Promotion Threshold</Label>
+                        <div className="flex items-center gap-3">
+                          <Slider
+                            id="promotion-threshold"
+                            min={0}
+                            max={100}
+                            step={1}
+                            value={[formData.promotion_threshold]}
+                            onValueChange={(value) => setFormData({ ...formData, promotion_threshold: value[0] })}
+                            data-testid="slider-promotion-threshold"
+                            className="flex-1"
+                          />
+                          <span className="text-sm font-medium w-12 text-right">{formData.promotion_threshold}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Minimum trust score required to promote a fact evaluation to verified gold standard
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+
+          {/* Evaluation Operations */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Evaluation Operations</CardTitle>
+              <CardDescription>
+                Apply scoring changes and promote facts to verified status
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Button
+                    onClick={() => recalculateMutation.mutate()}
+                    disabled={recalculateMutation.isPending}
+                    data-testid="button-recalculate"
+                    className="w-full"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    {recalculateMutation.isPending ? "Recalculating..." : "Recalculate All Scores"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Recalculates trust scores for all evaluations using current scoring settings.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Button
+                    onClick={() => promoteFactsMutation.mutate()}
+                    disabled={promoteFactsMutation.isPending}
+                    data-testid="button-promote-facts"
+                    className="w-full"
+                  >
+                    <Database className="h-4 w-4 mr-2" />
+                    {promoteFactsMutation.isPending ? "Promoting..." : "Promote Facts to Verified"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Promotes facts from evaluation table to verified gold standard (trust score ≥ {formData.promotion_threshold}).
+                  </p>
+                  {promotionResults && (
+                    <div className="border rounded-lg p-3 bg-muted/50 space-y-2">
+                      <h4 className="font-semibold text-xs">Promotion Results</h4>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-muted-foreground">Promoted:</span>
+                          <span className="ml-2 font-medium" data-testid="text-promoted-count">
+                            {promotionResults.promotedCount}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Skipped:</span>
+                          <span className="ml-2 font-medium" data-testid="text-skipped-count">
+                            {promotionResults.skippedCount}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
