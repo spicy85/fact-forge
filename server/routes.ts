@@ -265,6 +265,17 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Backfill historical facts from existing historical_events table
+  app.post("/api/admin/backfill-historical-facts", async (req, res) => {
+    try {
+      const result = await storage.backfillHistoricalFacts();
+      res.json(result);
+    } catch (error) {
+      console.error("Error backfilling historical facts:", error);
+      res.status(500).json({ error: "Failed to backfill historical facts" });
+    }
+  });
+
   // Pull historical events from Wikidata
   const pullHistoricalEventsSchema = z.object({
     countries: z.array(z.string()).min(1, "At least one country is required"),
