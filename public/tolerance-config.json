@@ -1,6 +1,12 @@
 {
   "_description": "Percentage tolerance for each attribute type",
   "founded_year": 0.1,
+  "independence_year": 0.1,
+  "revolution_year": 0.1,
+  "liberation_year": 0.1,
+  "unification_year": 0.1,
+  "war_year": 0.1,
+  "significant_event_year": 0.1,
   "population": 10,
   "gdp": 10,
   "gdp_per_capita": 10,
