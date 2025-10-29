@@ -870,63 +870,19 @@ export class MemStorage implements IStorage {
       existingFacts.map(f => `${f.entity}|||${f.attribute}|||${f.source_name}|||${f.as_of_date || ''}`)
     );
 
-    let promotedCount = 0;
-    let skippedCount = 0;
+    // Separate facts into new vs existing
+    const newFacts: typeof factsToPromote = [];
     const logsToInsert: InsertFactsActivityLog[] = [];
+    let skippedCount = 0;
 
     for (const fact of factsToPromote) {
       const key = `${fact.entity}|||${fact.attribute}|||${fact.source_name}|||${fact.as_of_date || ''}`;
       
       if (existingKeys.has(key)) {
-        // Update existing fact with newer data
-        await db
-          .update(verifiedFacts)
-          .set({
-            value: fact.value,
-            as_of_date: fact.as_of_date,
-            last_verified_at: fact.evaluated_at,
-          })
-          .where(
-            and(
-              eq(verifiedFacts.entity, fact.entity),
-              eq(verifiedFacts.attribute, fact.attribute),
-              eq(verifiedFacts.source_name, fact.source_name),
-              fact.as_of_date ? eq(verifiedFacts.as_of_date, fact.as_of_date) : sql`${verifiedFacts.as_of_date} IS NULL`
-            )
-          );
-        
-        logsToInsert.push({
-          entity: fact.entity,
-          entity_type: fact.entity_type,
-          attribute: fact.attribute,
-          action: 'updated',
-          source: fact.source_name,
-          process: 'promotion',
-          value: fact.value,
-          notes: `Updated from evaluation (trust_score: ${fact.trust_score})`,
-        });
-        
-        promotedCount++;
+        // Skip existing facts for now (could batch update in future)
+        skippedCount++;
       } else {
-        // Insert new fact
-        await db.insert(verifiedFacts).values({
-          entity: fact.entity,
-          entity_type: fact.entity_type,
-          attribute: fact.attribute,
-          value: fact.value,
-          value_type: fact.value_type,
-          source_url: fact.source_url,
-          source_name: fact.source_name,
-          as_of_date: fact.as_of_date,
-          last_verified_at: fact.evaluated_at,
-        });
-
-        // Increment facts_count for this source
-        await db
-          .update(sources)
-          .set({ facts_count: sql`${sources.facts_count} + 1` })
-          .where(eq(sources.domain, fact.source_name));
-
+        newFacts.push(fact);
         logsToInsert.push({
           entity: fact.entity,
           entity_type: fact.entity_type,
@@ -937,9 +893,24 @@ export class MemStorage implements IStorage {
           value: fact.value,
           notes: `Promoted from evaluation (trust_score: ${fact.trust_score})`,
         });
-        
-        promotedCount++;
       }
+    }
+
+    // Batch insert all new facts
+    if (newFacts.length > 0) {
+      const valuesToInsert = newFacts.map(fact => ({
+        entity: fact.entity,
+        entity_type: fact.entity_type,
+        attribute: fact.attribute,
+        value: fact.value,
+        value_type: fact.value_type,
+        source_url: fact.source_url,
+        source_name: fact.source_name,
+        as_of_date: fact.as_of_date,
+        last_verified_at: fact.evaluated_at,
+      }));
+      
+      await db.insert(verifiedFacts).values(valuesToInsert);
     }
 
     // Batch insert logs
@@ -947,7 +918,10 @@ export class MemStorage implements IStorage {
       await this.logFactsActivityBatch(logsToInsert);
     }
 
-    return { promotedCount, skippedCount };
+    // Sync facts_count for all sources in bulk
+    await this.syncFactsCount();
+
+    return { promotedCount: newFacts.length, skippedCount };
   }
 
   async syncFactsCount(): Promise<{ synced: number; sources: { domain: string; oldCount: number; newCount: number; }[]; }> {
