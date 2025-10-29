@@ -149,6 +149,14 @@ export default function AdminScoring() {
   // Pull historical events form state
   const [pullEventsCountries, setPullEventsCountries] = useState<string>("France,United States,Germany");
   const [pullHistoricalEventsResults, setPullHistoricalEventsResults] = useState<PullHistoricalEventsStats | null>(null);
+  
+  // Backfill historical facts state
+  const [backfillHistoricalFactsResults, setBackfillHistoricalFactsResults] = useState<{
+    processed: number;
+    created: number;
+    skipped: number;
+    results: { entity: string; event_type: string; attribute: string; year: number; created: boolean; }[];
+  } | null>(null);
 
   // TLD scores form state
   const [newTld, setNewTld] = useState<string>("");
@@ -314,6 +322,28 @@ export default function AdminScoring() {
       toast({
         title: "Error",
         description: "Failed to pull new facts.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const backfillHistoricalFactsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/backfill-historical-facts", {});
+      return await response.json();
+    },
+    onSuccess: (data: any) => {
+      setBackfillHistoricalFactsResults(data);
+      toast({
+        title: "Success",
+        description: `Created ${data.created} fact evaluations from ${data.processed} historical events.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/facts-evaluation"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to backfill historical facts.",
         variant: "destructive",
       });
     },
@@ -1310,6 +1340,67 @@ export default function AdminScoring() {
                     ✓ Facts can be promoted to verified status using the fact promotion system
                   </p>
                 </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Backfill Historical Facts Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Backfill Historical Facts</CardTitle>
+            <CardDescription>
+              Create missing fact evaluations from existing historical events
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <p className="text-sm text-muted-foreground mb-4">
+                This tool processes all events in the <code className="font-mono bg-muted px-1 rounded">historical_events</code> table
+                and creates corresponding <code className="font-mono bg-muted px-1 rounded">facts_evaluation</code> entries for
+                any events that don't yet have them. Useful when historical events were created before the dual-insertion
+                mechanism was implemented.
+              </p>
+            </div>
+            <Button
+              onClick={() => backfillHistoricalFactsMutation.mutate()}
+              disabled={backfillHistoricalFactsMutation.isPending}
+              data-testid="button-backfill-historical-facts"
+              className="w-full"
+            >
+              <Database className="h-4 w-4 mr-2" />
+              {backfillHistoricalFactsMutation.isPending ? "Backfilling..." : "Backfill Historical Facts"}
+            </Button>
+
+            {backfillHistoricalFactsResults && (
+              <div className="border rounded-lg p-4 bg-muted/50 space-y-2">
+                <h4 className="font-semibold text-sm">Backfill Results</h4>
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Processed:</span>
+                    <span className="ml-2 font-medium" data-testid="text-backfill-processed">
+                      {backfillHistoricalFactsResults.processed}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Created:</span>
+                    <span className="ml-2 font-medium text-primary" data-testid="text-backfill-created">
+                      {backfillHistoricalFactsResults.created}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Skipped:</span>
+                    <span className="ml-2 font-medium" data-testid="text-backfill-skipped">
+                      {backfillHistoricalFactsResults.skipped}
+                    </span>
+                  </div>
+                </div>
+                {backfillHistoricalFactsResults.created > 0 && (
+                  <div className="pt-2 border-t text-xs text-muted-foreground space-y-1">
+                    <p>✓ Facts created from historical events (revolution, liberation, unification, war, etc.)</p>
+                    <p>✓ Use "Promote Facts to Verified" below to move these to verified_facts table</p>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
