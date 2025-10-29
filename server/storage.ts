@@ -82,6 +82,7 @@ export interface IStorage {
   getEventsByDateRange(entity: string, startYear: number, endYear: number): Promise<HistoricalEvent[]>;
   insertHistoricalEvent(event: InsertHistoricalEvent): Promise<HistoricalEvent>;
   insertHistoricalEventWithFactEvaluation(event: InsertHistoricalEvent): Promise<{ event: HistoricalEvent; factCreated: boolean; factEvaluation?: FactsEvaluation; isDuplicate: boolean; }>;
+  backfillHistoricalFacts(): Promise<{ processed: number; created: number; skipped: number; results: { entity: string; event_type: string; attribute: string; year: number; created: boolean; }[]; }>;
 }
 
 // Utility function to validate hostname format
@@ -1598,6 +1599,99 @@ export class MemStorage implements IStorage {
       factEvaluation,
       isDuplicate
     };
+  }
+
+  async backfillHistoricalFacts(): Promise<{ 
+    processed: number; 
+    created: number; 
+    skipped: number; 
+    results: { entity: string; event_type: string; attribute: string; year: number; created: boolean; }[]; 
+  }> {
+    // Get all historical events
+    const allEvents = await db.select().from(historicalEvents).orderBy(historicalEvents.entity, historicalEvents.event_year);
+    
+    const results: { entity: string; event_type: string; attribute: string; year: number; created: boolean; }[] = [];
+    let processed = 0;
+    let created = 0;
+    let skipped = 0;
+
+    for (const event of allEvents) {
+      processed++;
+      
+      // Map event_type to attribute
+      let attribute: string | null = null;
+      if (event.event_type === 'founding') {
+        attribute = 'founded_year';
+      } else if (event.event_type === 'independence') {
+        attribute = 'independence_year';
+      } else if (event.event_type === 'revolution') {
+        attribute = 'revolution_year';
+      } else if (event.event_type === 'liberation') {
+        attribute = 'liberation_year';
+      } else if (event.event_type === 'unification') {
+        attribute = 'unification_year';
+      } else if (event.event_type === 'war') {
+        attribute = 'war_year';
+      } else if (event.event_type === 'other') {
+        attribute = 'significant_event_year';
+      }
+
+      if (!attribute || !event.source_name) {
+        skipped++;
+        continue;
+      }
+
+      // Check if fact evaluation already exists
+      const existingFact = await db
+        .select()
+        .from(factsEvaluation)
+        .where(
+          and(
+            eq(factsEvaluation.entity, event.entity),
+            eq(factsEvaluation.attribute, attribute),
+            eq(factsEvaluation.source_name, event.source_name)
+          )
+        )
+        .limit(1);
+
+      if (existingFact.length === 0) {
+        // Create fact evaluation
+        const factData: InsertFactsEvaluation = {
+          entity: event.entity,
+          attribute: attribute,
+          value: event.event_year.toString(),
+          value_type: 'numeric',
+          source_url: event.source_url || `https://${event.source_name}`,
+          source_name: event.source_name,
+          evaluated_at: new Date().toISOString().split('T')[0],
+          as_of_date: event.event_date || `${event.event_year}-01-01`,
+          attribute_class: 'historical_constant'
+        };
+
+        await this.insertFactsEvaluation(factData);
+        created++;
+        
+        results.push({
+          entity: event.entity,
+          event_type: event.event_type,
+          attribute: attribute,
+          year: event.event_year,
+          created: true
+        });
+      } else {
+        skipped++;
+        
+        results.push({
+          entity: event.entity,
+          event_type: event.event_type,
+          attribute: attribute,
+          year: event.event_year,
+          created: false
+        });
+      }
+    }
+
+    return { processed, created, skipped, results };
   }
 }
 
