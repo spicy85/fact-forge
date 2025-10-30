@@ -44,17 +44,24 @@ export default function AssayProvenance() {
   const [searchEntity, setSearchEntity] = useState("");
 
   const { data: provenanceById, isLoading: loadingById } = useQuery<AssayProvenanceRecord>({
-    queryKey: ["/api/assay-provenance", provenanceId],
+    queryKey: [`/api/assay-provenance/${provenanceId}`],
     enabled: !!provenanceId && /^\d+$/.test(provenanceId),
   });
 
   const { data: provenanceByEntity, isLoading: loadingByEntity } = useQuery<AssayProvenanceRecord[]>({
     queryKey: ["/api/assay-provenance/entity", searchEntity],
     enabled: !!searchEntity,
+    queryFn: async () => {
+      const response = await fetch(`/api/assay-provenance?entity=${encodeURIComponent(searchEntity)}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch provenance by entity");
+      }
+      return response.json();
+    }
   });
 
   const { data: recentProvenance, isLoading: loadingRecent } = useQuery<AssayProvenanceRecord[]>({
-    queryKey: ["/api/assay-provenance/recent"],
+    queryKey: ["/api/assay-provenance"],
     enabled: !provenanceId && !searchEntity,
   });
 
@@ -236,12 +243,14 @@ export default function AssayProvenance() {
                       {new Date(record.created_at).toLocaleString()}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Verification Hash</p>
-                    <p className="font-mono text-xs" data-testid={`text-hash-${record.id}`}>
-                      {record.hash.substring(0, 12)}...
-                    </p>
-                  </div>
+                  {record.hash && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Verification Hash</p>
+                      <p className="font-mono text-xs" data-testid={`text-hash-${record.id}`}>
+                        {record.hash.substring(0, 12)}...
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <Collapsible>

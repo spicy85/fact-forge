@@ -700,10 +700,11 @@ export function registerRoutes(app: Express) {
   // Assay provenance endpoints
   app.get("/api/assay-provenance", async (req, res) => {
     try {
-      const { limit, offset } = req.query;
+      const { limit, offset, entity } = req.query;
       const provenanceRecords = await storage.getAllAssayProvenance(
         limit ? parseInt(limit as string) : 100,
-        offset ? parseInt(offset as string) : 0
+        offset ? parseInt(offset as string) : 0,
+        entity as string | undefined
       );
       res.json(provenanceRecords);
     } catch (error) {

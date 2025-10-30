@@ -83,7 +83,7 @@ export interface IStorage {
   insertHistoricalEvent(event: InsertHistoricalEvent): Promise<HistoricalEvent>;
   insertHistoricalEventWithFactEvaluation(event: InsertHistoricalEvent): Promise<{ event: HistoricalEvent; factCreated: boolean; factEvaluation?: FactsEvaluation; isDuplicate: boolean; }>;
   backfillHistoricalFacts(): Promise<{ processed: number; created: number; skipped: number; results: { entity: string; event_type: string; attribute: string; year: number; created: boolean; }[]; }>;
-  getAllAssayProvenance(limit?: number, offset?: number): Promise<AssayProvenance[]>;
+  getAllAssayProvenance(limit?: number, offset?: number, entity?: string): Promise<AssayProvenance[]>;
   getAssayProvenanceById(id: number): Promise<AssayProvenance | undefined>;
   insertAssayProvenance(provenance: InsertAssayProvenance): Promise<AssayProvenance>;
 }
@@ -1768,7 +1768,17 @@ export class MemStorage implements IStorage {
     return { processed, created, skipped, results };
   }
 
-  async getAllAssayProvenance(limit: number = 100, offset: number = 0): Promise<AssayProvenance[]> {
+  async getAllAssayProvenance(limit: number = 100, offset: number = 0, entity?: string): Promise<AssayProvenance[]> {
+    if (entity) {
+      return await db
+        .select()
+        .from(assayProvenance)
+        .where(eq(assayProvenance.entity, entity))
+        .orderBy(desc(assayProvenance.created_at))
+        .limit(limit)
+        .offset(offset);
+    }
+    
     return await db
       .select()
       .from(assayProvenance)
