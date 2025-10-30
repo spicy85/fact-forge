@@ -13,10 +13,11 @@
     "sources": [
       {
         "name": "worldbank",
-        "endpoint": "https://api.worldbank.org/v2/country/{entity}/indicator/SP.POP.TOTL",
+        "endpoint": "https://api.worldbank.org/v2/country/{entity}/indicator/SP.POP.TOTL?format=json&per_page=100",
         "method": "GET",
         "headers": {
-          "Accept": "application/json"
+          "Accept": "application/json",
+          "User-Agent": "FactChecker-Assay/1.0"
         },
         "cache_ttl": 86400,
         "timeout": 10000
@@ -26,6 +27,10 @@
         "endpoint": "https://query.wikidata.org/sparql",
         "method": "SPARQL",
         "query": "SELECT ?population ?year WHERE { ?country wdt:P31 wd:Q6256 ; rdfs:label \"{entity}\"@en ; p:P1082 ?statement . ?statement ps:P1082 ?population ; pq:P585 ?date . BIND(YEAR(?date) AS ?year) FILTER(?year = {year}) }",
+        "headers": {
+          "User-Agent": "FactChecker-Assay/1.0 (https://factchecker.example.com/)",
+          "Accept": "application/sparql-results+json"
+        },
         "cache_ttl": 86400,
         "timeout": 15000
       }

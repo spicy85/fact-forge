@@ -15,6 +15,10 @@
         "endpoint": "https://query.wikidata.org/sparql",
         "method": "SPARQL",
         "query": "SELECT ?inception WHERE { ?country wdt:P31 wd:Q6256 ; rdfs:label \"{entity}\"@en ; wdt:P571 ?inception }",
+        "headers": {
+          "User-Agent": "FactChecker-Assay/1.0 (https://factchecker.example.com/)",
+          "Accept": "application/sparql-results+json"
+        },
         "cache_ttl": 604800,
         "timeout": 15000
       }

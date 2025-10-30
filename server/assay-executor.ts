@@ -496,7 +496,89 @@ export class AssayExecutor {
 
     return null;
   }
+
+  findAssayByAttribute(attribute: string): Assay | null {
+    const allAssays = Array.from(this.assays.values());
+    
+    for (const assay of allAssays) {
+      const inferredAttr = this.inferAttribute(assay);
+      if (inferredAttr === attribute) {
+        return assay;
+      }
+    }
+
+    return null;
+  }
 }
 
 // Singleton instance
 export const assayExecutor = new AssayExecutor();
+
+/**
+ * Helper function to execute assay verification from API routes
+ * Finds matching assay based on attribute, executes it, and stores provenance
+ */
+export async function executeAssay(
+  entity: string,
+  attribute: string,
+  value: string | number,
+  year?: number
+): Promise<{
+  verified: boolean;
+  consensus?: number;
+  provenance_id?: number;
+  message?: string;
+}> {
+  // Find matching assay for this attribute
+  const assay = assayExecutor.findAssayByAttribute(attribute);
+  
+  if (!assay) {
+    return {
+      verified: false,
+      message: `No assay available for attribute: ${attribute}`
+    };
+  }
+
+  try {
+    // Execute the assay
+    const claim = `${entity} ${attribute} ${value}`;
+    const inputs: AssayInput = {
+      entity,
+      year,
+      claimed_value: value
+    };
+
+    const result = await assayExecutor.executeAssay(assay.id, inputs, claim);
+
+    // Store provenance in database
+    const { storage } = await import('./storage');
+    const provenance = await storage.insertAssayProvenance({
+      assay_id: result.assay_id,
+      assay_version: result.assay_version,
+      claim: result.claim,
+      entity: result.entity,
+      attribute: result.attribute,
+      claimed_value: result.claimed_value,
+      raw_responses: JSON.stringify(result.raw_responses),
+      parsed_values: JSON.stringify(result.parsed_values),
+      consensus_result: JSON.stringify(result.consensus_result),
+      verification_status: result.verification_status,
+      artifact_hash: result.artifact_hash
+    });
+
+    return {
+      verified: result.verification_status === 'verified',
+      consensus: typeof result.consensus_result.value === 'number' 
+        ? result.consensus_result.value 
+        : undefined,
+      provenance_id: provenance.id,
+      message: `Assay executed: ${result.assay_id} (${result.verification_status})`
+    };
+  } catch (error) {
+    console.error('Assay execution error:', error);
+    return {
+      verified: false,
+      message: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
