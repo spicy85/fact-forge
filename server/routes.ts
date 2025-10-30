@@ -670,6 +670,33 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Assay verification endpoint
+  app.post("/api/verify-with-assay", async (req, res) => {
+    try {
+      const { entity, attribute, value, year } = req.body;
+      
+      if (!entity || !attribute || value === undefined) {
+        res.status(400).json({ error: "Missing required fields: entity, attribute, value" });
+        return;
+      }
+
+      // Import assay executor dynamically to avoid circular dependencies
+      const { executeAssay } = await import("./assay-executor");
+      
+      // Try to find and execute a matching assay
+      const result = await executeAssay(entity, attribute, value, year);
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error executing assay verification:", error);
+      res.status(500).json({ 
+        error: "Failed to execute assay verification",
+        verified: false,
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Assay provenance endpoints
   app.get("/api/assay-provenance", async (req, res) => {
     try {
