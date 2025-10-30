@@ -35,7 +35,8 @@
         "life_expectancy",
         "literacy_rate",
         "unemployment_rate",
-        "inflation_rate"
+        "gdp",
+        "gdp_per_capita"
       ]
     },
     "high": {
@@ -48,9 +49,8 @@
         "min_consensus_agreement": 0.95
       },
       "attributes": [
-        "gdp",
-        "gdp_per_capita",
         "inflation",
+        "inflation_rate",
         "exchange_rate",
         "debt_to_gdp",
         "trade_balance"
