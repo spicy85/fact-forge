@@ -1,0 +1,67 @@
+{
+  "id": "retrieval-fallback-v1",
+  "name": "Keyword-Based Retrieval Fallback",
+  "version": "1.0.0",
+  "domain": "general",
+  "description": "Fallback verification using keyword matching against database evaluations when specific assays are not available",
+  "inputs": {
+    "entity": true,
+    "attribute": true,
+    "claimed_value": true,
+    "year": false
+  },
+  "fetch_plan": {
+    "sources": [
+      {
+        "name": "database_evaluations",
+        "endpoint": "internal://facts_evaluation",
+        "method": "QUERY",
+        "query_filter": {
+          "entity": "{entity}",
+          "attribute": "{attribute}",
+          "year_tolerance": 1
+        },
+        "cache_ttl": 0,
+        "timeout": 5000
+      }
+    ],
+    "parallel": false,
+    "fail_fast": false
+  },
+  "parsers": {
+    "database_evaluations": {
+      "type": "internal",
+      "expression": "direct_query_result",
+      "transform": "identity"
+    }
+  },
+  "expected_signal": {
+    "unit": "varies",
+    "tolerance": "attribute_specific",
+    "comparison_rule": "within_tolerance",
+    "consensus_rule": "trust_weighted",
+    "min_sources": 1
+  },
+  "validation_hooks": [
+    {
+      "type": "trust_score_check",
+      "params": {
+        "min_trust_score": 50
+      }
+    },
+    {
+      "type": "consensus_check",
+      "params": {
+        "min_consensus": 0.7
+      }
+    }
+  ],
+  "cost_hints": {
+    "estimated_time_ms": 100,
+    "estimated_tokens": 0,
+    "estimated_cost_usd": 0
+  },
+  "safe_mode": true,
+  "is_fallback": true,
+  "claim_patterns": []
+}

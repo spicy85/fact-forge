@@ -875,14 +875,16 @@ export class MemStorage implements IStorage {
         );
       const numSources = Number(sourceCount[0]?.count ?? 1);
 
-      // Check if an assay verification exists for this fact
+      // Check if a SPECIFIC (non-fallback) assay verification exists for this fact
+      // Retrieval fallback assays don't count toward require_assay criterion
       const assayCheck = await db
         .select({ count: sql<number>`count(*)` })
         .from(assayProvenance)
         .where(
           and(
             eq(assayProvenance.entity, fact.entity),
-            eq(assayProvenance.attribute, fact.attribute)
+            eq(assayProvenance.attribute, fact.attribute),
+            sql`${assayProvenance.assay_id} != 'retrieval-fallback-v1'`
           )
         );
       const hasAssay = Number(assayCheck[0]?.count ?? 0) > 0;

@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { storage } from "./storage";
 import { z } from "zod";
+import crypto from "crypto";
 import {
   insertUserSchema,
   insertVerifiedFactSchema,
@@ -708,7 +709,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // Assay verification endpoint
+  // Assay verification endpoint with retrieval fallback
   app.post("/api/verify-with-assay", async (req, res) => {
     try {
       const { entity, attribute, value, year } = req.body;
@@ -720,9 +721,48 @@ export function registerRoutes(app: Express) {
 
       // Import assay executor dynamically to avoid circular dependencies
       const { executeAssay } = await import("./assay-executor");
+      const { executeRetrievalAssay } = await import("./lib/retrieval-assay-adapter");
       
-      // Try to find and execute a matching assay
-      const result = await executeAssay(entity, attribute, value, year);
+      // Try to find and execute a specific assay first
+      let result = await executeAssay(entity, attribute, value, year);
+      
+      // If no specific assay matched, use retrieval fallback
+      if (!result.verified && result.message?.includes('No assay available')) {
+        const retrievalResult = await executeRetrievalAssay({ entity, attribute, value, year });
+        
+        // Load retrieval assay metadata from definition file
+        const fs = await import('fs');
+        const path = await import('path');
+        const assayDefPath = path.join(process.cwd(), 'server', 'assays', 'retrieval-fallback-v1.json');
+        const assayDef = JSON.parse(fs.readFileSync(assayDefPath, 'utf-8'));
+        
+        // Calculate artifact hash from raw responses (for provenance integrity)
+        const rawResponsesStr = JSON.stringify(retrievalResult.raw_responses);
+        const artifactHash = crypto.createHash('sha256')
+          .update(rawResponsesStr)
+          .digest('hex');
+        
+        // Store retrieval provenance with metadata from assay definition
+        const provenance = await storage.insertAssayProvenance({
+          assay_id: retrievalResult.assay_id,
+          assay_version: assayDef.version,
+          claim: `${entity} ${attribute} = ${value}${year ? ` (${year})` : ''}`,
+          entity,
+          attribute,
+          claimed_value: String(value),
+          raw_responses: rawResponsesStr,
+          parsed_values: JSON.stringify(retrievalResult.parsed_values),
+          consensus_result: JSON.stringify(retrievalResult.consensus_result),
+          verification_status: retrievalResult.verified ? 'verified' : 'rejected',
+          artifact_hash: artifactHash,
+        });
+        
+        result = {
+          verified: retrievalResult.verified,
+          consensus: retrievalResult.consensus,
+          provenance_id: provenance.id,
+        };
+      }
       
       res.json(result);
     } catch (error) {
