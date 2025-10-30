@@ -46,6 +46,19 @@ export default function AssayProvenance() {
   const { data: provenanceById, isLoading: loadingById } = useQuery<AssayProvenanceRecord>({
     queryKey: [`/api/assay-provenance/${provenanceId}`],
     enabled: !!provenanceId && /^\d+$/.test(provenanceId),
+    queryFn: async () => {
+      const response = await fetch(`/api/assay-provenance/${provenanceId}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch provenance by ID");
+      }
+      const record = await response.json();
+      return {
+        ...record,
+        raw_responses: typeof record.raw_responses === 'string' ? JSON.parse(record.raw_responses) : record.raw_responses,
+        parsed_values: typeof record.parsed_values === 'string' ? JSON.parse(record.parsed_values) : record.parsed_values,
+        consensus_result: typeof record.consensus_result === 'string' ? JSON.parse(record.consensus_result) : record.consensus_result,
+      };
+    }
   });
 
   const { data: provenanceByEntity, isLoading: loadingByEntity } = useQuery<AssayProvenanceRecord[]>({
@@ -56,13 +69,32 @@ export default function AssayProvenance() {
       if (!response.ok) {
         throw new Error("Failed to fetch provenance by entity");
       }
-      return response.json();
+      const data = await response.json();
+      return data.map((record: any) => ({
+        ...record,
+        raw_responses: typeof record.raw_responses === 'string' ? JSON.parse(record.raw_responses) : record.raw_responses,
+        parsed_values: typeof record.parsed_values === 'string' ? JSON.parse(record.parsed_values) : record.parsed_values,
+        consensus_result: typeof record.consensus_result === 'string' ? JSON.parse(record.consensus_result) : record.consensus_result,
+      }));
     }
   });
 
   const { data: recentProvenance, isLoading: loadingRecent } = useQuery<AssayProvenanceRecord[]>({
     queryKey: ["/api/assay-provenance"],
     enabled: !provenanceId && !searchEntity,
+    queryFn: async () => {
+      const response = await fetch('/api/assay-provenance');
+      if (!response.ok) {
+        throw new Error("Failed to fetch recent provenance");
+      }
+      const data = await response.json();
+      return data.map((record: any) => ({
+        ...record,
+        raw_responses: typeof record.raw_responses === 'string' ? JSON.parse(record.raw_responses) : record.raw_responses,
+        parsed_values: typeof record.parsed_values === 'string' ? JSON.parse(record.parsed_values) : record.parsed_values,
+        consensus_result: typeof record.consensus_result === 'string' ? JSON.parse(record.consensus_result) : record.consensus_result,
+      }));
+    }
   });
 
   const handleSearchById = () => {
@@ -270,7 +302,11 @@ export default function AssayProvenance() {
                               </Badge>
                               {record.parsed_values[source] !== undefined && (
                                 <span className="text-sm text-muted-foreground">
-                                  Parsed: <span className="font-mono font-semibold">{record.parsed_values[source]}</span>
+                                  Parsed: <span className="font-mono font-semibold">
+                                    {typeof record.parsed_values[source] === 'object' 
+                                      ? JSON.stringify(record.parsed_values[source]) 
+                                      : record.parsed_values[source]}
+                                  </span>
                                 </span>
                               )}
                             </div>
