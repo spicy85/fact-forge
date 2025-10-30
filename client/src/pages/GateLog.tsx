@@ -21,7 +21,21 @@ export default function GateLog() {
   const [decisionFilter, setDecisionFilter] = useState<string | undefined>(undefined);
 
   const { data: logs = [], isLoading } = useQuery<PromotionGateLog[]>({
-    queryKey: ["/api/admin/promotion-gate-logs", { tier: tierFilter, decision: decisionFilter }],
+    queryKey: ["/api/admin/promotion-gate-logs", tierFilter, decisionFilter],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (tierFilter) params.append('tier', tierFilter);
+      if (decisionFilter) params.append('decision', decisionFilter);
+      
+      const url = `/api/admin/promotion-gate-logs${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await fetch(url, { credentials: 'include' });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch gate logs: ${response.statusText}`);
+      }
+      
+      return response.json();
+    },
   });
 
   const parseCriteriaMet = (criteriaJson: string): CriteriaMet => {
