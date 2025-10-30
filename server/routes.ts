@@ -669,4 +669,36 @@ export function registerRoutes(app: Express) {
       res.status(500).json({ error: "Failed to insert historical event" });
     }
   });
+
+  // Assay provenance endpoints
+  app.get("/api/assay-provenance", async (req, res) => {
+    try {
+      const { limit, offset } = req.query;
+      const provenanceRecords = await storage.getAllAssayProvenance(
+        limit ? parseInt(limit as string) : 100,
+        offset ? parseInt(offset as string) : 0
+      );
+      res.json(provenanceRecords);
+    } catch (error) {
+      console.error("Error fetching assay provenance:", error);
+      res.status(500).json({ error: "Failed to fetch assay provenance" });
+    }
+  });
+
+  app.get("/api/assay-provenance/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const provenance = await storage.getAssayProvenanceById(parseInt(id));
+      
+      if (!provenance) {
+        res.status(404).json({ error: "Provenance record not found" });
+        return;
+      }
+      
+      res.json(provenance);
+    } catch (error) {
+      console.error("Error fetching assay provenance by ID:", error);
+      res.status(500).json({ error: "Failed to fetch assay provenance" });
+    }
+  });
 }
