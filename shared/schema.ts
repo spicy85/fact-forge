@@ -307,6 +307,36 @@ export const insertAssayProvenanceSchema = createInsertSchema(assayProvenance).o
 export type InsertAssayProvenance = z.infer<typeof insertAssayProvenanceSchema>;
 export type AssayProvenance = typeof assayProvenance.$inferSelect;
 
+export const promotionGateLog = pgTable("promotion_gate_log", {
+  id: serial("id").primaryKey(),
+  evaluation_id: integer("evaluation_id").notNull(),
+  entity: text("entity").notNull(),
+  attribute: text("attribute").notNull(),
+  risk_tier: text("risk_tier").notNull(), // low, medium, high
+  decision: text("decision").notNull(), // pass, fail
+  reason: text("reason").notNull(),
+  criteria_met: text("criteria_met").notNull(), // JSON stringified object of which criteria passed/failed
+  source_count: integer("source_count").notNull(),
+  evaluation_score: integer("evaluation_score").notNull(),
+  age_days: integer("age_days").notNull(),
+  has_assay: integer("has_assay").notNull().default(0), // 0 or 1 (boolean)
+  consensus_agreement: doublePrecision("consensus_agreement"),
+  created_at: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => ({
+  evaluationIdIdx: index("promotion_gate_log_evaluation_id_idx").on(table.evaluation_id),
+  tierIdx: index("promotion_gate_log_tier_idx").on(table.risk_tier),
+  decisionIdx: index("promotion_gate_log_decision_idx").on(table.decision),
+  createdAtIdx: index("promotion_gate_log_created_at_idx").on(table.created_at),
+}));
+
+export const insertPromotionGateLogSchema = createInsertSchema(promotionGateLog).omit({
+  id: true,
+  created_at: true,
+});
+
+export type InsertPromotionGateLog = z.infer<typeof insertPromotionGateLogSchema>;
+export type PromotionGateLog = typeof promotionGateLog.$inferSelect;
+
 // TypeScript types for assay definitions (not database tables)
 export type FetchSource = {
   name: string;

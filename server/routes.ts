@@ -177,6 +177,44 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Promotion gate logs endpoint
+  app.get("/api/admin/promotion-gate-logs", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+      const tier = req.query.tier as string | undefined;
+      const decision = req.query.decision as string | undefined;
+      
+      const logs = await storage.getAllPromotionGateLogs(limit, offset, tier, decision);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching promotion gate logs:", error);
+      res.status(500).json({ error: "Failed to fetch promotion gate logs" });
+    }
+  });
+
+  // Fact demotion endpoint
+  app.post("/api/admin/demote-fact", async (req, res) => {
+    try {
+      const { id } = req.body;
+      
+      if (!id) {
+        return res.status(400).json({ error: "Fact ID is required" });
+      }
+      
+      const result = await storage.demoteFact(id);
+      
+      if (!result.success) {
+        return res.status(404).json({ error: "Fact not found" });
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error demoting fact:", error);
+      res.status(500).json({ error: "Failed to demote fact" });
+    }
+  });
+
   // Cross-check sources endpoint - disabled since method doesn't exist
   app.post("/api/admin/cross-check-sources", async (req, res) => {
     try {

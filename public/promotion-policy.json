@@ -1,0 +1,66 @@
+{
+  "risk_tiers": {
+    "low": {
+      "description": "Historical constants and well-established facts (founding years, independence dates, geographic facts)",
+      "criteria": {
+        "min_sources": 1,
+        "min_score": 70,
+        "max_age_days": 1825,
+        "require_assay": false,
+        "min_consensus_agreement": 0.85
+      },
+      "attributes": [
+        "founded_year",
+        "independence_year",
+        "capital",
+        "area",
+        "continent",
+        "revolution_year",
+        "liberation_year",
+        "unification_year",
+        "war_year"
+      ]
+    },
+    "medium": {
+      "description": "Time-series data with moderate change rates (population, life expectancy)",
+      "criteria": {
+        "min_sources": 2,
+        "min_score": 80,
+        "max_age_days": 540,
+        "require_assay": true,
+        "min_consensus_agreement": 0.90
+      },
+      "attributes": [
+        "population",
+        "life_expectancy",
+        "literacy_rate",
+        "unemployment_rate",
+        "inflation_rate"
+      ]
+    },
+    "high": {
+      "description": "Volatile economic indicators and high-impact metrics (GDP, exchange rates)",
+      "criteria": {
+        "min_sources": 3,
+        "min_score": 85,
+        "max_age_days": 180,
+        "require_assay": true,
+        "min_consensus_agreement": 0.95
+      },
+      "attributes": [
+        "gdp",
+        "gdp_per_capita",
+        "inflation",
+        "exchange_rate",
+        "debt_to_gdp",
+        "trade_balance"
+      ]
+    }
+  },
+  "default_tier": "medium",
+  "compensating_controls": {
+    "require_audit_log": true,
+    "enable_rollback": true,
+    "notify_on_demotion": false
+  }
+}

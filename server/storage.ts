@@ -1,9 +1,10 @@
-import { type User, type InsertUser, type VerifiedFact, type InsertVerifiedFact, type FactsEvaluation, type InsertFactsEvaluation, type Source, type InsertSource, type UpdateSource, type ScoringSettings, type InsertScoringSettings, type UpdateScoringSettings, type RequestedFact, type InsertRequestedFact, type SourceActivityLog, type InsertSourceActivityLog, type FactsActivityLog, type InsertFactsActivityLog, type SourceIdentityMetrics, type InsertSourceIdentityMetrics, type UpdateSourceIdentityMetrics, type TldScore, type InsertTldScore, type UpdateTldScore, type HistoricalEvent, type InsertHistoricalEvent, type AssayProvenance, type InsertAssayProvenance } from "@shared/schema";
+import { type User, type InsertUser, type VerifiedFact, type InsertVerifiedFact, type FactsEvaluation, type InsertFactsEvaluation, type Source, type InsertSource, type UpdateSource, type ScoringSettings, type InsertScoringSettings, type UpdateScoringSettings, type RequestedFact, type InsertRequestedFact, type SourceActivityLog, type InsertSourceActivityLog, type FactsActivityLog, type InsertFactsActivityLog, type SourceIdentityMetrics, type InsertSourceIdentityMetrics, type UpdateSourceIdentityMetrics, type TldScore, type InsertTldScore, type UpdateTldScore, type HistoricalEvent, type InsertHistoricalEvent, type AssayProvenance, type InsertAssayProvenance, type PromotionGateLog, type InsertPromotionGateLog } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { verifiedFacts, factsEvaluation, sources, scoringSettings, requestedFacts, sourceActivityLog, factsActivityLog, sourceIdentityMetrics, tldScores, historicalEvents, assayProvenance } from "@shared/schema";
+import { verifiedFacts, factsEvaluation, sources, scoringSettings, requestedFacts, sourceActivityLog, factsActivityLog, sourceIdentityMetrics, tldScores, historicalEvents, assayProvenance, promotionGateLog } from "@shared/schema";
 import { eq, and, sql, desc, gte, lte, between } from "drizzle-orm";
 import { calculateSourceTrustScore, calculateRecencyScore, calculateTrustScore } from "./evaluation-scoring";
+import { evaluatePromotionGate, classifyRiskTier } from "./lib/policy-gate";
 import * as https from "https";
 import { whoisDomain } from "whoiser";
 
@@ -86,6 +87,8 @@ export interface IStorage {
   getAllAssayProvenance(limit?: number, offset?: number, entity?: string): Promise<AssayProvenance[]>;
   getAssayProvenanceById(id: number): Promise<AssayProvenance | undefined>;
   insertAssayProvenance(provenance: InsertAssayProvenance): Promise<AssayProvenance>;
+  getAllPromotionGateLogs(limit?: number, offset?: number, tier?: string, decision?: string): Promise<PromotionGateLog[]>;
+  demoteFact(id: number): Promise<{ success: boolean; fact?: VerifiedFact; }>;
 }
 
 // Utility function to validate hostname format
@@ -837,7 +840,7 @@ export class MemStorage implements IStorage {
   }
 
   async promoteFactsToVerified(): Promise<{ promotedCount: number; skippedCount: number; }> {
-    // Get promotion threshold from settings
+    // Get promotion threshold from settings (legacy threshold, gate has its own criteria)
     const settings = await this.getScoringSettings();
     const promotionThreshold = settings?.promotion_threshold ?? 80;
 
@@ -855,11 +858,98 @@ export class MemStorage implements IStorage {
       return { promotedCount: 0, skippedCount: 0 };
     }
 
+    // Evaluate each fact through the policy gate
+    const gateEvaluations: { fact: typeof candidateFacts[0]; passes: boolean; decision: any }[] = [];
+    const gateLogsToInsert: InsertPromotionGateLog[] = [];
+
+    for (const fact of candidateFacts) {
+      // Count how many sources exist for this entity/attribute combination
+      const sourceCount = await db
+        .select({ count: sql<number>`count(DISTINCT ${factsEvaluation.source_name})` })
+        .from(factsEvaluation)
+        .where(
+          and(
+            eq(factsEvaluation.entity, fact.entity),
+            eq(factsEvaluation.attribute, fact.attribute)
+          )
+        );
+      const numSources = Number(sourceCount[0]?.count ?? 1);
+
+      // Check if an assay verification exists for this fact
+      const assayCheck = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(assayProvenance)
+        .where(
+          and(
+            eq(assayProvenance.entity, fact.entity),
+            eq(assayProvenance.attribute, fact.attribute)
+          )
+        );
+      const hasAssay = Number(assayCheck[0]?.count ?? 0) > 0;
+
+      // Calculate consensus agreement if we have multiple sources
+      let consensusAgreement: number | null = null;
+      if (numSources > 1) {
+        // Get all evaluations for this entity/attribute
+        const allEvals = await db
+          .select()
+          .from(factsEvaluation)
+          .where(
+            and(
+              eq(factsEvaluation.entity, fact.entity),
+              eq(factsEvaluation.attribute, fact.attribute)
+            )
+          );
+        
+        // Calculate agreement as ratio of evaluations with same value
+        const sameValueCount = allEvals.filter(e => e.value === fact.value).length;
+        consensusAgreement = allEvals.length > 0 ? sameValueCount / allEvals.length : 1.0;
+      }
+
+      // Evaluate through policy gate
+      const gateDecision = evaluatePromotionGate(fact, numSources, hasAssay, consensusAgreement);
+      
+      gateEvaluations.push({
+        fact,
+        passes: gateDecision.pass,
+        decision: gateDecision
+      });
+
+      // Log the gate decision
+      gateLogsToInsert.push({
+        evaluation_id: fact.id,
+        entity: fact.entity,
+        attribute: fact.attribute,
+        risk_tier: gateDecision.tier,
+        decision: gateDecision.pass ? 'pass' : 'fail',
+        reason: gateDecision.reason,
+        criteria_met: JSON.stringify(gateDecision.criteria_met),
+        source_count: gateDecision.source_count,
+        evaluation_score: gateDecision.evaluation_score,
+        age_days: gateDecision.age_days,
+        has_assay: gateDecision.has_assay ? 1 : 0,
+        consensus_agreement: gateDecision.consensus_agreement,
+      });
+    }
+
+    // Insert all gate logs in batch
+    if (gateLogsToInsert.length > 0) {
+      await db.insert(promotionGateLog).values(gateLogsToInsert);
+    }
+
+    // Filter to only facts that passed the gate
+    const passedFacts = gateEvaluations.filter(e => e.passes).map(e => e.fact);
+    const skippedCount = candidateFacts.length - passedFacts.length;
+
+    if (passedFacts.length === 0) {
+      return { promotedCount: 0, skippedCount };
+    }
+
     // Deduplicate based on attribute_class:
     // - historical_constant: Keep only ONE fact per (entity, attribute) with highest trust_score
     // - time_series/static: Keep one fact per (entity, attribute, source_name, as_of_date)
-    const deduplicatedMap = new Map<string, typeof candidateFacts[0]>();
-    for (const fact of candidateFacts) {
+    const deduplicatedMap = new Map<string, typeof passedFacts[0]>();
+    for (const fact of passedFacts) {
       // For historical constants, we want only one canonical value per entity/attribute
       const key = fact.attribute_class === 'historical_constant'
         ? `${fact.entity}|||${fact.attribute}`
@@ -1804,6 +1894,64 @@ export class MemStorage implements IStorage {
       .returning();
     
     return results[0];
+  }
+
+  async getAllPromotionGateLogs(limit: number = 100, offset: number = 0, tier?: string, decision?: string): Promise<PromotionGateLog[]> {
+    let query = db
+      .select()
+      .from(promotionGateLog)
+      .orderBy(desc(promotionGateLog.created_at))
+      .limit(limit)
+      .offset(offset);
+
+    // Apply filters if provided
+    const conditions = [];
+    if (tier) {
+      conditions.push(eq(promotionGateLog.risk_tier, tier));
+    }
+    if (decision) {
+      conditions.push(eq(promotionGateLog.decision, decision));
+    }
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+
+    return query;
+  }
+
+  async demoteFact(id: number): Promise<{ success: boolean; fact?: VerifiedFact; }> {
+    // Get the fact to be demoted
+    const factToRemove = await db
+      .select()
+      .from(verifiedFacts)
+      .where(eq(verifiedFacts.id, id))
+      .limit(1);
+
+    if (factToRemove.length === 0) {
+      return { success: false };
+    }
+
+    const fact = factToRemove[0];
+
+    // Delete from verified_facts
+    await db
+      .delete(verifiedFacts)
+      .where(eq(verifiedFacts.id, id));
+
+    // Log the demotion in facts activity log
+    await this.logFactsActivity({
+      entity: fact.entity,
+      entity_type: fact.entity_type,
+      attribute: fact.attribute,
+      action: 'demoted',
+      source: fact.source_name,
+      process: 'manual_demotion',
+      value: fact.value,
+      notes: `Manually demoted from verified_facts (id: ${id})`,
+    });
+
+    return { success: true, fact };
   }
 }
 
