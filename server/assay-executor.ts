@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import type { Assay, FetchSource, Parser } from '@shared/schema';
+import { getCountryISOCode } from './utils/country-codes';
 
 interface AssayInput {
   entity?: string;
@@ -160,8 +161,8 @@ export class AssayExecutor {
     
     try {
       // Interpolate variables in endpoint and query
-      let endpoint = this.interpolate(source.endpoint, inputs);
-      let query = source.query ? this.interpolate(source.query, inputs) : undefined;
+      let endpoint = this.interpolate(source.endpoint, inputs, source);
+      let query = source.query ? this.interpolate(source.query, inputs, source) : undefined;
 
       const timeout = source.timeout || 10000;
       const controller = new AbortController();
@@ -439,11 +440,21 @@ export class AssayExecutor {
     }
   }
 
-  private interpolate(template: string, inputs: AssayInput): string {
+  private interpolate(template: string, inputs: AssayInput, source?: FetchSource): string {
     let result = template;
     
     if (inputs.entity) {
-      result = result.replace(/\{entity\}/g, inputs.entity);
+      // For World Bank API, convert country names to ISO codes
+      let entityValue = inputs.entity;
+      if (source && source.name === 'worldbank') {
+        const isoCode = getCountryISOCode(inputs.entity);
+        if (isoCode) {
+          entityValue = isoCode;
+        } else {
+          console.warn(`No ISO code found for country: ${inputs.entity}, using original name`);
+        }
+      }
+      result = result.replace(/\{entity\}/g, entityValue);
     }
     if (inputs.year) {
       result = result.replace(/\{year\}/g, inputs.year.toString());

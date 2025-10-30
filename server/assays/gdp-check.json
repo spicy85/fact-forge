@@ -26,10 +26,11 @@
         "name": "wikidata",
         "endpoint": "https://query.wikidata.org/sparql",
         "method": "SPARQL",
-        "query": "SELECT ?gdp ?year WHERE { ?country wdt:P31 wd:Q6256 ; rdfs:label \"{entity}\"@en ; p:P2131 ?statement . ?statement ps:P2131 ?gdp ; pq:P585 ?date . BIND(YEAR(?date) AS ?year) FILTER(?year = {year}) }",
+        "query": "SELECT ?gdp ?year WHERE { ?country wdt:P31 wd:Q6256 ; rdfs:label \"{entity}\"@en ; p:P2131 ?statement . ?statement ps:P2131 ?gdp ; pq:P585 ?date . BIND(YEAR(?date) AS ?year) } ORDER BY DESC(?year) LIMIT 1",
         "headers": {
-          "User-Agent": "FactChecker-Assay/1.0 (https://factchecker.example.com/)",
-          "Accept": "application/sparql-results+json"
+          "User-Agent": "FactCheckerBot/1.0 (Replit; Educational fact-checking application; https://replit.com/@factchecker)",
+          "Accept": "application/sparql-results+json",
+          "Referer": "https://replit.com"
         },
         "cache_ttl": 86400,
         "timeout": 15000

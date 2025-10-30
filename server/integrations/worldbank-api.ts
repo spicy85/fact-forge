@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { COUNTRY_ISO_MAP } from '../utils/country-codes';
 
 const WORLD_BANK_BASE_URL = 'https://api.worldbank.org/v2';
 
@@ -16,58 +17,6 @@ export interface WorldBankResponse {
   data?: WorldBankData[];
   error?: string;
 }
-
-const COUNTRY_ISO_MAP: Record<string, string> = {
-  'United States': 'US',
-  'Canada': 'CA',
-  'Mexico': 'MX',
-  'Brazil': 'BR',
-  'Argentina': 'AR',
-  'Chile': 'CL',
-  'Colombia': 'CO',
-  'Paraguay': 'PY',
-  'People\'s Republic of China': 'CN',
-  'India': 'IN',
-  'Japan': 'JP',
-  'South Korea': 'KR',
-  'Indonesia': 'ID',
-  'Thailand': 'TH',
-  'Vietnam': 'VN',
-  'Philippines': 'PH',
-  'Malaysia': 'MY',
-  'Singapore': 'SG',
-  'Bangladesh': 'BD',
-  'Pakistan': 'PK',
-  'Germany': 'DE',
-  'France': 'FR',
-  'United Kingdom': 'GB',
-  'Italy': 'IT',
-  'Spain': 'ES',
-  'Kingdom of the Netherlands': 'NL',
-  'Belgium': 'BE',
-  'Switzerland': 'CH',
-  'Austria': 'AT',
-  'Sweden': 'SE',
-  'Norway': 'NO',
-  'Denmark': 'DK',
-  'Finland': 'FI',
-  'Poland': 'PL',
-  'Czech Republic': 'CZ',
-  'Greece': 'GR',
-  'Portugal': 'PT',
-  'Hungary': 'HU',
-  'Romania': 'RO',
-  'Ireland': 'IE',
-  'Russia': 'RU',
-  'Turkey': 'TR',
-  'Israel': 'IL',
-  'Saudi Arabia': 'SA',
-  'Egypt': 'EG',
-  'South Africa': 'ZA',
-  'Nigeria': 'NG',
-  'Australia': 'AU',
-  'New Zealand': 'NZ'
-};
 
 // World Bank Indicator Codes
 export const INDICATORS = {
