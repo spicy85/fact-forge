@@ -12,6 +12,55 @@ export function getToleranceForAttribute(attribute: string | null): number {
   return (toleranceConfig as any)[attribute] ?? toleranceConfig.default;
 }
 
+/**
+ * Try assay-based verification using the structured assay system
+ * This provides deterministic, reproducible fact-checking with complete audit trails
+ * 
+ * The assay system complements the keyword-based verification by:
+ * 1. Using pre-defined test definitions (assays) that specify exact data sources and parsers
+ * 2. Storing complete provenance (raw responses, parsed values, consensus) for every verification
+ * 3. Enabling reproducible verification (same claim → same test → same result)
+ * 
+ * Usage: Call this before keyword-based verification to try structured verification first
+ * Falls back to null if no matching assay exists or if execution fails
+ * 
+ * @param entity - The entity being verified (e.g., "France", "United States")
+ * @param attribute - The attribute being checked (e.g., "population", "gdp", "founded_year")
+ * @param claimedValue - The claimed value as a string
+ * @param year - Optional year context for time-series attributes
+ * @returns Assay result with verification status and provenance, or null to fall back to keywords
+ */
+export async function tryAssayVerification(
+  entity: string,
+  attribute: string,
+  claimedValue: string,
+  year?: number
+): Promise<{ verified: boolean; consensus?: number; provenance_id?: number } | null> {
+  try {
+    const response = await fetch('/api/verify-with-assay', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entity, attribute, value: claimedValue, year })
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const result = await response.json();
+    
+    // If no matching assay was found, return null to fall back to keyword verification
+    if (!result.verified && !result.consensus) {
+      return null;
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Assay verification failed:', error);
+    return null;
+  }
+}
+
 export interface FactRecord {
   entity: string;
   attribute: string;
