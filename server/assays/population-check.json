@@ -1,0 +1,81 @@
+{
+  "id": "population-check-v1",
+  "name": "Country Population Verification",
+  "version": "1.0.0",
+  "domain": "demographics",
+  "description": "Verifies country population claims against trusted data sources (World Bank, Wikidata)",
+  "inputs": {
+    "entity": true,
+    "year": true,
+    "claimed_value": true
+  },
+  "fetch_plan": {
+    "sources": [
+      {
+        "name": "worldbank",
+        "endpoint": "https://api.worldbank.org/v2/country/{entity}/indicator/SP.POP.TOTL",
+        "method": "GET",
+        "headers": {
+          "Accept": "application/json"
+        },
+        "cache_ttl": 86400,
+        "timeout": 10000
+      },
+      {
+        "name": "wikidata",
+        "endpoint": "https://query.wikidata.org/sparql",
+        "method": "SPARQL",
+        "query": "SELECT ?population ?year WHERE { ?country wdt:P31 wd:Q6256 ; rdfs:label \"{entity}\"@en ; p:P1082 ?statement . ?statement ps:P1082 ?population ; pq:P585 ?date . BIND(YEAR(?date) AS ?year) FILTER(?year = {year}) }",
+        "cache_ttl": 86400,
+        "timeout": 15000
+      }
+    ],
+    "parallel": true,
+    "fail_fast": false
+  },
+  "parsers": {
+    "worldbank": {
+      "type": "jsonpath",
+      "expression": "$[1][?(@.date==\"{year}\")].value",
+      "transform": "parseInt"
+    },
+    "wikidata": {
+      "type": "sparql",
+      "expression": "$.results.bindings[0].population.value",
+      "transform": "parseInt"
+    }
+  },
+  "expected_signal": {
+    "unit": "persons",
+    "tolerance": "10%",
+    "comparison_rule": "within_tolerance",
+    "consensus_rule": "majority_within_tolerance",
+    "min_sources": 2
+  },
+  "validation_hooks": [
+    {
+      "type": "unit_check",
+      "params": {
+        "expected_unit": "persons"
+      }
+    },
+    {
+      "type": "range_check",
+      "params": {
+        "min_value": 1000,
+        "max_value": 10000000000
+      }
+    }
+  ],
+  "cost_hints": {
+    "estimated_time_ms": 3000,
+    "estimated_tokens": 0,
+    "estimated_cost_usd": 0
+  },
+  "safe_mode": true,
+  "claim_patterns": [
+    "(?i){entity}.*?population.*?([\\d,]+(?:\\.\\d+)?\\s*(?:million|billion|m|b)?)",
+    "(?i)population.*?{entity}.*?([\\d,]+(?:\\.\\d+)?\\s*(?:million|billion|m|b)?)",
+    "(?i){entity}.*?has.*?([\\d,]+(?:\\.\\d+)?\\s*(?:million|billion|m|b)?).*?people"
+  ]
+}

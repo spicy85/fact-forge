@@ -1,7 +1,7 @@
-import { type User, type InsertUser, type VerifiedFact, type InsertVerifiedFact, type FactsEvaluation, type InsertFactsEvaluation, type Source, type InsertSource, type UpdateSource, type ScoringSettings, type InsertScoringSettings, type UpdateScoringSettings, type RequestedFact, type InsertRequestedFact, type SourceActivityLog, type InsertSourceActivityLog, type FactsActivityLog, type InsertFactsActivityLog, type SourceIdentityMetrics, type InsertSourceIdentityMetrics, type UpdateSourceIdentityMetrics, type TldScore, type InsertTldScore, type UpdateTldScore, type HistoricalEvent, type InsertHistoricalEvent } from "@shared/schema";
+import { type User, type InsertUser, type VerifiedFact, type InsertVerifiedFact, type FactsEvaluation, type InsertFactsEvaluation, type Source, type InsertSource, type UpdateSource, type ScoringSettings, type InsertScoringSettings, type UpdateScoringSettings, type RequestedFact, type InsertRequestedFact, type SourceActivityLog, type InsertSourceActivityLog, type FactsActivityLog, type InsertFactsActivityLog, type SourceIdentityMetrics, type InsertSourceIdentityMetrics, type UpdateSourceIdentityMetrics, type TldScore, type InsertTldScore, type UpdateTldScore, type HistoricalEvent, type InsertHistoricalEvent, type AssayProvenance, type InsertAssayProvenance } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { verifiedFacts, factsEvaluation, sources, scoringSettings, requestedFacts, sourceActivityLog, factsActivityLog, sourceIdentityMetrics, tldScores, historicalEvents } from "@shared/schema";
+import { verifiedFacts, factsEvaluation, sources, scoringSettings, requestedFacts, sourceActivityLog, factsActivityLog, sourceIdentityMetrics, tldScores, historicalEvents, assayProvenance } from "@shared/schema";
 import { eq, and, sql, desc, gte, lte, between } from "drizzle-orm";
 import { calculateSourceTrustScore, calculateRecencyScore, calculateTrustScore } from "./evaluation-scoring";
 import * as https from "https";
@@ -83,6 +83,9 @@ export interface IStorage {
   insertHistoricalEvent(event: InsertHistoricalEvent): Promise<HistoricalEvent>;
   insertHistoricalEventWithFactEvaluation(event: InsertHistoricalEvent): Promise<{ event: HistoricalEvent; factCreated: boolean; factEvaluation?: FactsEvaluation; isDuplicate: boolean; }>;
   backfillHistoricalFacts(): Promise<{ processed: number; created: number; skipped: number; results: { entity: string; event_type: string; attribute: string; year: number; created: boolean; }[]; }>;
+  getAllAssayProvenance(limit?: number, offset?: number): Promise<AssayProvenance[]>;
+  getAssayProvenanceById(id: number): Promise<AssayProvenance | undefined>;
+  insertAssayProvenance(provenance: InsertAssayProvenance): Promise<AssayProvenance>;
 }
 
 // Utility function to validate hostname format
@@ -1763,6 +1766,34 @@ export class MemStorage implements IStorage {
     }
 
     return { processed, created, skipped, results };
+  }
+
+  async getAllAssayProvenance(limit: number = 100, offset: number = 0): Promise<AssayProvenance[]> {
+    return await db
+      .select()
+      .from(assayProvenance)
+      .orderBy(desc(assayProvenance.created_at))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async getAssayProvenanceById(id: number): Promise<AssayProvenance | undefined> {
+    const results = await db
+      .select()
+      .from(assayProvenance)
+      .where(eq(assayProvenance.id, id))
+      .limit(1);
+    
+    return results[0];
+  }
+
+  async insertAssayProvenance(provenance: InsertAssayProvenance): Promise<AssayProvenance> {
+    const results = await db
+      .insert(assayProvenance)
+      .values(provenance)
+      .returning();
+    
+    return results[0];
   }
 }
 

@@ -1,0 +1,66 @@
+{
+  "id": "founding-year-check-v1",
+  "name": "Country Founding Year Verification",
+  "version": "1.0.0",
+  "domain": "history",
+  "description": "Verifies country founding year claims against Wikidata historical records",
+  "inputs": {
+    "entity": true,
+    "claimed_value": true
+  },
+  "fetch_plan": {
+    "sources": [
+      {
+        "name": "wikidata",
+        "endpoint": "https://query.wikidata.org/sparql",
+        "method": "SPARQL",
+        "query": "SELECT ?inception WHERE { ?country wdt:P31 wd:Q6256 ; rdfs:label \"{entity}\"@en ; wdt:P571 ?inception }",
+        "cache_ttl": 604800,
+        "timeout": 15000
+      }
+    ],
+    "parallel": false,
+    "fail_fast": true
+  },
+  "parsers": {
+    "wikidata": {
+      "type": "sparql",
+      "expression": "$.results.bindings[0].inception.value",
+      "transform": "extractYear"
+    }
+  },
+  "expected_signal": {
+    "unit": "year",
+    "tolerance": 0,
+    "comparison_rule": "exact_match",
+    "consensus_rule": "any",
+    "min_sources": 1
+  },
+  "validation_hooks": [
+    {
+      "type": "range_check",
+      "params": {
+        "min_value": 0,
+        "max_value": 2025
+      }
+    },
+    {
+      "type": "temporal_bounds",
+      "params": {
+        "type": "historical_constant"
+      }
+    }
+  ],
+  "cost_hints": {
+    "estimated_time_ms": 2000,
+    "estimated_tokens": 0,
+    "estimated_cost_usd": 0
+  },
+  "safe_mode": true,
+  "claim_patterns": [
+    "(?i){entity}.*?founded.*?(\\d{1,4})",
+    "(?i){entity}.*?established.*?(\\d{1,4})",
+    "(?i){entity}.*?inception.*?(\\d{1,4})",
+    "(?i)founded.*?{entity}.*?(\\d{1,4})"
+  ]
+}
