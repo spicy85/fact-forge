@@ -46,7 +46,8 @@ export async function tryAssayVerification(
 
     const result = await response.json();
     
-    // If no matching assay was found, return null to fall back to keyword verification
+    // If assay returns no verification data, return null
+    // (The multi-source verification data will be used for UI display)
     if (!result.verified && !result.consensus) {
       return null;
     }
