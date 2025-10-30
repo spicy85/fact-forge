@@ -276,3 +276,113 @@ export const insertHistoricalEventSchema = createInsertSchema(historicalEvents).
 
 export type InsertHistoricalEvent = z.infer<typeof insertHistoricalEventSchema>;
 export type HistoricalEvent = typeof historicalEvents.$inferSelect;
+
+export const assayProvenance = pgTable("assay_provenance", {
+  id: serial("id").primaryKey(),
+  assay_id: text("assay_id").notNull(),
+  assay_version: text("assay_version").notNull(),
+  claim: text("claim").notNull(),
+  entity: text("entity"),
+  attribute: text("attribute"),
+  claimed_value: text("claimed_value"),
+  raw_responses: text("raw_responses").notNull(), // JSON stringified array of {source, response, timestamp}
+  parsed_values: text("parsed_values").notNull(), // JSON stringified array of {source, value, unit}
+  consensus_result: text("consensus_result").notNull(), // JSON stringified {passed, value, confidence, agreement}
+  verification_status: text("verification_status").notNull(), // verified, rejected, uncertain
+  artifact_hash: text("artifact_hash").notNull(), // SHA-256 hash of raw_responses for integrity
+  execution_time_ms: integer("execution_time_ms"),
+  created_at: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => ({
+  assayIdIdx: index("assay_provenance_assay_id_idx").on(table.assay_id),
+  entityIdx: index("assay_provenance_entity_idx").on(table.entity),
+  createdAtIdx: index("assay_provenance_created_at_idx").on(table.created_at),
+  hashIdx: index("assay_provenance_hash_idx").on(table.artifact_hash),
+}));
+
+export const insertAssayProvenanceSchema = createInsertSchema(assayProvenance).omit({
+  id: true,
+  created_at: true,
+});
+
+export type InsertAssayProvenance = z.infer<typeof insertAssayProvenanceSchema>;
+export type AssayProvenance = typeof assayProvenance.$inferSelect;
+
+// TypeScript types for assay definitions (not database tables)
+export type FetchSource = {
+  name: string;
+  endpoint: string;
+  method?: "GET" | "POST" | "SPARQL";
+  query?: string;
+  headers?: Record<string, string>;
+  body?: Record<string, any>;
+  cache_ttl?: number; // seconds
+  timeout?: number; // milliseconds
+};
+
+export type FetchPlan = {
+  sources: FetchSource[];
+  parallel?: boolean; // default true
+  fail_fast?: boolean; // default false
+};
+
+export type Parser = {
+  type: "jsonpath" | "xpath" | "regex" | "sparql";
+  expression: string;
+  transform?: string; // optional JS function to transform parsed value
+};
+
+export type ExpectedSignal = {
+  unit?: string;
+  tolerance: string | number; // e.g., "10%" or 1000000
+  comparison_rule?: "within_tolerance" | "exact_match" | "greater_than" | "less_than";
+  consensus_rule?: "majority_within_tolerance" | "unanimous" | "any" | "weighted_average";
+  min_sources?: number; // minimum sources required for consensus
+};
+
+export type ValidationHook = {
+  type: "unit_check" | "range_check" | "cross_source_agreement" | "temporal_bounds";
+  params: Record<string, any>;
+};
+
+export type Assay = {
+  id: string;
+  name: string;
+  version: string;
+  domain?: string; // e.g., "demographics", "economics", "history"
+  owner?: string;
+  license?: string;
+  description?: string;
+  
+  // Input parameters
+  inputs: {
+    entity?: boolean;
+    attribute?: boolean;
+    year?: boolean;
+    claimed_value?: boolean;
+    custom?: Record<string, string>; // additional custom inputs
+  };
+  
+  // Fetch configuration
+  fetch_plan: FetchPlan;
+  
+  // Parsers for each source
+  parsers: Record<string, Parser>;
+  
+  // Expected signal characteristics
+  expected_signal: ExpectedSignal;
+  
+  // Validation hooks
+  validation_hooks?: ValidationHook[];
+  
+  // Cost and risk metadata
+  cost_hints?: {
+    estimated_time_ms?: number;
+    estimated_tokens?: number;
+    estimated_cost_usd?: number;
+  };
+  
+  safe_mode?: boolean; // read-only flag
+  
+  // Template patterns for claim matching
+  claim_patterns?: string[]; // regex patterns to match claims
+};
