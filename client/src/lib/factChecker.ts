@@ -13,22 +13,19 @@ export function getToleranceForAttribute(attribute: string | null): number {
 }
 
 /**
- * Try assay-based verification using the structured assay system
- * This provides deterministic, reproducible fact-checking with complete audit trails
+ * Verify a claim using the unified assay system
  * 
- * The assay system complements the keyword-based verification by:
- * 1. Using pre-defined test definitions (assays) that specify exact data sources and parsers
- * 2. Storing complete provenance (raw responses, parsed values, consensus) for every verification
- * 3. Enabling reproducible verification (same claim → same test → same result)
- * 
- * Usage: Call this before keyword-based verification to try structured verification first
- * Falls back to null if no matching assay exists or if execution fails
+ * All verifications now go through the assay pathway which provides:
+ * 1. Specific assays for known attributes (population, GDP, founding year, etc.) that fetch from external APIs
+ * 2. Retrieval fallback for other attributes that queries the database of existing evaluations
+ * 3. Complete provenance tracking (raw responses, parsed values, consensus) for every verification
+ * 4. Reproducible verification with full audit trails
  * 
  * @param entity - The entity being verified (e.g., "France", "United States")
  * @param attribute - The attribute being checked (e.g., "population", "gdp", "founded_year")
  * @param claimedValue - The claimed value as a string
  * @param year - Optional year context for time-series attributes
- * @returns Assay result with verification status and provenance, or null to fall back to keywords
+ * @returns Assay result with verification status and provenance_id
  */
 export async function tryAssayVerification(
   entity: string,
@@ -691,7 +688,8 @@ export async function processTextMultiSource(
     const attribute = guessAttribute(claim, attributeMapping);
     const claimYear = extractYearFromContext(claim, text);
     
-    // Try assay-based verification first (structured, deterministic)
+    // Run assay verification for provenance tracking
+    // (All verifications now use the unified assay system: specific assays or retrieval fallback)
     let assayResult = null;
     let provenanceId: number | undefined = undefined;
     
@@ -702,7 +700,8 @@ export async function processTextMultiSource(
       }
     }
     
-    // Fall back to keyword-based multi-source verification if no assay
+    // Get verification status and multi-source details for UI display
+    // Note: This uses pre-fetched multi-source data. Could be optimized to use assay results directly.
     const verification = verifyClaimMultiSource(claim, attribute, entity, multiSourceData);
 
     // Log unsupported entity-attribute combinations for future data expansion
