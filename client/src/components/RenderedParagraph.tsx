@@ -9,6 +9,7 @@ export interface VerifiedClaim {
   tooltipContent?: string;
   startIndex: number;
   endIndex: number;
+  provenanceId?: number;
 }
 
 interface RenderedParagraphProps {

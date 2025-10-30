@@ -657,17 +657,17 @@ export function processText(
   return { verifiedClaims, results, detectedEntity: entity };
 }
 
-export function processTextMultiSource(
+export async function processTextMultiSource(
   text: string,
   multiSourceData: Map<string, MultiSourceData>,
   attributeMapping: AttributeMapping,
   availableEntities: string[],
   entityMapping: EntityMapping = {}
-): {
+): Promise<{
   verifiedClaims: VerifiedClaim[];
   results: VerificationResult[];
   detectedEntity: string | null;
-} {
+}> {
   if (!text) {
     return { verifiedClaims: [], results: [], detectedEntity: null };
   }
@@ -687,8 +687,22 @@ export function processTextMultiSource(
   const verifiedClaims: VerifiedClaim[] = [];
   const results: VerificationResult[] = [];
 
-  claims.forEach((claim) => {
+  for (const claim of claims) {
     const attribute = guessAttribute(claim, attributeMapping);
+    const claimYear = extractYearFromContext(claim, text);
+    
+    // Try assay-based verification first (structured, deterministic)
+    let assayResult = null;
+    let provenanceId: number | undefined = undefined;
+    
+    if (attribute) {
+      assayResult = await tryAssayVerification(entity, attribute, claim.value, claimYear);
+      if (assayResult) {
+        provenanceId = assayResult.provenance_id;
+      }
+    }
+    
+    // Fall back to keyword-based multi-source verification if no assay
     const verification = verifyClaimMultiSource(claim, attribute, entity, multiSourceData);
 
     // Log unsupported entity-attribute combinations for future data expansion
@@ -737,6 +751,7 @@ export function processTextMultiSource(
       tooltipContent,
       startIndex: claim.startIndex,
       endIndex: claim.endIndex,
+      provenanceId,
     });
 
     // Display range only if we have multiple sources, otherwise show single value
@@ -811,8 +826,9 @@ export function processTextMultiSource(
       citation: undefined,
       sourceTrust: sourceCount !== undefined ? `${sourceCount} ${sourceCount === 1 ? 'source' : 'sources'}` : undefined,
       sources,
+      provenanceId,
     });
-  });
+  }
 
   return { verifiedClaims, results, detectedEntity: entity };
 }

@@ -29,6 +29,7 @@ export interface VerificationResult {
   citation?: string;
   sourceTrust?: string;
   sources?: SourceDetail[];
+  provenanceId?: number;
 }
 
 interface ResultsTableProps {

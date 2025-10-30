@@ -123,7 +123,7 @@ export default function FactChecker() {
     );
     
     // Process text with multi-source data
-    const { verifiedClaims: claims_verified, results: res } = processTextMultiSource(
+    const { verifiedClaims: claims_verified, results: res } = await processTextMultiSource(
       paragraph,
       multiSourceData,
       attributeMapping,
