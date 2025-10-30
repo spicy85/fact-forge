@@ -14,6 +14,7 @@ import FactsActivityLog from "@/pages/FactsActivityLog";
 import DataCoverage from "@/pages/DataCoverage";
 import EvaluationScoring from "@/pages/EvaluationScoring";
 import AdminScoring from "@/pages/AdminScoring";
+import AssayProvenance from "@/pages/AssayProvenance";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -29,6 +30,7 @@ function Router() {
       <Route path="/facts/activity-log" component={FactsActivityLog} />
       <Route path="/evaluation-scoring" component={EvaluationScoring} />
       <Route path="/admin" component={AdminScoring} />
+      <Route path="/assay-provenance" component={AssayProvenance} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ShieldCheck, Table, Database, Calculator, Settings, Clock, ChevronDown, BookOpen } from "lucide-react";
+import { ShieldCheck, Table, Database, Calculator, Settings, Clock, ChevronDown, BookOpen, FileText } from "lucide-react";
 import {
   processText,
   processTextMultiSource,
@@ -193,6 +193,12 @@ export default function FactChecker() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link href="/assay-provenance" className="w-full cursor-pointer">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Assay Provenance
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/facts/activity-log" className="w-full cursor-pointer">
                     <Clock className="h-4 w-4 mr-2" />
